@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['number', 'type', 'status', 'source_location_id', 'destination_location_id', 'requested_by', 'approved_by', 'driver_id', 'confirmed_by', 'document_number', 'document_path', 'requested_at', 'assigned_at', 'approved_at', 'dispatched_at', 'received_at', 'notes'])]
+#[Fillable(['number', 'type', 'status', 'source_location_id', 'destination_location_id', 'requested_by', 'approved_by', 'driver_id', 'confirmed_by', 'document_number', 'document_path', 'requested_at', 'assigned_at', 'approved_at', 'dispatched_at', 'received_at', 'received_with_discrepancy', 'discrepancy_notes', 'notes'])]
 class Transfer extends Model
 {
     use HasFactory;
@@ -21,6 +21,7 @@ class Transfer extends Model
             'approved_at' => 'datetime',
             'dispatched_at' => 'datetime',
             'received_at' => 'datetime',
+            'received_with_discrepancy' => 'boolean',
         ];
     }
 

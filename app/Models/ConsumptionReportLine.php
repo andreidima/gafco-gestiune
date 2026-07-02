@@ -7,23 +7,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['transfer_id', 'catalog_item_id', 'tracked_asset_id', 'quantity', 'unit', 'received_status', 'notes'])]
-class TransferLine extends Model
+#[Fillable(['consumption_report_id', 'catalog_item_id', 'quantity', 'unit', 'notes'])]
+class ConsumptionReportLine extends Model
 {
     use HasFactory;
 
-    public function transfer(): BelongsTo
+    public function consumptionReport(): BelongsTo
     {
-        return $this->belongsTo(Transfer::class);
+        return $this->belongsTo(ConsumptionReport::class);
     }
 
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CatalogItem::class);
-    }
-
-    public function trackedAsset(): BelongsTo
-    {
-        return $this->belongsTo(TrackedAsset::class);
     }
 }

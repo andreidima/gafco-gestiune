@@ -29,47 +29,86 @@
                                     <i class="fa-solid fa-house me-1"></i> Acasa
                                 </a>
                             </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">
-                                    <i class="fa-solid fa-building me-1"></i> Locatii
-                                </a>
-                            </li>
                             <li class="nav-item me-2 dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->routeIs('catalog-items.*', 'tracked-assets.*', 'supplier-receptions.*') ? 'active' : '' }}" href="#" id="stocuriDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa-solid fa-boxes-stacked me-1"></i> Stocuri
+                                <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'tracked-assets.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                 </a>
-                                <ul class="dropdown-menu" aria-labelledby="stocuriDropdown">
+                                <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">
+                                            Locatii
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">
-                                            <i class="fa-solid fa-screwdriver-wrench me-1"></i> Echipamente
+                                            Echipamente
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">
-                                            <i class="fa-solid fa-list me-1"></i> Nomenclator
+                                            Nomenclator
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">
-                                            <i class="fa-solid fa-receipt me-1"></i> Receptii
+                                            Receptii
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">
+                                            Consum
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('returns.*') ? 'active' : '' }}" href="{{ route('returns.index') }}">
+                                            Retururi
                                         </a>
                                     </li>
                                 </ul>
                             </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">
+                            <li class="nav-item me-2 dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->routeIs('transfers.*', 'driver-requests.*') ? 'active' : '' }}" href="#" id="transferuriDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fa-solid fa-right-left me-1"></i> Transferuri
                                 </a>
+                                <ul class="dropdown-menu" aria-labelledby="transferuriDropdown">
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">
+                                            Transferuri
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('driver-requests.*') ? 'active' : '' }}" href="{{ route('driver-requests.index') }}">
+                                            Soferi
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link {{ request()->routeIs('driver-requests.*') ? 'active' : '' }}" href="{{ route('driver-requests.index') }}">
-                                    <i class="fa-solid fa-truck me-1"></i> Cereri sofer
+                            <li class="nav-item me-2 dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->routeIs('field.*') ? 'active' : '' }}" href="#" id="terenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-mobile-screen-button me-1"></i> Teren
                                 </a>
-                            </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">
-                                    <i class="fa-solid fa-qrcode me-1"></i> QR
-                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="terenDropdown">
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('field.driver') ? 'active' : '' }}" href="{{ route('field.driver') }}">
+                                            Sofer
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}">
+                                            Sef santier
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">
+                                            Muncitor
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">
+                                            QR
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                             <li class="nav-item me-2">
                                 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}">
@@ -79,12 +118,12 @@
                             @if(auth()->user()?->hasAnyRole(['admin','super-admin']))
                                 <li class="nav-item me-2 dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fa-solid fa-screwdriver-wrench me-1"></i> Utile
+                                        <i class="fa-solid fa-gear me-1"></i> Setari
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="utileDropdown">
                                         <li>
                                             <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
-                                                <i class="fa-solid fa-users me-1"></i> Utilizatori
+                                                Utilizatori
                                             </a>
                                         </li>
                                     </ul>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
 use App\Models\Location;
+use App\Models\StockLevel;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\User;
@@ -82,12 +83,17 @@ class TransferController extends Controller
             'status' => ['required', 'in:draft,pending_approval,approved,assigned,in_transit,received,cancelled'],
             'driver_id' => ['nullable', 'exists:users,id'],
             'document_number' => ['nullable', 'string', 'max:255'],
+            'received_with_discrepancy' => ['nullable', 'boolean'],
+            'discrepancy_notes' => ['nullable', 'string'],
         ]);
 
         DB::transaction(function () use ($data, $request, $transfer) {
+            $wasReceived = $transfer->status === 'received';
             $updates = [
                 'status' => $data['status'],
                 'document_number' => $data['document_number'] ?? $transfer->document_number,
+                'received_with_discrepancy' => (bool) ($data['received_with_discrepancy'] ?? ! empty($data['discrepancy_notes'])),
+                'discrepancy_notes' => $data['discrepancy_notes'] ?? $transfer->discrepancy_notes,
             ];
 
             if (array_key_exists('driver_id', $data)) {
@@ -121,6 +127,14 @@ class TransferController extends Controller
                         'current_location_id' => $transfer->destination_location_id,
                         'last_verified_at' => now(),
                     ]);
+                    if (! $wasReceived && ! $line->tracked_asset_id) {
+                        $this->moveStock(
+                            $line->catalog_item_id,
+                            $transfer->source_location_id,
+                            $transfer->destination_location_id,
+                            (float) $line->quantity
+                        );
+                    }
                     $line->update(['received_status' => 'received']);
                 }
             }
@@ -134,5 +148,24 @@ class TransferController extends Controller
         });
 
         return back()->with('status', 'Statusul transferului a fost actualizat.');
+    }
+
+    private function moveStock(int $catalogItemId, ?int $sourceLocationId, ?int $destinationLocationId, float $quantity): void
+    {
+        if ($sourceLocationId) {
+            $sourceStock = StockLevel::firstOrCreate(
+                ['location_id' => $sourceLocationId, 'catalog_item_id' => $catalogItemId],
+                ['quantity' => 0]
+            );
+            $sourceStock->update(['quantity' => max(0, (float) $sourceStock->quantity - $quantity)]);
+        }
+
+        if ($destinationLocationId) {
+            $destinationStock = StockLevel::firstOrCreate(
+                ['location_id' => $destinationLocationId, 'catalog_item_id' => $catalogItemId],
+                ['quantity' => 0]
+            );
+            $destinationStock->increment('quantity', $quantity);
+        }
     }
 }

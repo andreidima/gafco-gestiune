@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ConsumptionReport;
 use App\Models\Location;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
+use App\Models\TransferLine;
 use Illuminate\View\View;
 
 class ReportController extends Controller
@@ -31,6 +33,24 @@ class ReportController extends Controller
             'recentTransfers' => Transfer::with(['sourceLocation', 'destinationLocation', 'driver', 'approver', 'confirmer'])
                 ->withCount('lines')
                 ->latest()
+                ->limit(12)
+                ->get(),
+            'inTransitAlerts' => Transfer::with(['sourceLocation', 'destinationLocation', 'driver'])
+                ->where('status', 'in_transit')
+                ->where('dispatched_at', '<', now()->subHours(12))
+                ->oldest('dispatched_at')
+                ->limit(12)
+                ->get(),
+            'discrepancyLines' => TransferLine::with(['transfer.sourceLocation', 'transfer.destinationLocation', 'catalogItem', 'trackedAsset'])
+                ->where(function ($query) {
+                    $query->where('received_status', '!=', 'received')
+                        ->orWhereHas('transfer', fn ($transferQuery) => $transferQuery->where('received_with_discrepancy', true));
+                })
+                ->latest()
+                ->limit(12)
+                ->get(),
+            'recentConsumption' => ConsumptionReport::with(['location', 'reporter', 'lines.catalogItem'])
+                ->latest('reported_at')
                 ->limit(12)
                 ->get(),
         ]);

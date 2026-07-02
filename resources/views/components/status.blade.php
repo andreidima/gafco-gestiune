@@ -4,6 +4,7 @@
     $labels = [
         'draft' => 'Draft',
         'pending_approval' => 'Asteapta aprobare',
+        'pending' => 'In asteptare',
         'approved' => 'Aprobat',
         'open' => 'Deschis',
         'assigned' => 'Alocat',
@@ -11,6 +12,7 @@
         'in_transit' => 'In tranzit',
         'received' => 'Receptionat',
         'posted' => 'Inregistrat',
+        'accepted' => 'Acceptat',
         'closed' => 'Inchis',
         'cancelled' => 'Anulat',
     ];

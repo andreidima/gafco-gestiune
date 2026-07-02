@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\CatalogItem;
+use App\Models\ConsumptionReport;
+use App\Models\CustodyTransfer;
 use App\Models\DriverRequest;
 use App\Models\Location;
 use App\Models\StockLevel;
@@ -79,6 +81,16 @@ class LogisticsSeeder extends Seeder
             return $user;
         });
 
+        $extraWorkers = collect(range(1, 12))->map(function (int $index) {
+            $user = User::updateOrCreate(
+                ['email' => "muncitor{$index}@example.com"],
+                ['name' => "Muncitor {$index}", 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+            );
+            $user->syncRoles(['muncitor']);
+
+            return $user;
+        });
+
         $extraLocations = collect(range(4, 15))->map(function (int $index) use ($extraManagers) {
             return Location::updateOrCreate(
                 ['code' => 'S-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT)],
@@ -95,6 +107,7 @@ class LogisticsSeeder extends Seeder
         $locations = collect([$base, $siteOne, $siteTwo, $siteThree])->merge($extraLocations)->values();
         $drivers = collect([$driver])->merge($extraDrivers)->values();
         $managers = collect([$manager])->merge($extraManagers)->values();
+        $workers = $extraWorkers->values();
 
         $catalogSeeds = collect([
             ['sku' => 'MAT-CIM-25', 'category' => 'material', 'tracking_type' => 'quantity', 'name' => 'Ciment 25 kg', 'unit' => 'sac'],
@@ -296,7 +309,8 @@ class LogisticsSeeder extends Seeder
         foreach (range(1, 320) as $index) {
             $item = $serializedItems[$index % $serializedItems->count()];
             $location = $locations[$index % $locations->count()];
-            $custodian = $managers[$index % $managers->count()];
+            $custodianPool = $index % 4 === 0 ? $workers : $managers;
+            $custodian = $custodianPool[$index % $custodianPool->count()];
             $status = $assetStatuses[$index % count($assetStatuses)];
 
             TrackedAsset::updateOrCreate(
@@ -346,6 +360,8 @@ class LogisticsSeeder extends Seeder
                     'assigned_at' => in_array($status, ['assigned', 'in_transit', 'received'], true) ? $requestedAt->copy()->addHours(4) : null,
                     'dispatched_at' => in_array($status, ['in_transit', 'received'], true) ? $requestedAt->copy()->addHours(8) : null,
                     'received_at' => $status === 'received' ? $requestedAt->copy()->addDay() : null,
+                    'received_with_discrepancy' => $status === 'received' && $index % 17 === 0,
+                    'discrepancy_notes' => $status === 'received' && $index % 17 === 0 ? 'Diferenta demo constatata la primire.' : null,
                     'notes' => 'Transfer demo generat pentru volum de date.',
                 ]
             );
@@ -358,7 +374,7 @@ class LogisticsSeeder extends Seeder
                         'catalog_item_id' => $asset->catalog_item_id,
                         'quantity' => 1,
                         'unit' => $asset->catalogItem?->unit ?? 'buc',
-                        'received_status' => $status === 'received' ? 'received' : 'pending',
+                        'received_status' => $status === 'received' && $index % 17 !== 0 ? 'received' : 'pending',
                     ]
                 );
             } else {
@@ -368,7 +384,7 @@ class LogisticsSeeder extends Seeder
                     [
                         'quantity' => 1 + ($index % 80),
                         'unit' => $item->unit,
-                        'received_status' => $status === 'received' ? 'received' : 'pending',
+                        'received_status' => $status === 'received' && $index % 17 !== 0 ? 'received' : 'pending',
                     ]
                 );
             }
@@ -423,6 +439,66 @@ class LogisticsSeeder extends Seeder
                     'unit' => $item->unit,
                 ]
             );
+        }
+
+        foreach (range(1, 140) as $index) {
+            $site = $locations->where('type', 'site')->values()[$index % $locations->where('type', 'site')->count()];
+            $item = $quantityItems[$index % $quantityItems->count()];
+            $quantity = 1 + ($index % 35);
+            $reportedAt = now()->subDays($index % 80)->subHours($index % 9);
+
+            $consumption = ConsumptionReport::updateOrCreate(
+                ['number' => 'CS-BULK-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT)],
+                [
+                    'location_id' => $site->id,
+                    'reported_by' => $managers[$index % $managers->count()]->id,
+                    'status' => 'posted',
+                    'reported_at' => $reportedAt,
+                    'notes' => 'Consum demo raportat din santier.',
+                ]
+            );
+            $consumption->lines()->updateOrCreate(
+                ['catalog_item_id' => $item->id],
+                [
+                    'quantity' => $quantity,
+                    'unit' => $item->unit,
+                    'notes' => 'Consum demo pe lucrare.',
+                ]
+            );
+
+            $stock = StockLevel::firstOrCreate(
+                ['location_id' => $site->id, 'catalog_item_id' => $item->id],
+                ['quantity' => 0]
+            );
+            $stock->update(['quantity' => max(0, (float) $stock->quantity - $quantity)]);
+        }
+
+        foreach (range(1, 80) as $index) {
+            $asset = $allAssets[$index % $allAssets->count()];
+            $fromUser = $workers[$index % $workers->count()];
+            $toUser = $workers[($index + 3) % $workers->count()];
+            $status = $index % 4 === 0 ? 'pending' : 'accepted';
+
+            $custodyTransfer = CustodyTransfer::updateOrCreate(
+                ['qr_token' => 'CUST-DEMO-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT)],
+                [
+                    'tracked_asset_id' => $asset->id,
+                    'from_user_id' => $fromUser->id,
+                    'to_user_id' => $toUser->id,
+                    'status' => $status,
+                    'expires_at' => now()->addDay(),
+                    'accepted_at' => $status === 'accepted' ? now()->subDays($index % 20) : null,
+                    'notes' => 'Predare demo intre muncitori.',
+                ]
+            );
+
+            if ($custodyTransfer->status === 'accepted') {
+                $asset->update([
+                    'current_custodian_id' => $toUser->id,
+                    'status' => 'in_use',
+                    'last_verified_at' => $custodyTransfer->accepted_at,
+                ]);
+            }
         }
     }
 }
