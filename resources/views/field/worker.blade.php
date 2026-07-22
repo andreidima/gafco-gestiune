@@ -7,7 +7,7 @@
     <div class="dashboard-hero mb-4">
         <span class="dashboard-pill"><i class="fa-solid fa-helmet-safety me-2"></i> Mod muncitor</span>
         <h3 class="mb-2">Scule in custodie si predare intre muncitori</h3>
-        <p class="mb-0 text-muted">Demo pentru predarea unei scule scanate QR catre alt muncitor.</p>
+        <p class="mb-0 text-muted">Predarea unei scule catre alt muncitor se finalizeaza numai dupa acordul ambelor persoane.</p>
     </div>
 
     <div class="row g-3">
@@ -56,7 +56,16 @@
     </div>
 
     <div class="card dashboard-chart-card mt-4">
-        <div class="card-header bg-white"><strong>Predari intre muncitori</strong></div>
+        <div class="card-header bg-white">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <strong>Predari intre muncitori</strong>
+                <form class="d-flex flex-wrap gap-2">
+                    <input name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Token sau echipament">
+                    <select name="status" class="form-select form-select-sm"><option value="">Toate starile</option>@foreach(['pending'=>'In asteptare','accepted'=>'Acceptat','rejected'=>'Refuzat'] as $value=>$label)<option value="{{ $value }}" @selected(request('status')===$value)>{{ $label }}</option>@endforeach</select>
+                    <button class="btn btn-sm btn-outline-primary">Filtreaza</button>
+                </form>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle mb-0">
                 <thead>
@@ -79,12 +88,17 @@
                         <td><x-status :status="$transfer->status" /></td>
                         <td class="text-end">
                             @if($transfer->status === 'pending')
-                                <form method="post" action="{{ route('custody-transfers.update', $transfer) }}">
-                                    @csrf
-                                    @method('put')
-                                    <input type="hidden" name="status" value="accepted">
-                                    <button class="btn btn-sm btn-outline-success rounded-3">Accepta</button>
-                                </form>
+                                @php($canDecide = ($transfer->from_user_id === auth()->id() && !$transfer->from_approved_at) || ($transfer->to_user_id === auth()->id() && !$transfer->to_approved_at))
+                                @if($canDecide)
+                                    <form method="post" action="{{ route('custody-transfers.update', $transfer) }}" class="d-flex justify-content-end gap-1">
+                                        @csrf
+                                        @method('put')
+                                        <button name="decision" value="approved" class="btn btn-sm btn-outline-success rounded-3">Aproba</button>
+                                        <button name="decision" value="rejected" class="btn btn-sm btn-outline-danger rounded-3">Refuza</button>
+                                    </form>
+                                @else
+                                    <span class="small text-muted">{{ $transfer->from_approved_at ? 'Predator aprobat' : 'Asteapta predator' }} / {{ $transfer->to_approved_at ? 'destinatar aprobat' : 'asteapta destinatar' }}</span>
+                                @endif
                             @else
                                 <span class="text-muted">{{ optional($transfer->accepted_at)->format('d.m.Y H:i') }}</span>
                             @endif

@@ -6,7 +6,7 @@
 <div class="login-shell">
     <div class="container">
         <div class="row g-4 align-items-stretch">
-            <div class="col-lg-7">
+            <div class="col-lg-7 order-2 order-lg-1">
                 <div class="login-hero h-100 p-4 p-lg-5 rounded-4">
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
                         <span class="login-pill">Pagina de pornire</span>
@@ -66,7 +66,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-5 order-1 order-lg-2">
                 <div class="card login-card border-0 shadow h-100">
                     <div class="card-header login-card-header text-center">
                         <div class="login-logo">
@@ -77,22 +77,25 @@
                     </div>
                     <div class="card-body pb-0">
                         <div class="login-helper mb-3">
-                            Foloseste contul primit de la administrator. Pentru demo: <strong>admin@example.com</strong> / <strong>password</strong>.
+                            Foloseste codul sau adresa de email si parola primite de la administrator.
+                            @env('local')<span class="d-block mt-1">Demo local: <strong>ADMIN</strong> / <strong>password</strong>.</span>@endenv
                         </div>
 
                         <form method="POST" action="{{ route('login.store') }}">
                             @csrf
                             <div class="mb-3">
+                                <label for="login_code" class="form-label">Cod utilizator sau email</label>
                                 <div class="input-group">
-                                    <span class="input-group-text culoare1"><i class="fas fa-user"></i></span>
-                                    <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" autocomplete="email" autofocus placeholder="Adresa email" required>
+                                    <span class="input-group-text culoare1" aria-hidden="true"><i class="fas fa-user"></i></span>
+                                    <input id="login_code" class="form-control @error('login_code') is-invalid @enderror" name="login_code" value="{{ old('login_code') }}" autocomplete="username" autofocus placeholder="Cod utilizator sau email" required>
                                 </div>
-                                @error('email')<span class="text-danger small">{{ $message }}</span>@enderror
+                                @error('login_code')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
 
                             <div class="mb-3">
+                                <label for="password" class="form-label">Parola</label>
                                 <div class="input-group">
-                                    <span class="input-group-text culoare1"><i class="fas fa-lock"></i></span>
+                                    <span class="input-group-text culoare1" aria-hidden="true"><i class="fas fa-lock"></i></span>
                                     <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" name="password" autocomplete="current-password" placeholder="Parola" required>
                                 </div>
                                 @error('password')<span class="text-danger small">{{ $message }}</span>@enderror

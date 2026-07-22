@@ -1,89 +1,130 @@
 @extends('layouts.app')
 
-@section('title', 'Consum')
+@section('title', 'Consum materiale')
 
 @section('content')
-<div class="mx-3 px-3 card crud-card">
-    <div class="row card-header align-items-center">
-        <div class="col-lg-3">
-            <span class="badge culoare1 fs-5">
-                <i class="fa-solid fa-clipboard-check"></i> Consum materiale
-            </span>
-            <div class="small text-muted mt-2">Raportare consum pe santier cu scadere automata din stoc</div>
-        </div>
-        <div class="col-lg-9">
-            <form method="post" action="{{ route('consumption-reports.store') }}" class="row g-2 align-items-end">
-                @csrf
-                <div class="col-lg-3">
-                    <label class="form-label small mb-1">Locatie</label>
-                    <select name="location_id" class="form-select form-select-sm rounded-3" required>
-                        <option value="">Alege</option>
-                        @foreach($locations as $location)
-                            <option value="{{ $location->id }}">{{ $location->code }} - {{ $location->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-lg-3">
-                    <label class="form-label small mb-1">Material</label>
-                    <select name="catalog_item_id" class="form-select form-select-sm rounded-3" required>
-                        <option value="">Alege</option>
-                        @foreach($items as $item)
-                            <option value="{{ $item->id }}">{{ $item->name }} ({{ $item->unit }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-lg-2">
-                    <label class="form-label small mb-1">Cantitate</label>
-                    <input name="quantity" type="number" step="0.001" min="0.001" value="1" class="form-control form-control-sm rounded-3" required>
-                </div>
-                <div class="col-lg-3">
-                    <label class="form-label small mb-1">Observatii</label>
-                    <input name="notes" class="form-control form-control-sm rounded-3" placeholder="Lucrare / echipa / zona">
-                </div>
-                <div class="col-lg-1">
-                    <button class="btn btn-sm btn-success text-white border border-dark rounded-3 w-100">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+@php
+    $hasFilters = request()->filled('search')
+        || request()->filled('location_id')
+        || request()->filled('catalog_item_id')
+        || request()->filled('date_from')
+        || request()->filled('date_to');
+    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+@endphp
+<div class="resource-shell">
+    <x-resource-page-header
+        title="Consum materiale"
+        description="Consumuri raportate pe locatie, cu scadere automata din stoc."
+        :count="$totalReports"
+        :filtered-count="$reports->total()"
+        icon="fa-clipboard-check"
+        :create-route="$canCreate ? route('consumption-reports.create') : null"
+        create-label="Raporteaza consum"
+    />
 
-    <div class="card-body px-0 py-3">
-        <div class="table-responsive rounded">
-            <table class="table table-striped table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="culoare2 text-white">Raport</th>
-                        <th class="culoare2 text-white">Locatie</th>
-                        <th class="culoare2 text-white">Materiale</th>
-                        <th class="culoare2 text-white">Responsabil</th>
-                        <th class="culoare2 text-white">Status</th>
-                    </tr>
-                </thead>
+    <form class="resource-filter-panel">
+        <div class="row g-2 align-items-end">
+            <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Numar raport"></div>
+            <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
+            <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Material</label><select name="catalog_item_id" class="form-select" data-tom-select><option value="">Toate</option>@foreach($items as $item)<option value="{{ $item->id }}" @selected((string) request('catalog_item_id') === (string) $item->id)>{{ $item->name }}</option>@endforeach</select></div>
+            <div class="col-xl-1 col-md-3"><label class="resource-filter-label">De la</label><input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control"></div>
+            <div class="col-xl-1 col-md-3"><label class="resource-filter-label">Pana la</label><input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control"></div>
+            <div class="col-xl-1 col-md-12 d-flex gap-2"><button class="btn btn-primary flex-fill" title="Aplica filtrele"><i class="fa-solid fa-filter"></i></button><a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+        </div>
+    </form>
+
+    <div class="resource-table-card">
+        <div class="table-responsive resource-desktop-table">
+            <table class="table resource-table">
+                <thead><tr><th>Raport</th><th>Locatie</th><th>Materiale consumate</th><th>Responsabil</th><th>Observatii</th><th>Status</th></tr></thead>
                 <tbody>
                 @forelse($reports as $report)
                     <tr>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $report->number }}</span><span class="resource-secondary"><i class="fa-regular fa-clock me-1"></i>{{ $report->reported_at?->format('d.m.Y H:i') ?? '-' }}</span></div></td>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $report->location?->code ?? '-' }}</span><span class="resource-secondary">{{ $report->location?->name }}</span></div></td>
                         <td>
-                            <strong>{{ $report->number }}</strong>
-                            <div class="small text-muted">{{ optional($report->reported_at)->format('d.m.Y H:i') }}</div>
+                            <div class="resource-cell-stack">
+                                @foreach($report->lines as $line)<span>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }} <span class="resource-secondary">{{ $formatQuantity($line->quantity) }} {{ $line->unit }}</span></span>@endforeach
+                                @if($report->lines_count > $report->lines->count())<span class="resource-secondary fw-semibold">+{{ $report->lines_count - $report->lines->count() }} {{ $report->lines_count - $report->lines->count() === 1 ? 'alt material' : 'alte materiale' }}</span>@endif
+                            </div>
                         </td>
-                        <td>{{ $report->location?->name }}</td>
-                        <td>
-                            @foreach($report->lines as $line)
-                                <div>{{ $line->catalogItem?->name }} <span class="text-muted">({{ number_format((float) $line->quantity, 2) }} {{ $line->unit }})</span></div>
-                            @endforeach
-                        </td>
-                        <td>{{ $report->reporter?->name ?? '-' }}</td>
+                        <td>@if($report->reporter)<span>{{ $report->reporter->name }}</span>@else<span class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Responsabil indisponibil</span>@endif</td>
+                        <td>@if($report->notes)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($report->notes, 70) }}</span>@else<span class="text-muted">-</span>@endif</td>
                         <td><x-status :status="$report->status" /></td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center text-secondary py-4">Nu exista rapoarte de consum.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            @if($hasFilters)
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Niciun consum nu corespunde filtrelor selectate.</span>
+                                    <a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                </div>
+                            @else
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nu exista inca rapoarte de consum.</span>
+                                    @if($canCreate)<a href="{{ route('consumption-reports.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Raporteaza primul consum</a>@endif
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="pt-3">{{ $reports->links() }}</div>
+
+        <div class="resource-mobile-list">
+            @forelse($reports as $report)
+                <article class="card resource-mobile-card">
+                    <div class="card-body">
+                        <div class="resource-mobile-card-header">
+                            <div class="min-w-0">
+                                <h2 class="resource-mobile-card-title">{{ $report->number }}</h2>
+                                <div class="resource-mobile-card-subtitle"><i class="fa-regular fa-clock me-1"></i>{{ $report->reported_at?->format('d.m.Y H:i') ?? '-' }}</div>
+                            </div>
+                            <x-status :status="$report->status" />
+                        </div>
+
+                        <div class="resource-mobile-card-grid">
+                            <div>
+                                <span class="resource-filter-label">Locatie</span>
+                                <strong>{{ $report->location?->code ?? '-' }}</strong>
+                                @if($report->location?->name)<span class="resource-secondary">{{ $report->location->name }}</span>@endif
+                            </div>
+                            <div>
+                                <span class="resource-filter-label">Responsabil</span>
+                                @if($report->reporter)<strong><i class="fa-solid fa-user-check me-1 text-muted"></i>{{ $report->reporter->name }}</strong>@else<span class="text-warning fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Responsabil indisponibil</span>@endif
+                            </div>
+                            <div class="resource-mobile-card-wide">
+                                <span class="resource-filter-label">Materiale consumate</span>
+                                @foreach($report->lines as $line)
+                                    <span class="d-block"><strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong> <span class="resource-secondary d-inline">{{ $formatQuantity($line->quantity) }} {{ $line->unit }}</span></span>
+                                @endforeach
+                                @if($report->lines_count > $report->lines->count())<span class="resource-secondary fw-semibold">+{{ $report->lines_count - $report->lines->count() }} {{ $report->lines_count - $report->lines->count() === 1 ? 'alt material' : 'alte materiale' }}</span>@endif
+                            </div>
+                            @if($report->notes)
+                                <div class="resource-mobile-card-wide">
+                                    <span class="resource-filter-label">Observatii</span>
+                                    <span class="resource-secondary">{{ \Illuminate\Support\Str::limit($report->notes, 120) }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="resource-empty-state">
+                    @if($hasFilters)
+                        <p class="mb-2">Niciun consum nu corespunde filtrelor selectate.</p>
+                        <a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                    @else
+                        <p class="mb-2">Nu exista inca rapoarte de consum.</p>
+                        @if($canCreate)<a href="{{ route('consumption-reports.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Raporteaza primul consum</a>@endif
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <div class="resource-table-footer">{{ $reports->links() }}</div>
     </div>
 </div>
 @endsection

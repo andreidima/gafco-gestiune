@@ -1,98 +1,139 @@
 @extends('layouts.app')
 
-@section('title', 'Receptii')
-@section('page_title', 'Receptii furnizori')
-@section('page_subtitle', 'Marfa intrata pe baza sau santier')
+@section('title', 'Receptii furnizori')
 
 @section('content')
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="post" action="{{ route('supplier-receptions.store') }}" class="row g-3 align-items-end">
-                @csrf
-                <div class="col-md-2">
-                    <label class="form-label">Locatie</label>
-                    <select name="location_id" class="form-select" data-tom-select required>
-                        <option value="">Alege</option>
-                        @foreach($locations as $location)
-                            <option value="{{ $location->id }}">{{ $location->code }} - {{ $location->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Furnizor</label>
-                    <select name="supplier_id" class="form-select">
-                        <option value="">Nespecificat</option>
-                        @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Document</label>
-                    <select name="document_type" class="form-select">
-                        <option value="aviz">Aviz</option>
-                        <option value="factura">Factura</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Numar doc.</label>
-                    <input name="document_number" class="form-control">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Articol</label>
-                    <select name="catalog_item_id" class="form-select" data-tom-select required>
-                        <option value="">Alege</option>
-                        @foreach($items as $item)
-                            <option value="{{ $item->id }}">{{ $item->name }} ({{ $item->unit }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">Cant.</label>
-                    <input name="quantity" type="number" step="0.001" min="0.001" value="1" class="form-control" required>
-                </div>
-                <div class="col-md-1">
-                    <button class="btn btn-success w-100">Salveaza</button>
-                </div>
-                <div class="col-12">
-                    <input name="notes" class="form-control" placeholder="Observatii">
-                </div>
-            </form>
-        </div>
-    </div>
+@php
+    $hasFilters = request()->filled('search')
+        || request()->filled('location_id')
+        || request()->filled('supplier_id')
+        || request()->filled('catalog_item_id')
+        || request()->filled('document_type')
+        || request()->filled('date_from')
+        || request()->filled('date_to');
+    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+@endphp
+<div class="resource-shell">
+    <x-resource-page-header
+        title="Receptii furnizori"
+        description="Intrari de materiale in baze si santiere, cu documentele sursa la vedere."
+        :count="$totalReceptions"
+        :filtered-count="$receptions->total()"
+        icon="fa-truck-ramp-box"
+        :create-route="$canCreate ? route('supplier-receptions.create') : null"
+        create-label="Receptie noua"
+    />
 
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Numar</th>
-                        <th>Locatie</th>
-                        <th>Furnizor</th>
-                        <th>Document</th>
-                        <th>Linii</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+    <form class="resource-filter-panel">
+        <div class="row g-2 align-items-end">
+            <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Numar receptie sau document"></div>
+            <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
+            <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Furnizor</label><select name="supplier_id" class="form-select"><option value="">Toti</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}" @selected((string) request('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}</option>@endforeach</select></div>
+            <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Articol</label><select name="catalog_item_id" class="form-select" data-tom-select><option value="">Toate</option>@foreach($items as $item)<option value="{{ $item->id }}" @selected((string) request('catalog_item_id') === (string) $item->id)>{{ $item->name }}</option>@endforeach</select></div>
+            <div class="col-xl-1 col-md-4"><label class="resource-filter-label">Document</label><select name="document_type" class="form-select"><option value="">Toate</option><option value="aviz" @selected(request('document_type') === 'aviz')>Aviz</option><option value="factura" @selected(request('document_type') === 'factura')>Factura</option></select></div>
+            <div class="col-xl-1 col-md-4"><label class="resource-filter-label">De la</label><input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control"></div>
+            <div class="col-xl-1 col-md-4"><label class="resource-filter-label">Pana la</label><input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control"></div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <button class="btn btn-primary"><i class="fa-solid fa-filter me-1"></i>Aplica filtrele</button>
+                <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </div>
+    </form>
+
+    <div class="resource-table-card">
+        <div class="table-responsive resource-desktop-table">
+            <table class="table resource-table">
+                <thead><tr><th>Receptie</th><th>Locatie</th><th>Furnizor / document</th><th>Continut</th><th>Observatii</th><th>Status</th></tr></thead>
                 <tbody>
                 @forelse($receptions as $reception)
                     <tr>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $reception->number }}</span><span class="resource-secondary"><i class="fa-regular fa-clock me-1"></i>{{ $reception->received_at?->format('d.m.Y H:i') ?? '-' }}</span>@if($reception->receiver)<span class="resource-secondary"><i class="fa-solid fa-user-check me-1"></i>{{ $reception->receiver->name }}</span>@endif</div></td>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $reception->location?->code ?? '-' }}</span><span class="resource-secondary">{{ $reception->location?->name }}</span></div></td>
+                        <td><div class="resource-cell-stack">@if($reception->supplier)<span>{{ $reception->supplier->name }}</span>@endif<span class="resource-secondary">{{ strtoupper($reception->document_type) }}@if($reception->document_number) &middot; {{ $reception->document_number }}@endif</span></div></td>
                         <td>
-                            <strong>{{ $reception->number }}</strong>
-                            <div class="small text-secondary">{{ optional($reception->received_at)->format('d.m.Y H:i') }}</div>
+                            <div class="resource-cell-stack">
+                                @foreach($reception->lines as $line)<span>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }} <span class="resource-secondary">{{ $formatQuantity($line->quantity) }} {{ $line->unit }}</span></span>@endforeach
+                                @if($reception->lines_count > $reception->lines->count())<span class="resource-secondary fw-semibold">+{{ $reception->lines_count - $reception->lines->count() }} {{ $reception->lines_count - $reception->lines->count() === 1 ? 'alt articol' : 'alte articole' }}</span>@endif
+                            </div>
                         </td>
-                        <td>{{ $reception->location?->name }}</td>
-                        <td>{{ $reception->supplier?->name ?? 'Nespecificat' }}</td>
-                        <td>{{ strtoupper($reception->document_type) }} {{ $reception->document_number }}</td>
-                        <td>{{ $reception->lines_count }}</td>
+                        <td>@if($reception->notes)<span class="resource-secondary">{{ Illuminate\Support\Str::limit($reception->notes, 70) }}</span>@else<span class="text-muted">-</span>@endif</td>
                         <td><x-status :status="$reception->status" /></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-secondary py-4">Nu exista receptii.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            @if($hasFilters)
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nicio receptie nu corespunde filtrelor selectate.</span>
+                                    <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                </div>
+                            @else
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nu exista inca receptii de la furnizori.</span>
+                                    @if($canCreate)<a href="{{ route('supplier-receptions.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Inregistreaza prima receptie</a>@endif
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="card-footer bg-white">{{ $receptions->links() }}</div>
+
+        <div class="resource-mobile-list">
+            @forelse($receptions as $reception)
+                <article class="card resource-mobile-card">
+                    <div class="card-body">
+                        <div class="resource-mobile-card-header">
+                            <div class="min-w-0">
+                                <h2 class="resource-mobile-card-title">{{ $reception->number }}</h2>
+                                <div class="resource-mobile-card-subtitle"><i class="fa-regular fa-clock me-1"></i>{{ $reception->received_at?->format('d.m.Y H:i') ?? '-' }}</div>
+                                @if($reception->receiver)<div class="resource-mobile-card-subtitle"><i class="fa-solid fa-user-check me-1"></i>{{ $reception->receiver->name }}</div>@endif
+                            </div>
+                            <x-status :status="$reception->status" />
+                        </div>
+
+                        <div class="resource-mobile-card-grid">
+                            <div>
+                                <span class="resource-filter-label">Locatie</span>
+                                <strong>{{ $reception->location?->code ?? '-' }}</strong>
+                                @if($reception->location?->name)<span class="resource-secondary">{{ $reception->location->name }}</span>@endif
+                            </div>
+                            <div>
+                                <span class="resource-filter-label">Furnizor / document</span>
+                                <strong>{{ $reception->supplier?->name ?? 'Furnizor nespecificat' }}</strong>
+                                <span class="resource-secondary">{{ strtoupper($reception->document_type) }}@if($reception->document_number) &middot; {{ $reception->document_number }}@endif</span>
+                            </div>
+                            <div class="resource-mobile-card-wide">
+                                <span class="resource-filter-label">Continut</span>
+                                @foreach($reception->lines as $line)
+                                    <span class="d-block"><strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong> <span class="resource-secondary d-inline">{{ $formatQuantity($line->quantity) }} {{ $line->unit }}</span></span>
+                                @endforeach
+                                @if($reception->lines_count > $reception->lines->count())<span class="resource-secondary fw-semibold">+{{ $reception->lines_count - $reception->lines->count() }} {{ $reception->lines_count - $reception->lines->count() === 1 ? 'alt articol' : 'alte articole' }}</span>@endif
+                            </div>
+                            @if($reception->notes)
+                                <div class="resource-mobile-card-wide">
+                                    <span class="resource-filter-label">Observatii</span>
+                                    <span class="resource-secondary">{{ Illuminate\Support\Str::limit($reception->notes, 120) }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="resource-empty-state">
+                    @if($hasFilters)
+                        <p class="mb-2">Nicio receptie nu corespunde filtrelor selectate.</p>
+                        <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                    @else
+                        <p class="mb-2">Nu exista inca receptii de la furnizori.</p>
+                        @if($canCreate)<a href="{{ route('supplier-receptions.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Inregistreaza prima receptie</a>@endif
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <div class="resource-table-footer">{{ $receptions->links() }}</div>
     </div>
+</div>
 @endsection

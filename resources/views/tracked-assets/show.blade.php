@@ -3,6 +3,25 @@
 @section('title', $asset->asset_code)
 
 @section('content')
+@php
+    $statusLabels = ['available' => 'Disponibil', 'in_use' => 'In folosinta', 'in_transfer' => 'In transfer', 'maintenance' => 'In service', 'lost' => 'Lipsa'];
+    $conditionLabels = ['good' => 'Bun', 'used' => 'Uzura normala', 'damaged' => 'Deteriorat', 'needs_service' => 'Necesita service'];
+    $limitedViewer = ! auth()->user()->isManagementUser();
+    $backRoute = auth()->user()->isManagementUser()
+        ? route('tracked-assets.index')
+        : (auth()->user()->hasRole('contabil') ? route('reports.index') : route('qr-scan.index'));
+    $visiblePerson = static function ($person, string $genericLabel) use ($limitedViewer): string {
+        if (! $person) {
+            return '-';
+        }
+
+        if (! $limitedViewer || (int) $person->id === (int) auth()->id()) {
+            return (int) $person->id === (int) auth()->id() && $limitedViewer ? 'Tu' : $person->name;
+        }
+
+        return $genericLabel;
+    };
+@endphp
 <div class="dashboard-shell mx-3">
     <div class="dashboard-hero mb-4">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
@@ -11,10 +30,14 @@
                 <h3 class="mb-2">{{ $asset->asset_code }} - {{ $asset->catalogItem?->name }}</h3>
                 <p class="mb-0 text-muted">Locatie curenta, responsabil, stare si istoric transferuri.</p>
             </div>
-            <div class="qr-card text-center">
-                <div class="qr-box"><i class="fa-solid fa-qrcode"></i></div>
-                <div class="fw-semibold mt-2">{{ $asset->qr_code }}</div>
-                <div class="small text-muted">Demo QR</div>
+            <div class="d-flex align-items-start gap-2">
+                @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', $asset) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endif
+                <a href="{{ $backRoute }}" class="btn btn-outline-secondary btn-sm">Inapoi</a>
+                <div class="qr-card text-center">
+                    <div class="qr-box"><i class="fa-solid fa-qrcode"></i></div>
+                    <div class="fw-semibold mt-2">{{ $asset->qr_code }}</div>
+                    <div class="small text-muted">Cod de identificare</div>
+                </div>
             </div>
         </div>
     </div>
@@ -30,7 +53,7 @@
                     <div class="stat-icon"><i class="fa-solid fa-location-dot"></i></div>
                 </div>
                 <div class="small text-muted">Responsabil</div>
-                <div class="fs-5 fw-semibold">{{ $asset->currentCustodian?->name ?? 'Fara responsabil' }}</div>
+                <div class="fs-5 fw-semibold">{{ $asset->currentCustodian ? $visiblePerson($asset->currentCustodian, 'Alocat unui coleg') : 'Fara responsabil' }}</div>
             </div>
         </div>
         <div class="col-lg-4">
@@ -38,12 +61,12 @@
                 <div class="stat-card-top">
                     <div>
                         <h6 class="mb-1">Stare</h6>
-                        <p class="stat-sub">{{ str_replace('_', ' ', $asset->condition) }}</p>
+                        <p class="stat-sub">{{ $conditionLabels[$asset->condition] ?? $asset->condition }}</p>
                     </div>
                     <div class="stat-icon"><i class="fa-solid fa-clipboard-check"></i></div>
                 </div>
                 <div class="small text-muted">Status operational</div>
-                <div class="fs-5 fw-semibold">{{ str_replace('_', ' ', $asset->status) }}</div>
+                <div class="fs-5 fw-semibold">{{ $statusLabels[$asset->status] ?? $asset->status }}</div>
             </div>
         </div>
         <div class="col-lg-4">
@@ -80,9 +103,9 @@
                     <tr>
                         <td>{{ $transfer->number }}</td>
                         <td>{{ $transfer->sourceLocation?->name }} <i class="fa-solid fa-arrow-right mx-1"></i> {{ $transfer->destinationLocation?->name }}</td>
-                        <td>{{ $transfer->driver?->name ?? '-' }}</td>
-                        <td>{{ $transfer->approver?->name ?? '-' }}</td>
-                        <td>{{ $transfer->confirmer?->name ?? '-' }}</td>
+                        <td>{{ $visiblePerson($transfer->driver, 'Sofer alocat') }}</td>
+                        <td>{{ $visiblePerson($transfer->approver, 'Aprobat') }}</td>
+                        <td>{{ $visiblePerson($transfer->confirmer, 'Confirmat') }}</td>
                         <td><x-status :status="$transfer->status" /></td>
                     </tr>
                 @empty

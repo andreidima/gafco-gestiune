@@ -3,207 +3,155 @@
 @section('title', 'Locatii')
 
 @section('content')
-<div class="dashboard-shell mx-3">
-    <div class="dashboard-hero mb-4">
-        <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
-            <div>
-                <span class="dashboard-pill"><i class="fa-solid fa-building me-2"></i> Locatii</span>
-                <h3 class="mb-2">Baze, santiere si puncte de lucru</h3>
-                <p class="mb-0 text-muted">Structura operationala unde se afla materialele, utilajele si sculele.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-primary rounded-3">
-                    <i class="fa-solid fa-screwdriver-wrench me-1"></i> Echipamente
-                </a>
-                <a href="{{ route('reports.index') }}" class="btn btn-outline-secondary rounded-3">
-                    <i class="fa-solid fa-chart-column me-1"></i> Rapoarte
-                </a>
-            </div>
-        </div>
-    </div>
+@php
+    $hasFilters = request()->filled('search')
+        || request()->filled('type')
+        || (request()->has('active') && request('active') !== '');
+@endphp
+<div class="resource-shell">
+    <x-resource-page-header
+        title="Locatii"
+        description="Baze, santiere si puncte de lucru, cu responsabilii lor activi."
+        :count="$totalLocations"
+        :filtered-count="$locations->total()"
+        icon="fa-building"
+        :create-route="auth()->user()->canManageLocations() ? route('locations.create') : null"
+        create-label="Locatie noua"
+    />
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-slate">
-                <span>Total</span>
-                <strong>{{ $stats['total'] }}</strong>
+    <form class="resource-filter-panel">
+        <div class="row g-2 align-items-end">
+            <div class="col-xl-6">
+                <label class="resource-filter-label">Cautare</label>
+                <input name="search" value="{{ request('search') }}" class="form-control" placeholder="Cod, denumire sau adresa">
+            </div>
+            <div class="col-xl-2 col-md-4">
+                <label class="resource-filter-label">Tip</label>
+                <select name="type" class="form-select"><option value="">Toate</option><option value="base" @selected(request('type') === 'base')>Baze</option><option value="site" @selected(request('type') === 'site')>Santiere</option></select>
+            </div>
+            <div class="col-xl-2 col-md-4">
+                <label class="resource-filter-label">Stare</label>
+                <select name="active" class="form-select"><option value="">Oricare</option><option value="1" @selected(request('active') === '1')>Active</option><option value="0" @selected(request('active') === '0')>Inactive</option></select>
+            </div>
+            <div class="col-xl-2 d-flex gap-2">
+                <button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button>
+                <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-rose">
-                <span>Santiere</span>
-                <strong>{{ $stats['sites'] }}</strong>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-teal">
-                <span>Baze</span>
-                <strong>{{ $stats['bases'] }}</strong>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-forest">
-                <span>Cu manager</span>
-                <strong>{{ $stats['with_manager'] }}</strong>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-amber">
-                <span>Pozitii stoc</span>
-                <strong>{{ $stats['stock_positions'] }}</strong>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-danger">
-                <span>Asset-uri QR</span>
-                <strong>{{ $stats['assets'] }}</strong>
-            </div>
-        </div>
-    </div>
+    </form>
 
-    <div class="row g-3 mb-4">
-        <div class="col-xl-8">
-            <div class="card dashboard-chart-card h-100">
-                <div class="card-header bg-white"><strong><i class="fa-solid fa-plus me-1"></i> Adauga locatie</strong></div>
-                <div class="card-body">
-                    <form method="post" action="{{ route('locations.store') }}" class="row g-3 align-items-end">
-                        @csrf
-                        <div class="col-md-2">
-                            <label class="form-label">Tip</label>
-                            <select name="type" class="form-select rounded-3">
-                                <option value="site">Santier</option>
-                                <option value="base">Baza</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Cod</label>
-                            <input name="code" class="form-control rounded-3" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Denumire</label>
-                            <input name="name" class="form-control rounded-3" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Adresa</label>
-                            <input name="address" class="form-control rounded-3">
-                        </div>
-                        <div class="col-md-1">
-                            <button class="btn btn-success rounded-3 w-100"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-4">
-            <div class="insight-panel h-100">
-                <div class="insight-row">
-                    <i class="fa-solid fa-ranking-star"></i>
-                    <div>
-                        <span>Cele mai multe echipamente</span>
-                        <strong>{{ $insights['top_location']?->name ?? '-' }}</strong>
-                        <small>{{ $insights['top_location']?->assets_count ?? 0 }} asset-uri</small>
-                    </div>
-                </div>
-                <div class="insight-row">
-                    <i class="fa-solid fa-user-slash"></i>
-                    <div>
-                        <span>Locatii fara manager</span>
-                        <strong>{{ $insights['without_manager'] }}</strong>
-                        <small>Merita completate inainte de productie</small>
-                    </div>
-                </div>
-                <div class="insight-row">
-                    <i class="fa-solid fa-clock"></i>
-                    <div>
-                        <span>Ultima locatie adaugata</span>
-                        <strong>{{ $insights['latest']?->code ?? '-' }}</strong>
-                        <small>{{ $insights['latest']?->name ?? '-' }}</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card dashboard-chart-card">
-        <div class="card-header bg-white">
-            <form class="row g-2 align-items-center">
-                <div class="col-lg-7">
-                    <input name="search" value="{{ request('search') }}" class="form-control rounded-3" placeholder="Cauta dupa cod, nume sau adresa">
-                </div>
-                <div class="col-lg-2">
-                    <select name="type" class="form-select rounded-3">
-                        <option value="">Toate tipurile</option>
-                        <option value="base" @selected(request('type')==='base')>Baze</option>
-                        <option value="site" @selected(request('type')==='site')>Santiere</option>
-                    </select>
-                </div>
-                <div class="col-lg-3 d-flex gap-2">
-                    <button class="btn btn-outline-primary rounded-3 flex-fill">
-                        <i class="fa-solid fa-filter me-1"></i> Filtreaza
-                    </button>
-                    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary rounded-3">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="culoare2 text-white">Cod</th>
-                        <th class="culoare2 text-white">Denumire</th>
-                        <th class="culoare2 text-white">Tip</th>
-                        <th class="culoare2 text-white">Adresa</th>
-                        <th class="culoare2 text-white">Manager</th>
-                        <th class="culoare2 text-white">Status</th>
-                        <th class="culoare2 text-white text-end">Actiuni</th>
-                    </tr>
-                </thead>
+    <div class="resource-table-card">
+        <div class="table-responsive resource-desktop-table">
+            <table class="table resource-table">
+                <thead><tr><th>Locatie</th><th>Tip</th><th>Responsabili</th><th>Inventar / alerte</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>
                 <tbody>
                 @forelse($locations as $location)
                     <tr>
-                        <td class="fw-semibold">{{ $location->code }}</td>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $location->name }}</span><span class="resource-code">{{ $location->code }}</span>@if($location->address)<span class="resource-secondary">{{ $location->address }}</span>@endif</div></td>
+                        <td><span class="badge text-bg-{{ $location->type === 'base' ? 'primary' : 'info' }}">{{ $location->type === 'base' ? 'Baza' : 'Santier' }}</span></td>
                         <td>
-                            <strong>{{ $location->name }}</strong>
-                            <div class="small text-secondary">ID intern #{{ $location->id }}</div>
+                            <div class="resource-cell-stack">
+                                @forelse($location->activeManagers->take(2) as $manager)<span><i class="fa-solid fa-user-tie me-1 text-muted"></i>{{ $manager->name }}</span>@empty<span class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara responsabil</span>@endforelse
+                                @if($location->activeManagers->count() > 2)<span class="resource-secondary">+{{ $location->activeManagers->count() - 2 }} alti responsabili</span>@endif
+                            </div>
                         </td>
                         <td>
-                            <span class="badge rounded-pill text-bg-{{ $location->type === 'base' ? 'primary' : 'info' }}">
-                                {{ $location->type === 'base' ? 'Baza' : 'Santier' }}
-                            </span>
+                            <div class="resource-cell-stack">
+                                <span><strong>{{ $location->tracked_assets_count }}</strong> echipamente <span class="resource-secondary">/ {{ $location->stock_levels_count }} pozitii de stoc</span></span>
+                                @if($location->attention_assets_count > 0)<span class="text-danger small fw-semibold"><i class="fa-solid fa-screwdriver-wrench me-1"></i>{{ $location->attention_assets_count }} echipamente necesita atentie</span>@endif
+                                @if($location->empty_stock_levels_count > 0)<span class="text-warning small"><i class="fa-solid fa-box-open me-1"></i>{{ $location->empty_stock_levels_count }} pozitii fara stoc</span>@endif
+                                @if($location->pending_transfer_approvals_count > 0)<span class="text-warning small"><i class="fa-solid fa-user-check me-1"></i>{{ $location->pending_transfer_approvals_count }} {{ $location->pending_transfer_approvals_count === 1 ? 'aprobare in asteptare' : 'aprobari in asteptare' }}</span>@endif
+                            </div>
                         </td>
-                        <td>{{ $location->address ?: '-' }}</td>
+                        <td><span class="badge text-bg-{{ $location->active ? 'success' : 'secondary' }}">{{ $location->active ? 'Activa' : 'Inactiva' }}</span></td>
                         <td>
-                            @if($location->manager)
-                                <span class="badge rounded-pill text-bg-success">{{ $location->manager->name }}</span>
-                            @else
-                                <span class="badge rounded-pill text-bg-warning">Fara manager</span>
-                            @endif
-                        </td>
-                        <td>
-                            <span class="badge rounded-pill text-bg-{{ $location->active ? 'success' : 'secondary' }}">
-                                {{ $location->active ? 'Activ' : 'Inactiv' }}
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a class="btn btn-outline-primary" href="{{ route('tracked-assets.index', ['search' => $location->code]) }}">
-                                    <i class="fa-solid fa-screwdriver-wrench"></i>
-                                </a>
-                                <a class="btn btn-outline-secondary" href="{{ route('reports.index') }}">
-                                    <i class="fa-solid fa-chart-column"></i>
-                                </a>
+                            <div class="resource-row-actions">
+                                @if(auth()->user()->canManageLocations())<x-resource-icon-button :href="route('locations.edit', $location)" icon="fa-pen" label="Modifica locatia" />@endif
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary resource-overflow-button" data-bs-toggle="dropdown" aria-expanded="false" title="Mai multe actiuni"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ route('tracked-assets.index', ['location_id' => $location->id]) }}"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Echipamente</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('reports.index', ['location_id' => $location->id]) }}"><i class="fa-solid fa-chart-column me-2"></i>Rapoarte</a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-secondary py-4">Nu exista locatii.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            @if($hasFilters)
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nicio locatie nu corespunde filtrelor selectate.</span>
+                                    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                </div>
+                            @else
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nu exista inca nicio locatie.</span>
+                                    @if(auth()->user()->canManageLocations())<a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga prima locatie</a>@endif
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="card-footer bg-white">{{ $locations->links() }}</div>
+
+        <div class="resource-mobile-list">
+            @forelse($locations as $location)
+                <article class="card resource-mobile-card {{ $location->attention_assets_count > 0 ? 'resource-row-alert resource-row-alert-danger' : (($location->empty_stock_levels_count > 0 || $location->pending_transfer_approvals_count > 0 || $location->activeManagers->isEmpty()) ? 'resource-row-alert resource-row-alert-warning' : '') }}">
+                    <div class="card-body">
+                        <div class="resource-mobile-card-header">
+                            <div class="min-w-0">
+                                <h2 class="resource-mobile-card-title">{{ $location->name }}</h2>
+                                <div class="resource-code">{{ $location->code }}</div>
+                                @if($location->address)<div class="resource-mobile-card-subtitle"><i class="fa-solid fa-location-dot me-1"></i>{{ $location->address }}</div>@endif
+                            </div>
+                            <span class="badge text-bg-{{ $location->active ? 'success' : 'secondary' }}">{{ $location->active ? 'Activa' : 'Inactiva' }}</span>
+                        </div>
+
+                        <div class="resource-mobile-card-grid">
+                            <div>
+                                <span class="resource-filter-label">Tip</span>
+                                <strong>{{ $location->type === 'base' ? 'Baza' : 'Santier' }}</strong>
+                            </div>
+                            <div>
+                                <span class="resource-filter-label">Responsabili</span>
+                                @forelse($location->activeManagers->take(2) as $manager)<strong class="d-block"><i class="fa-solid fa-user-tie me-1 text-muted"></i>{{ $manager->name }}</strong>@empty<span class="text-warning fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara responsabil</span>@endforelse
+                                @if($location->activeManagers->count() > 2)<span class="resource-secondary">+{{ $location->activeManagers->count() - 2 }} alti responsabili</span>@endif
+                            </div>
+                            <div class="resource-mobile-card-wide">
+                                <span class="resource-filter-label">Inventar si alerte</span>
+                                <strong>{{ $location->tracked_assets_count }} echipamente</strong>
+                                <span class="resource-secondary">{{ $location->stock_levels_count }} pozitii de stoc</span>
+                                @if($location->attention_assets_count > 0)<span class="d-block text-danger small fw-semibold"><i class="fa-solid fa-screwdriver-wrench me-1"></i>{{ $location->attention_assets_count }} echipamente necesita atentie</span>@endif
+                                @if($location->empty_stock_levels_count > 0)<span class="d-block text-warning small"><i class="fa-solid fa-box-open me-1"></i>{{ $location->empty_stock_levels_count }} pozitii fara stoc</span>@endif
+                                @if($location->pending_transfer_approvals_count > 0)<span class="d-block text-warning small"><i class="fa-solid fa-user-check me-1"></i>{{ $location->pending_transfer_approvals_count }} {{ $location->pending_transfer_approvals_count === 1 ? 'aprobare in asteptare' : 'aprobari in asteptare' }}</span>@endif
+                            </div>
+                        </div>
+
+                        <div class="resource-mobile-card-actions">
+                            <a href="{{ route('tracked-assets.index', ['location_id' => $location->id]) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamente</a>
+                            <a href="{{ route('reports.index', ['location_id' => $location->id]) }}" class="btn btn-outline-secondary btn-sm" aria-label="Vezi rapoartele"><i class="fa-solid fa-chart-column"></i></a>
+                            @if(auth()->user()->canManageLocations())<a href="{{ route('locations.edit', $location) }}" class="btn btn-primary btn-sm" aria-label="Modifica locatia"><i class="fa-solid fa-pen"></i></a>@endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="resource-empty-state">
+                    @if($hasFilters)
+                        <p class="mb-2">Nicio locatie nu corespunde filtrelor selectate.</p>
+                        <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                    @else
+                        <p class="mb-2">Nu exista inca nicio locatie.</p>
+                        @if(auth()->user()->canManageLocations())<a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga prima locatie</a>@endif
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <div class="resource-table-footer">{{ $locations->links() }}</div>
     </div>
 </div>
 @endsection

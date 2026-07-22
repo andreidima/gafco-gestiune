@@ -28,6 +28,11 @@ class SupplierReception extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
     public function lines(): HasMany
     {
         return $this->hasMany(SupplierReceptionLine::class);

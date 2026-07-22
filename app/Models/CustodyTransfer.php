@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['tracked_asset_id', 'from_user_id', 'to_user_id', 'status', 'qr_token', 'expires_at', 'accepted_at', 'notes'])]
+#[Fillable(['tracked_asset_id', 'from_user_id', 'to_user_id', 'status', 'qr_token', 'expires_at', 'from_approved_at', 'to_approved_at', 'accepted_at', 'rejected_at', 'rejected_by', 'notes'])]
 class CustodyTransfer extends Model
 {
     use HasFactory;
@@ -16,7 +16,10 @@ class CustodyTransfer extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'from_approved_at' => 'datetime',
+            'to_approved_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 

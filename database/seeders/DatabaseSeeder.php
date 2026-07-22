@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionsSeeder::class,
             LogisticsSeeder::class,
+            WorkflowSeeder::class,
         ]);
     }
 }

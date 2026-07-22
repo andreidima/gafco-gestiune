@@ -11,7 +11,7 @@
                     <span class="login-pill mb-3"><i class="fa-solid fa-qrcode me-1"></i> Scanare QR</span>
                     <h1 class="display-6 fw-bold mb-3">Identificare rapida echipament</h1>
                     <p class="lead text-muted mb-4">
-                        Pentru demo introdu codul QR sau codul intern. In varianta finala, aici se poate deschide camera telefonului pentru scanare reala.
+                        Introdu codul de pe eticheta QR sau codul intern al echipamentului.
                     </p>
                     <form method="post" action="{{ route('qr-scan.lookup') }}" class="row g-2">
                         @csrf
@@ -28,8 +28,8 @@
                 <div class="col-lg-5 text-center">
                     <div class="qr-card mx-auto">
                         <div class="qr-box qr-box-lg"><i class="fa-solid fa-qrcode"></i></div>
-                        <div class="fw-semibold mt-3">Demo scanare</div>
-                        <div class="small text-muted">Cauta dupa QR sau cod intern.</div>
+                        <div class="fw-semibold mt-3">Cautare dupa cod</div>
+                        <div class="small text-muted">Identificare rapida dupa QR sau cod intern.</div>
                     </div>
                 </div>
             </div>

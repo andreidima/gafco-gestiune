@@ -3,29 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
-use App\Models\StockLevel;
-use App\Models\TrackedAsset;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class LocationController extends Controller
 {
     public function index(Request $request): View
     {
-        $locationsForInsights = Location::where('active', true)->get();
-        $topLocation = $locationsForInsights
-            ->map(function (Location $location) {
-                $location->assets_count = TrackedAsset::where('current_location_id', $location->id)->count();
-
-                return $location;
-            })
-            ->sortByDesc('assets_count')
-            ->first();
-
         return view('locations.index', [
-            'locations' => Location::with('manager')
+            'locations' => Location::with('activeManagers')
+                ->withCount([
+                    'trackedAssets',
+                    'stockLevels',
+                    'trackedAssets as attention_assets_count' => fn ($query) => $query->where(function ($attentionQuery) {
+                        $attentionQuery->whereIn('status', ['maintenance', 'lost'])
+                            ->orWhereIn('condition', ['damaged', 'needs_service']);
+                    }),
+                    'stockLevels as empty_stock_levels_count' => fn ($query) => $query->where('quantity', '<=', 0),
+                    'transferApprovals as pending_transfer_approvals_count' => fn ($query) => $query
+                        ->where('status', 'pending')
+                        ->whereExists(fn ($transferQuery) => $transferQuery
+                            ->selectRaw('1')
+                            ->from('transfers')
+                            ->whereColumn('transfers.id', 'transfer_approvals.transfer_id')
+                            ->whereColumn('transfers.revision', 'transfer_approvals.revision')
+                            ->whereNull('transfers.cancelled_at')
+                            ->whereNull('transfers.archived_at')),
+                ])
                 ->when($request->type, fn ($query, $type) => $query->where('type', $type))
+                ->when($request->filled('active'), fn ($query) => $query->where('active', $request->boolean('active')))
                 ->when($request->search, fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
                         ->where('name', 'like', "%{$search}%")
@@ -36,32 +46,82 @@ class LocationController extends Controller
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString(),
-            'stats' => [
-                'total' => Location::count(),
-                'sites' => Location::where('type', 'site')->count(),
-                'bases' => Location::where('type', 'base')->count(),
-                'with_manager' => Location::whereNotNull('manager_user_id')->count(),
-                'stock_positions' => StockLevel::where('quantity', '>', 0)->count(),
-                'assets' => TrackedAsset::count(),
-            ],
-            'insights' => [
-                'top_location' => $topLocation,
-                'without_manager' => Location::whereNull('manager_user_id')->where('active', true)->count(),
-                'latest' => Location::latest()->first(),
-            ],
+            'totalLocations' => Location::count(),
         ]);
+    }
+
+    public function create(): View
+    {
+        return view('locations.form', $this->formData());
     }
 
     public function store(Request $request): RedirectResponse
     {
-        Location::create($request->validate([
+        $data = $this->validatedData($request);
+
+        DB::transaction(function () use ($data): void {
+            $managerIds = array_values($data['manager_user_ids'] ?? []);
+            unset($data['manager_user_ids']);
+            $location = Location::create($data + [
+                'active' => $data['active'] ?? true,
+                'manager_user_id' => $managerIds[0] ?? null,
+            ]);
+            $location->managers()->sync($this->managerSyncData($managerIds));
+        });
+
+        return redirect()->route('locations.index')->with('status', 'Locatia a fost adaugata.');
+    }
+
+    public function edit(Location $location): View
+    {
+        $location->load('activeManagers');
+
+        return view('locations.form', $this->formData($location));
+    }
+
+    public function update(Request $request, Location $location): RedirectResponse
+    {
+        $data = $this->validatedData($request, $location);
+        $managerIds = array_values($data['manager_user_ids'] ?? []);
+        unset($data['manager_user_ids']);
+
+        DB::transaction(function () use ($location, $managerIds, $data): void {
+            $location->managers()->sync($this->managerSyncData($managerIds));
+            $location->update($data + ['manager_user_id' => $managerIds[0] ?? null]);
+        });
+
+        return redirect()->route('locations.index')->with('status', 'Locatia a fost actualizata.');
+    }
+
+    private function managerSyncData(array $managerIds): array
+    {
+        return collect($managerIds)->mapWithKeys(
+            fn (int|string $id, int $index) => [(int) $id => ['active' => true, 'is_primary' => $index === 0]]
+        )->all();
+    }
+
+    private function formData(?Location $location = null): array
+    {
+        return [
+            'location' => $location,
+            'managers' => User::where('active', true)
+                ->whereHas('roles', fn ($query) => $query->whereIn('name', ['sef-santier', 'gestionar-baza', 'dispecer', 'admin', 'super-admin']))
+                ->orderBy('name')
+                ->get(),
+        ];
+    }
+
+    private function validatedData(Request $request, ?Location $location = null): array
+    {
+        return $request->validate([
             'type' => ['required', 'in:base,site'],
-            'code' => ['required', 'string', 'max:40', 'unique:locations,code'],
+            'code' => ['required', 'string', 'max:40', Rule::unique('locations', 'code')->ignore($location)],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-        ]) + ['active' => true]);
-
-        return back()->with('status', 'Locatia a fost adaugata.');
+            'manager_user_ids' => ['nullable', 'array'],
+            'manager_user_ids.*' => ['integer', 'exists:users,id'],
+            'active' => ['nullable', 'boolean'],
+        ]);
     }
 }

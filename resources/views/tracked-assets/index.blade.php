@@ -3,142 +3,152 @@
 @section('title', 'Echipamente')
 
 @section('content')
-<div class="mx-3 px-3 card crud-card">
-    <div class="row card-header align-items-center">
-        <div class="col-lg-3">
-            <span class="badge culoare1 fs-5">
-                <i class="fa-solid fa-screwdriver-wrench"></i> Echipamente
-            </span>
-        </div>
+@php
+    $statusLabels = ['available'=>'Disponibil','in_use'=>'In folosinta','in_transfer'=>'In transfer','maintenance'=>'Service','lost'=>'Lipsa'];
+    $conditionLabels = ['good'=>'Bun','used'=>'Uzura','damaged'=>'Deteriorat','needs_service'=>'Necesita service'];
+    $statusVariants = ['available'=>'success','in_use'=>'primary','in_transfer'=>'info','maintenance'=>'warning','lost'=>'danger'];
+    $conditionVariants = ['good'=>'light','used'=>'secondary','damaged'=>'danger','needs_service'=>'warning'];
+    $verificationDueBefore = now()->subDays(30);
+    $hasFilters = request()->filled('search')
+        || request()->filled('catalog_item_id')
+        || request()->filled('location_id')
+        || request()->filled('status')
+        || request()->filled('condition');
+@endphp
+<div class="resource-shell">
+    <x-resource-page-header
+        title="Echipamente QR"
+        description="Echipamente si scule urmarite individual prin cod QR."
+        :count="$totalAssets"
+        :filtered-count="$assets->total()"
+        icon="fa-screwdriver-wrench"
+        :create-route="auth()->user()->canManageTrackedAssets() ? route('tracked-assets.create') : null"
+        create-label="Echipament nou"
+    />
 
-        <div class="col-lg-6">
-            <form method="GET" action="{{ route('tracked-assets.index') }}">
-                <div class="row g-2 justify-content-center">
-                    <div class="col-lg-4">
-                        <input type="text" class="form-control rounded-3" name="search" placeholder="Cod, QR, serie, denumire" value="{{ request('search') }}">
-                    </div>
-                    <div class="col-lg-4">
-                        <select name="location_id" class="form-select rounded-3">
-                            <option value="">Toate locatiile</option>
-                            @foreach($locations as $location)
-                                <option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-4">
-                        <select name="status" class="form-select rounded-3">
-                            <option value="">Toate statusurile</option>
-                            @foreach(['available' => 'Disponibil', 'in_use' => 'In folosinta', 'in_transfer' => 'In transfer', 'maintenance' => 'Service', 'lost' => 'Lipsa'] as $value => $label)
-                                <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-4">
-                        <button class="btn btn-sm w-100 btn-primary text-white border border-dark rounded-3">
-                            <i class="fas fa-search text-white me-1"></i>Cauta
-                        </button>
-                    </div>
-                    <div class="col-lg-4">
-                        <a class="btn btn-sm w-100 btn-secondary text-white border border-dark rounded-3" href="{{ route('tracked-assets.index') }}">
-                            <i class="far fa-trash-alt text-white me-1"></i>Reseteaza
-                        </a>
-                    </div>
-                </div>
-            </form>
+    <form class="resource-filter-panel">
+        @if(request()->filled('catalog_item_id'))<input type="hidden" name="catalog_item_id" value="{{ request('catalog_item_id') }}">@endif
+        <div class="row g-2 align-items-end">
+            <div class="col-xl-3"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Cod intern, QR, serie sau denumire"></div>
+            <div class="col-xl-3 col-md-5"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate locatiile</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)request('location_id') === (string)$location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
+            <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Status</label><select name="status" class="form-select"><option value="">Toate</option>@foreach($statusLabels as $value=>$label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
+            <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Conditie</label><select name="condition" class="form-select"><option value="">Toate</option>@foreach($conditionLabels as $value=>$label)<option value="{{ $value }}" @selected(request('condition') === $value)>{{ $label }}</option>@endforeach</select></div>
+            <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
         </div>
+    </form>
 
-        <div class="col-lg-3">
-            <form method="post" action="{{ route('tracked-assets.store') }}" class="row g-2">
-                @csrf
-                <div class="col-12">
-                    <select name="catalog_item_id" class="form-select form-select-sm rounded-3" required>
-                        <option value="">Tip echipament</option>
-                        @foreach($items as $item)
-                            <option value="{{ $item->id }}">{{ $item->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-6"><input name="asset_code" class="form-control form-control-sm rounded-3" placeholder="Cod intern" required></div>
-                <div class="col-6"><input name="serial_number" class="form-control form-control-sm rounded-3" placeholder="Serie"></div>
-                <div class="col-6">
-                    <select name="status" class="form-select form-select-sm rounded-3">
-                        <option value="available">Disponibil</option>
-                        <option value="in_use">In folosinta</option>
-                        <option value="maintenance">Service</option>
-                    </select>
-                </div>
-                <div class="col-6">
-                    <select name="condition" class="form-select form-select-sm rounded-3">
-                        <option value="good">Bun</option>
-                        <option value="used">Uzura</option>
-                        <option value="damaged">Deteriorat</option>
-                        <option value="needs_service">Necesita service</option>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <select name="current_location_id" class="form-select form-select-sm rounded-3">
-                        <option value="">Locatie</option>
-                        @foreach($locations as $location)
-                            <option value="{{ $location->id }}">{{ $location->code }} - {{ $location->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-sm btn-success text-white border border-dark rounded-3 w-100">
-                        <i class="fa-solid fa-plus me-1"></i>Adauga
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card-body px-0 py-3">
-        <div class="table-responsive rounded">
-            <table class="table table-striped table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="culoare2 text-white">Cod</th>
-                        <th class="culoare2 text-white">Echipament</th>
-                        <th class="culoare2 text-white">Locatie</th>
-                        <th class="culoare2 text-white">Responsabil</th>
-                        <th class="culoare2 text-white">Stare</th>
-                        <th class="culoare2 text-white">QR</th>
-                        <th class="culoare2 text-white text-end">Actiuni</th>
-                    </tr>
-                </thead>
+    <div class="resource-table-card">
+        <div class="table-responsive resource-desktop-table">
+            <table class="table resource-table">
+                <thead><tr><th>Echipament</th><th>Localizare</th><th>Stare</th><th>Identificare</th><th>Verificat</th><th class="text-end">Actiuni</th></tr></thead>
                 <tbody>
                 @forelse($assets as $asset)
+                    @php
+                        $verificationIsDue = ! $asset->last_verified_at || $asset->last_verified_at->lte($verificationDueBefore);
+                    @endphp
                     <tr>
+                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $asset->catalogItem?->name ?? 'Articol indisponibil' }}</span><span class="resource-code">{{ $asset->asset_code }}</span>@if($asset->serial_number)<span class="resource-secondary">Serie {{ $asset->serial_number }}</span>@endif</div></td>
+                        <td><div class="resource-cell-stack"><span class="{{ $asset->currentLocation ? '' : 'text-warning' }}"><i class="fa-solid fa-location-dot me-1 text-muted"></i>{{ $asset->currentLocation?->name ?? 'Fara locatie' }}</span>@if($asset->currentCustodian)<span class="resource-secondary"><i class="fa-solid fa-user me-1"></i>{{ $asset->currentCustodian->name }}</span>@endif</div></td>
                         <td>
-                            <strong>{{ $asset->asset_code }}</strong>
-                            <div class="small text-muted">{{ $asset->serial_number ?: 'Fara serie' }}</div>
+                            <div class="resource-cell-stack">
+                                <span><span class="resource-secondary me-1">Disponibilitate</span><span class="badge text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}</span></span>
+                                <span><span class="resource-secondary me-1">Conditie</span><span class="badge text-bg-{{ $conditionVariants[$asset->condition] ?? 'secondary' }} {{ $asset->condition === 'good' ? 'border' : '' }}">{{ $conditionLabels[$asset->condition] ?? $asset->condition }}</span></span>
+                            </div>
                         </td>
-                        <td>{{ $asset->catalogItem?->name }}</td>
-                        <td>{{ $asset->currentLocation?->name ?? 'Fara locatie' }}</td>
-                        <td>{{ $asset->currentCustodian?->name ?? 'Fara responsabil' }}</td>
+                        <td><span class="qr-mini"><i class="fa-solid fa-qrcode"></i> {{ $asset->qr_code }}</span></td>
                         <td>
-                            <span class="badge text-bg-light border">{{ str_replace('_', ' ', $asset->condition) }}</span>
-                            <span class="badge text-bg-{{ $asset->status === 'lost' ? 'danger' : ($asset->status === 'maintenance' ? 'warning' : 'success') }}">{{ str_replace('_', ' ', $asset->status) }}</span>
+                            <div class="resource-cell-stack">
+                                @if(! $asset->last_verified_at)
+                                    <span class="text-danger fw-semibold"><i class="fa-solid fa-circle-exclamation me-1"></i>Niciodata verificat</span>
+                                @else
+                                    <span class="{{ $verificationIsDue ? 'text-warning fw-semibold' : '' }}"><i class="fa-solid {{ $verificationIsDue ? 'fa-triangle-exclamation' : 'fa-circle-check text-success' }} me-1"></i>{{ $verificationIsDue ? 'De reverificat' : ucfirst($asset->last_verified_at->locale('ro')->diffForHumans()) }}</span>
+                                    <span class="resource-secondary">{{ $verificationIsDue ? ucfirst($asset->last_verified_at->locale('ro')->diffForHumans()).' · ' : '' }}{{ $asset->last_verified_at->format('d.m.Y H:i') }}</span>
+                                @endif
+                            </div>
                         </td>
-                        <td>
-                            <a class="qr-mini text-decoration-none" href="{{ route('tracked-assets.show', $asset) }}">
-                                <i class="fa-solid fa-qrcode"></i>
-                                <span>{{ $asset->qr_code }}</span>
-                            </a>
-                        </td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary rounded-3" href="{{ route('tracked-assets.show', $asset) }}">
-                                <i class="fa-solid fa-eye me-1"></i>Detalii
-                            </a>
-                        </td>
+                        <td><div class="resource-row-actions"><x-resource-icon-button :href="route('tracked-assets.show', $asset)" icon="fa-eye" label="Vezi istoricul" />@if(auth()->user()->canManageTrackedAssets())<x-resource-icon-button :href="route('tracked-assets.edit', $asset)" icon="fa-pen" label="Modifica echipamentul" variant="outline-secondary" />@endif</div></td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-secondary py-4">Nu exista echipamente.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            @if($hasFilters)
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Niciun echipament nu corespunde filtrelor selectate.</span>
+                                    <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                </div>
+                            @else
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nu exista inca echipamente urmarite prin QR.</span>
+                                    @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul echipament</a>@endif
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="pt-3">{{ $assets->links() }}</div>
+
+        <div class="resource-mobile-list">
+            @forelse($assets as $asset)
+                @php
+                    $verificationIsDue = ! $asset->last_verified_at || $asset->last_verified_at->lte($verificationDueBefore);
+                    $hasCriticalState = $asset->status === 'lost' || $asset->condition === 'damaged';
+                    $hasWarningState = $verificationIsDue || $asset->status === 'maintenance' || $asset->condition === 'needs_service';
+                @endphp
+                <article class="card resource-mobile-card {{ $hasCriticalState ? 'resource-row-alert resource-row-alert-danger' : ($hasWarningState ? 'resource-row-alert resource-row-alert-warning' : '') }}">
+                    <div class="card-body">
+                        <div class="resource-mobile-card-header">
+                            <div class="min-w-0">
+                                <h2 class="resource-mobile-card-title">{{ $asset->catalogItem?->name ?? 'Articol indisponibil' }}</h2>
+                                <div class="resource-code">{{ $asset->asset_code }}</div>
+                                @if($asset->serial_number)<div class="resource-mobile-card-subtitle">Serie {{ $asset->serial_number }}</div>@endif
+                            </div>
+                            <span class="badge text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}</span>
+                        </div>
+
+                        <div class="resource-mobile-card-grid">
+                            <div>
+                                <span class="resource-filter-label">Localizare</span>
+                                <strong class="{{ $asset->currentLocation ? '' : 'text-warning' }}"><i class="fa-solid fa-location-dot me-1 text-muted"></i>{{ $asset->currentLocation?->name ?? 'Fara locatie' }}</strong>
+                                @if($asset->currentCustodian)<span class="resource-secondary"><i class="fa-solid fa-user me-1"></i>{{ $asset->currentCustodian->name }}</span>@endif
+                            </div>
+                            <div>
+                                <span class="resource-filter-label">Conditie</span>
+                                <span><span class="badge text-bg-{{ $conditionVariants[$asset->condition] ?? 'secondary' }} {{ $asset->condition === 'good' ? 'border' : '' }}">{{ $conditionLabels[$asset->condition] ?? $asset->condition }}</span></span>
+                                <span class="resource-secondary"><i class="fa-solid fa-qrcode me-1"></i>{{ $asset->qr_code }}</span>
+                            </div>
+                            <div class="resource-mobile-card-wide">
+                                <span class="resource-filter-label">Ultima verificare</span>
+                                @if(! $asset->last_verified_at)
+                                    <strong class="text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i>Niciodata verificat</strong>
+                                @else
+                                    <strong class="{{ $verificationIsDue ? 'text-warning' : '' }}"><i class="fa-solid {{ $verificationIsDue ? 'fa-triangle-exclamation' : 'fa-circle-check text-success' }} me-1"></i>{{ $verificationIsDue ? 'De reverificat' : ucfirst($asset->last_verified_at->locale('ro')->diffForHumans()) }}</strong>
+                                    <span class="resource-secondary">{{ ucfirst($asset->last_verified_at->locale('ro')->diffForHumans()) }} &middot; {{ $asset->last_verified_at->format('d.m.Y H:i') }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="resource-mobile-card-actions">
+                            <a href="{{ route('tracked-assets.show', $asset) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye me-1"></i>Istoric</a>
+                            @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', $asset) }}" class="btn btn-outline-secondary btn-sm" aria-label="Modifica echipamentul"><i class="fa-solid fa-pen"></i></a>@endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="resource-empty-state">
+                    @if($hasFilters)
+                        <p class="mb-2">Niciun echipament nu corespunde filtrelor selectate.</p>
+                        <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                    @else
+                        <p class="mb-2">Nu exista inca echipamente urmarite prin QR.</p>
+                        @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul echipament</a>@endif
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <div class="resource-table-footer">{{ $assets->links() }}</div>
     </div>
 </div>
 @endsection

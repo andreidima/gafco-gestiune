@@ -4,198 +4,201 @@
 
 @section('content')
 @php
-    $categoryLabels = [
-        'material' => ['label' => 'Material', 'class' => 'success'],
-        'equipment' => ['label' => 'Utilaj', 'class' => 'primary'],
-        'tool' => ['label' => 'Scula', 'class' => 'warning'],
-    ];
-    $trackingLabels = [
-        'quantity' => ['label' => 'Cantitativ', 'class' => 'info'],
-        'serialized' => ['label' => 'QR unic', 'class' => 'dark'],
-    ];
+    $categoryLabels = ['material' => 'Material', 'equipment' => 'Utilaj', 'tool' => 'Scula'];
+    $trackingLabels = ['quantity' => 'Cantitativ', 'serialized' => 'QR unic'];
+    $hasFilters = request()->filled('search')
+        || request()->filled('category')
+        || request()->filled('tracking_type')
+        || (request()->has('active') && request('active') !== '');
+    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
 @endphp
+<div class="resource-shell">
+    <x-resource-page-header
+        title="Nomenclator"
+        description="Materiale, scule si utilaje folosite in stocuri si operatiuni."
+        :count="$totalItems"
+        :filtered-count="$items->total()"
+        icon="fa-list"
+        :create-route="auth()->user()->canManageInventoryMasterData() ? route('catalog-items.create') : null"
+        create-label="Articol nou"
+    >
+        <x-slot:actions>
+            <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-qrcode me-1"></i>Asset-uri QR</a>
+        </x-slot:actions>
+    </x-resource-page-header>
 
-<div class="dashboard-shell mx-3">
-    <div class="dashboard-hero mb-4">
-        <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
-            <div>
-                <span class="dashboard-pill"><i class="fa-solid fa-list me-2"></i> Nomenclator</span>
-                <h3 class="mb-2">Materiale, scule si utilaje</h3>
-                <p class="mb-0 text-muted">Catalogul de articole care intra in stoc, transferuri si rapoarte de consum.</p>
+    <form class="resource-filter-panel">
+        <div class="row g-2 align-items-end">
+            <div class="col-xl-5">
+                <label class="resource-filter-label">Cautare</label>
+                <input name="search" value="{{ request('search') }}" class="form-control" placeholder="Denumire, SKU sau cod de bare">
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-primary rounded-3">
-                    <i class="fa-solid fa-qrcode me-1"></i> Asset-uri QR
-                </a>
-                <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary rounded-3">
-                    <i class="fa-solid fa-receipt me-1"></i> Receptii
-                </a>
+            <div class="col-xl-2 col-md-4">
+                <label class="resource-filter-label">Categorie</label>
+                <select name="category" class="form-select">
+                    <option value="">Toate</option>
+                    @foreach($categoryLabels as $value => $label)<option value="{{ $value }}" @selected(request('category') === $value)>{{ $label }}</option>@endforeach
+                </select>
             </div>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-slate"><span>Total</span><strong>{{ $stats['total'] }}</strong></div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-forest"><span>Materiale</span><strong>{{ $stats['materials'] }}</strong></div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-teal"><span>Utilaje</span><strong>{{ $stats['equipment'] }}</strong></div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-amber"><span>Scule</span><strong>{{ $stats['tools'] }}</strong></div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-rose"><span>QR unic</span><strong>{{ $stats['serialized'] }}</strong></div>
-        </div>
-        <div class="col-md-6 col-xl-2">
-            <div class="mini-stat accent-danger"><span>Pozitii stoc</span><strong>{{ $stats['stock_positions'] }}</strong></div>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-xl-8">
-            <div class="card dashboard-chart-card h-100">
-                <div class="card-header bg-white"><strong><i class="fa-solid fa-plus me-1"></i> Adauga articol</strong></div>
-                <div class="card-body">
-                    <form method="post" action="{{ route('catalog-items.store') }}" class="row g-3 align-items-end">
-                        @csrf
-                        <div class="col-md-2">
-                            <label class="form-label">Categorie</label>
-                            <select name="category" class="form-select rounded-3">
-                                <option value="material">Material</option>
-                                <option value="equipment">Utilaj/Echipament</option>
-                                <option value="tool">Scula</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Urmarire</label>
-                            <select name="tracking_type" class="form-select rounded-3">
-                                <option value="quantity">Cantitativ</option>
-                                <option value="serialized">Unic / QR</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">SKU</label>
-                            <input name="sku" class="form-control rounded-3">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Denumire</label>
-                            <input name="name" class="form-control rounded-3" required>
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label">UM</label>
-                            <input name="unit" value="buc" class="form-control rounded-3" required>
-                        </div>
-                        <div class="col-md-1">
-                            <button class="btn btn-success rounded-3 w-100"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                    </form>
-                </div>
+            <div class="col-xl-2 col-md-4">
+                <label class="resource-filter-label">Urmarire</label>
+                <select name="tracking_type" class="form-select">
+                    <option value="">Toate</option>
+                    @foreach($trackingLabels as $value => $label)<option value="{{ $value }}" @selected(request('tracking_type') === $value)>{{ $label }}</option>@endforeach
+                </select>
+            </div>
+            <div class="col-xl-1 col-md-4">
+                <label class="resource-filter-label">Stare</label>
+                <select name="active" class="form-select">
+                    <option value="">Oricare</option>
+                    <option value="1" @selected(request('active') === '1')>Activ</option>
+                    <option value="0" @selected(request('active') === '0')>Inactiv</option>
+                </select>
+            </div>
+            <div class="col-xl-2 d-flex gap-2">
+                <button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button>
+                <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
-        <div class="col-xl-4">
-            <div class="insight-panel h-100">
-                <div class="fw-bold mb-3"><i class="fa-solid fa-ranking-star me-1"></i> Top articole QR</div>
-                @forelse($topItems as $topItem)
-                    <div class="field-line">
-                        <span>{{ $topItem->name }}</span>
-                        <strong>{{ $topItem->tracked_assets_count }}</strong>
-                    </div>
-                @empty
-                    <div class="text-muted">Nu exista articole serializate.</div>
-                @endforelse
-            </div>
-        </div>
-    </div>
+    </form>
 
-    <div class="card dashboard-chart-card">
-        <div class="card-header bg-white">
-            <form class="row g-2 align-items-center">
-                <div class="col-lg-5">
-                    <input name="search" value="{{ request('search') }}" class="form-control rounded-3" placeholder="Cauta dupa denumire, SKU sau cod de bare">
-                </div>
-                <div class="col-lg-2">
-                    <select name="category" class="form-select rounded-3">
-                        <option value="">Toate categoriile</option>
-                        <option value="material" @selected(request('category')==='material')>Materiale</option>
-                        <option value="equipment" @selected(request('category')==='equipment')>Utilaje</option>
-                        <option value="tool" @selected(request('category')==='tool')>Scule</option>
-                    </select>
-                </div>
-                <div class="col-lg-2">
-                    <select name="tracking_type" class="form-select rounded-3">
-                        <option value="">Toate urmaririle</option>
-                        <option value="quantity" @selected(request('tracking_type')==='quantity')>Cantitativ</option>
-                        <option value="serialized" @selected(request('tracking_type')==='serialized')>QR unic</option>
-                    </select>
-                </div>
-                <div class="col-lg-3 d-flex gap-2">
-                    <button class="btn btn-outline-primary rounded-3 flex-fill">
-                        <i class="fa-solid fa-filter me-1"></i> Filtreaza
-                    </button>
-                    <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary rounded-3">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="culoare2 text-white">Articol</th>
-                        <th class="culoare2 text-white">Categorie</th>
-                        <th class="culoare2 text-white">Urmarire</th>
-                        <th class="culoare2 text-white">UM</th>
-                        <th class="culoare2 text-white">Asset-uri</th>
-                        <th class="culoare2 text-white text-end">Actiuni</th>
-                    </tr>
-                </thead>
+    <div class="resource-table-card">
+        <div class="table-responsive resource-desktop-table">
+            <table class="table resource-table">
+                <thead><tr><th>Articol</th><th>Clasificare</th><th>Unitate</th><th>Disponibilitate</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>
                 <tbody>
                 @forelse($items as $item)
-                    @php
-                        $category = $categoryLabels[$item->category] ?? ['label' => $item->category, 'class' => 'secondary'];
-                        $tracking = $trackingLabels[$item->tracking_type] ?? ['label' => $item->tracking_type, 'class' => 'secondary'];
-                    @endphp
                     <tr>
                         <td>
-                            <strong>{{ $item->name }}</strong>
-                            <div class="small text-secondary">{{ $item->sku ?? 'Fara SKU' }}</div>
+                            <div class="resource-cell-stack">
+                                <span class="resource-primary">{{ $item->name }}</span>
+                                @if($item->sku)<span class="resource-code">{{ $item->sku }}</span>@endif
+                                @if($item->barcode)<span class="resource-secondary"><i class="fa-solid fa-barcode me-1"></i>{{ $item->barcode }}</span>@endif
+                            </div>
                         </td>
-                        <td><span class="badge rounded-pill text-bg-{{ $category['class'] }}">{{ $category['label'] }}</span></td>
-                        <td><span class="badge rounded-pill text-bg-{{ $tracking['class'] }}">{{ $tracking['label'] }}</span></td>
-                        <td><span class="badge rounded-pill text-bg-light border">{{ $item->unit }}</span></td>
+                        <td>
+                            <div class="resource-cell-stack">
+                                <span><span class="badge text-bg-light border">{{ $categoryLabels[$item->category] ?? $item->category }}</span></span>
+                                <span class="resource-secondary">{{ $trackingLabels[$item->tracking_type] ?? $item->tracking_type }}</span>
+                            </div>
+                        </td>
+                        <td><span class="badge text-bg-light border">{{ $item->unit }}</span></td>
                         <td>
                             @if($item->tracking_type === 'serialized')
-                                <span class="badge rounded-pill text-bg-primary">{{ $item->tracked_assets_count }} QR</span>
+                                <div class="resource-cell-stack">
+                                    <span><strong>{{ $item->available_tracked_assets_count }}</strong> din {{ $item->tracked_assets_count }} disponibile</span>
+                                    @if($item->in_use_tracked_assets_count > 0)<span class="resource-secondary"><i class="fa-solid fa-user-gear me-1"></i>{{ $item->in_use_tracked_assets_count }} in folosinta</span>@endif
+                                    @if($item->attention_tracked_assets_count > 0)<span class="text-warning small fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ $item->attention_tracked_assets_count }} necesita atentie</span>@endif
+                                </div>
                             @else
-                                <span class="badge rounded-pill text-bg-info">Stoc cantitativ</span>
+                                <div class="resource-cell-stack">
+                                    <span><strong>{{ $formatQuantity($item->stock_levels_sum_quantity ?? 0) }}</strong> {{ $item->unit }} in stoc</span>
+                                    @if($item->stock_levels_count > 0)
+                                        <span class="resource-secondary">In {{ $item->stock_levels_count }} {{ $item->stock_levels_count === 1 ? 'locatie' : 'locatii' }}</span>
+                                    @else
+                                        <span class="text-warning small"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara stoc inregistrat</span>
+                                    @endif
+                                </div>
                             @endif
                         </td>
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a class="btn btn-outline-primary" href="{{ route('tracked-assets.index') }}">
-                                    <i class="fa-solid fa-qrcode"></i>
-                                </a>
-                                <a class="btn btn-outline-secondary" href="{{ route('supplier-receptions.index') }}">
-                                    <i class="fa-solid fa-receipt"></i>
-                                </a>
-                                <a class="btn btn-outline-success" href="{{ route('consumption-reports.index') }}">
-                                    <i class="fa-solid fa-clipboard-check"></i>
-                                </a>
+                        <td><span class="badge text-bg-{{ $item->active ? 'success' : 'secondary' }}">{{ $item->active ? 'Activ' : 'Inactiv' }}</span></td>
+                        <td>
+                            <div class="resource-row-actions">
+                                @if(auth()->user()->canManageInventoryMasterData())<x-resource-icon-button :href="route('catalog-items.edit', $item)" icon="fa-pen" label="Modifica articolul" />@endif
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary resource-overflow-button" data-bs-toggle="dropdown" aria-expanded="false" title="Mai multe actiuni"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ route('tracked-assets.index', ['catalog_item_id' => $item->id]) }}"><i class="fa-solid fa-qrcode me-2"></i>Asset-uri asociate</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('supplier-receptions.index', ['catalog_item_id' => $item->id]) }}"><i class="fa-solid fa-receipt me-2"></i>Receptii</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('consumption-reports.index', ['catalog_item_id' => $item->id]) }}"><i class="fa-solid fa-clipboard-check me-2"></i>Consumuri</a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-secondary py-4">Nu exista articole.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            @if($hasFilters)
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Niciun articol nu corespunde filtrelor selectate.</span>
+                                    <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                </div>
+                            @else
+                                <div class="d-flex flex-column align-items-center gap-2">
+                                    <span class="text-muted">Nomenclatorul este gol.</span>
+                                    @if(auth()->user()->canManageInventoryMasterData())<a href="{{ route('catalog-items.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul articol</a>@endif
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="card-footer bg-white">{{ $items->links() }}</div>
+
+        <div class="resource-mobile-list">
+            @forelse($items as $item)
+                <article class="card resource-mobile-card">
+                    <div class="card-body">
+                        <div class="resource-mobile-card-header">
+                            <div class="min-w-0">
+                                <h2 class="resource-mobile-card-title">{{ $item->name }}</h2>
+                                @if($item->sku)<div class="resource-code">{{ $item->sku }}</div>@endif
+                                @if($item->barcode)<div class="resource-mobile-card-subtitle"><i class="fa-solid fa-barcode me-1"></i>{{ $item->barcode }}</div>@endif
+                            </div>
+                            <span class="badge text-bg-{{ $item->active ? 'success' : 'secondary' }}">{{ $item->active ? 'Activ' : 'Inactiv' }}</span>
+                        </div>
+
+                        <div class="resource-mobile-card-grid">
+                            <div>
+                                <span class="resource-filter-label">Clasificare</span>
+                                <strong>{{ $categoryLabels[$item->category] ?? $item->category }}</strong>
+                                <span class="resource-secondary">{{ $trackingLabels[$item->tracking_type] ?? $item->tracking_type }}</span>
+                            </div>
+                            <div>
+                                <span class="resource-filter-label">Unitate</span>
+                                <strong>{{ $item->unit }}</strong>
+                            </div>
+                            <div class="resource-mobile-card-wide">
+                                <span class="resource-filter-label">Disponibilitate</span>
+                                @if($item->tracking_type === 'serialized')
+                                    <strong>{{ $item->available_tracked_assets_count }} din {{ $item->tracked_assets_count }} disponibile</strong>
+                                    @if($item->in_use_tracked_assets_count > 0)<span class="resource-secondary"><i class="fa-solid fa-user-gear me-1"></i>{{ $item->in_use_tracked_assets_count }} in folosinta</span>@endif
+                                    @if($item->attention_tracked_assets_count > 0)<span class="d-block text-warning small fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ $item->attention_tracked_assets_count }} necesita atentie</span>@endif
+                                @else
+                                    <strong>{{ $formatQuantity($item->stock_levels_sum_quantity ?? 0) }} {{ $item->unit }} in stoc</strong>
+                                    @if($item->stock_levels_count > 0)
+                                        <span class="resource-secondary">In {{ $item->stock_levels_count }} {{ $item->stock_levels_count === 1 ? 'locatie' : 'locatii' }}</span>
+                                    @else
+                                        <span class="d-block text-warning small"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara stoc inregistrat</span>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="resource-mobile-card-actions">
+                            <a href="{{ route('tracked-assets.index', ['catalog_item_id' => $item->id]) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-qrcode me-1"></i>QR</a>
+                            <a href="{{ route('supplier-receptions.index', ['catalog_item_id' => $item->id]) }}" class="btn btn-outline-secondary btn-sm" aria-label="Vezi receptiile"><i class="fa-solid fa-receipt"></i></a>
+                            <a href="{{ route('consumption-reports.index', ['catalog_item_id' => $item->id]) }}" class="btn btn-outline-secondary btn-sm" aria-label="Vezi consumurile"><i class="fa-solid fa-clipboard-check"></i></a>
+                            @if(auth()->user()->canManageInventoryMasterData())<a href="{{ route('catalog-items.edit', $item) }}" class="btn btn-primary btn-sm" aria-label="Modifica articolul"><i class="fa-solid fa-pen"></i></a>@endif
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="resource-empty-state">
+                    @if($hasFilters)
+                        <p class="mb-2">Niciun articol nu corespunde filtrelor selectate.</p>
+                        <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                    @else
+                        <p class="mb-2">Nomenclatorul este gol.</p>
+                        @if(auth()->user()->canManageInventoryMasterData())<a href="{{ route('catalog-items.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul articol</a>@endif
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <div class="resource-table-footer">{{ $items->links() }}</div>
     </div>
 </div>
 @endsection

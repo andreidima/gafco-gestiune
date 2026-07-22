@@ -22,25 +22,25 @@ class LogisticsSeeder extends Seeder
     {
         $admin = User::updateOrCreate(
             ['email' => 'admin@example.com'],
-            ['name' => 'Administrator', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+            ['name' => 'Administrator', 'login_code' => 'ADMIN', 'phone' => '40700000001', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
         );
         $admin->syncRoles(['super-admin', 'admin']);
 
         $dispatcher = User::updateOrCreate(
             ['email' => 'dispecer@example.com'],
-            ['name' => 'Dispecer GAFCO', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+            ['name' => 'Dispecer GAFCO', 'login_code' => 'DISPECER', 'phone' => '40700000002', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
         );
         $dispatcher->syncRoles(['dispecer']);
 
         $driver = User::updateOrCreate(
             ['email' => 'sofer@example.com'],
-            ['name' => 'Ion Sofer', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+            ['name' => 'Ion Sofer', 'login_code' => 'SOFER', 'phone' => '40700000003', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
         );
         $driver->syncRoles(['sofer']);
 
         $manager = User::updateOrCreate(
             ['email' => 'santier@example.com'],
-            ['name' => 'Sef Santier', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+            ['name' => 'Sef Santier', 'login_code' => 'SANTIER', 'phone' => '40700000004', 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
         );
         $manager->syncRoles(['sef-santier']);
 
@@ -64,7 +64,7 @@ class LogisticsSeeder extends Seeder
         $extraManagers = collect(range(1, 5))->map(function (int $index) {
             $user = User::updateOrCreate(
                 ['email' => "sef.santier{$index}@example.com"],
-                ['name' => "Sef Santier {$index}", 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+                ['name' => "Sef Santier {$index}", 'login_code' => 'SEF-'.$index, 'phone' => '4071000000'.$index, 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
             );
             $user->syncRoles(['sef-santier']);
 
@@ -74,7 +74,7 @@ class LogisticsSeeder extends Seeder
         $extraDrivers = collect(range(1, 6))->map(function (int $index) {
             $user = User::updateOrCreate(
                 ['email' => "sofer{$index}@example.com"],
-                ['name' => "Sofer {$index}", 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+                ['name' => "Sofer {$index}", 'login_code' => 'SOFER-'.$index, 'phone' => '4072000000'.$index, 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
             );
             $user->syncRoles(['sofer']);
 
@@ -84,7 +84,7 @@ class LogisticsSeeder extends Seeder
         $extraWorkers = collect(range(1, 12))->map(function (int $index) {
             $user = User::updateOrCreate(
                 ['email' => "muncitor{$index}@example.com"],
-                ['name' => "Muncitor {$index}", 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
+                ['name' => "Muncitor {$index}", 'login_code' => 'MUNCITOR-'.$index, 'phone' => '407300000'.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'password' => Hash::make('password'), 'active' => true, 'email_verified_at' => now()]
             );
             $user->syncRoles(['muncitor']);
 
@@ -108,6 +108,14 @@ class LogisticsSeeder extends Seeder
         $drivers = collect([$driver])->merge($extraDrivers)->values();
         $managers = collect([$manager])->merge($extraManagers)->values();
         $workers = $extraWorkers->values();
+
+        $locations->each(function (Location $location): void {
+            if ($location->manager_user_id) {
+                $location->managers()->sync([
+                    $location->manager_user_id => ['active' => true, 'is_primary' => true],
+                ]);
+            }
+        });
 
         $catalogSeeds = collect([
             ['sku' => 'MAT-CIM-25', 'category' => 'material', 'tracking_type' => 'quantity', 'name' => 'Ciment 25 kg', 'unit' => 'sac'],

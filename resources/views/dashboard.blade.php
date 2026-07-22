@@ -30,16 +30,25 @@
     ];
     $maxAssetStatus = max(1, ...collect($assetLabels)->keys()->map(fn ($status) => (int) ($assetStatusCounts[$status] ?? 0))->all());
     $maxTransferStatus = max(1, ...collect($transferLabels)->keys()->map(fn ($status) => (int) ($transferStatusCounts[$status] ?? 0))->all());
-    $maxConsumption = max(1, ...$consumptionTrend->pluck('value')->all());
-    $maxTopLocation = max(1, ...$topLocations->pluck('assets_count')->all());
-    $assetTotal = max(1, collect($assetStatusCounts)->sum());
-    $assetAvailable = round(((int) ($assetStatusCounts['available'] ?? 0) / $assetTotal) * 100);
-    $assetInUse = round(((int) ($assetStatusCounts['in_use'] ?? 0) / $assetTotal) * 100);
-    $assetInTransfer = round(((int) ($assetStatusCounts['in_transfer'] ?? 0) / $assetTotal) * 100);
-    $transferTotal = max(1, collect($transferStatusCounts)->sum());
-    $transferReceived = round(((int) ($transferStatusCounts['received'] ?? 0) / $transferTotal) * 100);
-    $transferActive = round((((int) ($transferStatusCounts['assigned'] ?? 0) + (int) ($transferStatusCounts['in_transit'] ?? 0)) / $transferTotal) * 100);
-    $transferPending = round(((int) ($transferStatusCounts['pending_approval'] ?? 0) / $transferTotal) * 100);
+    $maxConsumption = max(1, (float) ($consumptionTrend->max('value') ?? 0));
+    $maxTopLocation = max(1, (int) ($topLocations->max('assets_count') ?? 0));
+    $assetTotal = (int) collect($assetStatusCounts)->sum();
+    $assetDivisor = max(1, $assetTotal);
+    $assetAvailable = round(((int) ($assetStatusCounts['available'] ?? 0) / $assetDivisor) * 100);
+    $assetInUse = round(((int) ($assetStatusCounts['in_use'] ?? 0) / $assetDivisor) * 100);
+    $assetInTransfer = round(((int) ($assetStatusCounts['in_transfer'] ?? 0) / $assetDivisor) * 100);
+    $transferTotal = (int) collect($transferStatusCounts)->sum();
+    $transferDivisor = max(1, $transferTotal);
+    $transferReceived = round(((int) ($transferStatusCounts['received'] ?? 0) / $transferDivisor) * 100);
+    $transferActive = round((((int) ($transferStatusCounts['assigned'] ?? 0) + (int) ($transferStatusCounts['in_transit'] ?? 0)) / $transferDivisor) * 100);
+    $transferPending = round(((int) ($transferStatusCounts['pending_approval'] ?? 0) / $transferDivisor) * 100);
+    $dashboardCopy = match ($dashboardMode) {
+        'driver' => ['fa-truck-fast', 'Spatiul meu de lucru', 'Sarcinile care au nevoie de atentia ta', 'Vezi doar sarcinile tale, termenele si actiunile pe care le poti face.'],
+        'worker' => ['fa-helmet-safety', 'Activitate teren', 'Confirmari si echipamente in custodie', 'Acces rapid la predari, echipamente si scanarea QR.'],
+        'manager' => ['fa-list-check', 'Panou operational', 'Ce necesita atentia ta', 'Aprobarile si sarcinile locatiilor tale apar primele.'],
+        'operations' => ['fa-chart-line', 'Panou operational', 'Ce necesita atentie acum', 'Actiunile urgente apar inaintea statisticilor generale.'],
+        default => ['fa-house', 'Acasa', 'Contul tau este activ', 'Administratorul trebuie sa iti atribuie un rol operational pentru acces la module.'],
+    };
 @endphp
 
 <div class="dashboard-shell mx-3">
@@ -47,19 +56,39 @@
         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
             <div>
                 <span class="dashboard-pill">
-                    <i class="fa-solid fa-chart-line me-2"></i> Panou acasa
+                    <i class="fa-solid {{ $dashboardCopy[0] }} me-2"></i>
+                    {{ $dashboardCopy[1] }}
                 </span>
-                <h3 class="mb-2">Situatie curenta gestiune</h3>
-                <p class="mb-0 text-muted">Statistici rapide pentru santiere, transferuri, receptii si cereri sofer.</p>
+                <h3 class="mb-2">{{ $dashboardCopy[2] }}</h3>
+                <p class="mb-0 text-muted">{{ $dashboardCopy[3] }}</p>
             </div>
-            <div class="dashboard-highlight text-end">
-                <div class="dashboard-highlight-label">Santiere active</div>
-                <div class="dashboard-highlight-value">{{ $sites }}</div>
-                <div class="dashboard-highlight-sub">Monitorizate in aplicatie.</div>
-            </div>
+            @if($showOperationsOverview)
+                <div class="dashboard-highlight text-end">
+                    <div class="dashboard-highlight-label">Santiere active</div>
+                    <div class="dashboard-highlight-value">{{ $sites }}</div>
+                    <div class="dashboard-highlight-sub">Monitorizate in aplicatie.</div>
+                </div>
+            @endif
         </div>
     </div>
 
+    @if($actionQueues)
+    <div class="action-queue-grid mb-4" aria-label="Actiuni prioritare">
+        @foreach($actionQueues as $queue)
+            <a href="{{ $queue['href'] }}" class="action-queue-card {{ $queue['tone'] }} text-decoration-none">
+                <span class="action-queue-icon"><i class="fa-solid {{ $queue['icon'] }}"></i></span>
+                <span class="action-queue-content">
+                    @if($queue['count'] !== null)<strong>{{ $queue['count'] }}</strong>@endif
+                    <span class="action-queue-title">{{ $queue['title'] }}</span>
+                    <small>{{ $queue['description'] }}</small>
+                </span>
+                <i class="fa-solid fa-arrow-right action-queue-arrow" aria-hidden="true"></i>
+            </a>
+        @endforeach
+    </div>
+    @endif
+
+    @if($showOperationsOverview)
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-lg-2">
             <div class="stat-card accent-rose h-100">
@@ -117,7 +146,7 @@
                 </div>
                 <div class="stat-value">{{ $driverRequestCount }}</div>
                 <div class="stat-footer">
-                    <a class="btn btn-sm stat-btn" href="{{ route('driver-requests.index') }}">Dispecerat</a>
+                    <a class="btn btn-sm stat-btn" href="{{ route('tasks.dispatch') }}">Dispecerat</a>
                 </div>
             </div>
         </div>
@@ -364,7 +393,7 @@
             <div class="card dashboard-chart-card shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong><i class="fa-solid fa-truck me-1"></i> Cereri sofer</strong>
-                    <a href="{{ route('driver-requests.index') }}" class="btn btn-sm stat-btn accent-forest">Dispecerat</a>
+                    <a href="{{ route('tasks.dispatch') }}" class="btn btn-sm stat-btn accent-forest">Dispecerat</a>
                 </div>
                 <div class="list-group list-group-flush">
                     @forelse($driverRequests as $request)
@@ -372,7 +401,7 @@
                             <div class="d-flex justify-content-between gap-3">
                                 <div>
                                     <div class="fw-semibold">{{ $request->number }}</div>
-                                    <div class="small text-secondary">{{ $request->site?->name }} - {{ $request->assignedDriver?->name ?? 'fara sofer' }}</div>
+                                    <div class="small text-secondary">{{ $request->destinationLocation?->name ?? 'Fara locatie' }} - {{ $request->currentAssignment?->driver?->name ?? 'fara sofer' }}</div>
                                 </div>
                                 <x-status :status="$request->status" />
                             </div>
@@ -388,7 +417,7 @@
     <div class="row g-3 mt-4">
         <div class="col-xl-5">
             <div class="card dashboard-chart-card shadow-sm h-100">
-                <div class="card-header bg-white"><strong><i class="fa-solid fa-bell me-1"></i> Alerte demo</strong></div>
+                <div class="card-header bg-white"><strong><i class="fa-solid fa-bell me-1"></i> Alerte operationale</strong></div>
                 <div class="card-body">
                     <div class="alert-tile alert-tile-warning mb-3">
                         <i class="fa-solid fa-truck-ramp-box"></i>
@@ -445,5 +474,71 @@
             @endforelse
         </div>
     </div>
+    @elseif($dashboardMode === 'driver')
+        <div class="card dashboard-chart-card shadow-sm">
+            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <strong><i class="fa-solid fa-list-check me-1"></i> Urmatoarele mele sarcini</strong>
+                    <div class="small text-muted">Intarzierile si sarcinile care asteapta raspuns apar primele.</div>
+                </div>
+                <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-outline-primary">Vezi toate</a>
+            </div>
+            <div class="list-group list-group-flush driver-dashboard-task-list">
+                @forelse($ownTasks as $task)
+                    <a href="{{ route('tasks.show', $task) }}" class="list-group-item list-group-item-action py-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div class="min-w-0">
+                                <div class="resource-primary">{{ $task->title }}</div>
+                                <div class="resource-code">{{ $task->number }}</div>
+                            </div>
+                            <x-status :status="$task->status" />
+                        </div>
+                        <div class="row g-2 mt-1 small">
+                            <div class="col-md-6"><i class="fa-solid fa-route me-1 text-muted"></i>{{ $task->sourceLocation?->code ?? 'Nespecificat' }} <span aria-hidden="true">&rarr;</span> {{ $task->destinationLocation?->code ?? 'Nespecificat' }}</div>
+                            <div class="col-md-6 {{ $task->isOverdue() ? 'deadline-overdue fw-bold' : 'text-muted' }}">
+                                <i class="fa-solid fa-flag-checkered me-1"></i>
+                                @if($task->manager_deadline){{ $task->manager_deadline->format('d.m.Y H:i') }} ({{ $task->manager_deadline->diffForHumans() }})@else Termen nespecificat @endif
+                            </div>
+                        </div>
+                    </a>
+                @empty
+                    <div class="list-group-item text-center text-muted py-4">Nu ai sarcini active. Notificarile noi vor aparea aici.</div>
+                @endforelse
+            </div>
+        </div>
+    @elseif($dashboardMode === 'worker')
+        <div class="card dashboard-chart-card shadow-sm">
+            <div class="card-body text-center py-5">
+                <span class="resource-page-icon mx-auto mb-3"><i class="fa-solid fa-mobile-screen-button"></i></span>
+                <h4>Continua din modul de teren</h4>
+                <p class="text-muted">Acolo gasesti confirmarile si echipamentele relevante pentru rolul tau.</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{{ route('field.worker') }}" class="btn btn-primary"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamentele mele</a>
+                    <a href="{{ route('qr-scan.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-qrcode me-1"></i>Scaneaza QR</a>
+                </div>
+            </div>
+        </div>
+    @elseif($dashboardMode === 'manager')
+        <div class="card dashboard-chart-card shadow-sm">
+            <div class="card-body text-center py-5">
+                <span class="resource-page-icon mx-auto mb-3"><i class="fa-solid fa-clipboard-check"></i></span>
+                <h4>Continua cu operatiunile locatiilor tale</h4>
+                <p class="text-muted">Aprobarile, transferurile si sarcinile raman limitate la locatiile pe care le administrezi.</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{{ route('field.site-manager') }}" class="btn btn-primary">Panou locatie</a>
+                    <a href="{{ route('tasks.index') }}" class="btn btn-outline-primary">Sarcini</a>
+                    <a href="{{ route('transfers.index') }}" class="btn btn-outline-primary">Transferuri</a>
+                </div>
+            </div>
+        </div>
+    @else
+        <div class="card dashboard-chart-card shadow-sm">
+            <div class="card-body text-center py-5">
+                <span class="resource-page-icon mx-auto mb-3"><i class="fa-solid fa-user-lock"></i></span>
+                <h4>Rol operational neatribuit</h4>
+                <p class="text-muted mb-0">Contacteaza administratorul pentru a primi acces la modulele necesare.</p>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

@@ -5,6 +5,8 @@
         'draft' => 'Draft',
         'pending_approval' => 'Asteapta aprobare',
         'pending' => 'In asteptare',
+        'pending_acceptance' => 'Asteapta soferul',
+        'unassigned' => 'Nealocat',
         'approved' => 'Aprobat',
         'open' => 'Deschis',
         'assigned' => 'Alocat',
@@ -13,8 +15,13 @@
         'received' => 'Receptionat',
         'posted' => 'Inregistrat',
         'accepted' => 'Acceptat',
+        'completed' => 'Finalizat',
         'closed' => 'Inchis',
         'cancelled' => 'Anulat',
+        'rejected' => 'Refuzat',
+        'reassignment_requested' => 'Realocare solicitata',
+        'archived' => 'Arhivat',
+        'expired' => 'Expirat',
     ];
 @endphp
 

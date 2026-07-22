@@ -21,4 +21,9 @@ class CatalogItem extends Model
     {
         return $this->hasMany(TrackedAsset::class);
     }
+
+    public function stockLevels(): HasMany
+    {
+        return $this->hasMany(StockLevel::class);
+    }
 }

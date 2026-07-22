@@ -27,7 +27,7 @@ Seeder-ul genereaza date suficiente pentru prezentare:
 Cont demo:
 
 ```text
-admin@example.com
+ADMIN
 password
 ```
 

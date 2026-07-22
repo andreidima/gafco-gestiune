@@ -12,6 +12,16 @@
 </head>
 <body class="d-flex flex-column h-100">
     @auth
+        @php
+            $navigationUser = auth()->user();
+            $navigationOperations = $navigationUser->isOperationsAdmin();
+            $navigationManager = $navigationUser->hasAnyRole(['sef-santier', 'gestionar-baza']);
+            $navigationDriver = $navigationUser->usesDriverWorkspace();
+            $navigationWorker = $navigationUser->usesWorkerWorkspace();
+            $navigationAccounting = $navigationUser->hasRole('contabil');
+            $navigationManagement = $navigationUser->isManagementUser();
+            $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
+        @endphp
         <header>
             <nav class="navbar navbar-lg navbar-expand-lg navbar-dark shadow culoare1">
                 <div class="container">
@@ -29,93 +39,66 @@
                                     <i class="fa-solid fa-house me-1"></i> Acasa
                                 </a>
                             </li>
-                            <li class="nav-item me-2 dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'tracked-assets.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">
-                                            Locatii
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">
-                                            Echipamente
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">
-                                            Nomenclator
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">
-                                            Receptii
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">
-                                            Consum
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('returns.*') ? 'active' : '' }}" href="{{ route('returns.index') }}">
-                                            Retururi
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="nav-item me-2 dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->routeIs('transfers.*', 'driver-requests.*') ? 'active' : '' }}" href="#" id="transferuriDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa-solid fa-right-left me-1"></i> Transferuri
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="transferuriDropdown">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">
-                                            Transferuri
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('driver-requests.*') ? 'active' : '' }}" href="{{ route('driver-requests.index') }}">
-                                            Soferi
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="nav-item me-2 dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->routeIs('field.*') ? 'active' : '' }}" href="#" id="terenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa-solid fa-mobile-screen-button me-1"></i> Teren
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="terenDropdown">
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('field.driver') ? 'active' : '' }}" href="{{ route('field.driver') }}">
-                                            Sofer
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}">
-                                            Sef santier
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">
-                                            Muncitor
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">
-                                            QR
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}">
-                                    <i class="fa-solid fa-chart-column me-1"></i> Rapoarte
-                                </a>
-                            </li>
-                            @if(auth()->user()?->hasAnyRole(['admin','super-admin']))
+                            @if($navigationManagement || $navigationAccounting)
+                                <li class="nav-item me-2 dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'tracked-assets.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
+                                        @if($navigationManagement)
+                                            <li><a class="dropdown-item {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">Locatii</a></li>
+                                            <li><a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">Echipamente</a></li>
+                                            <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
+                                        @endif
+                                        <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Receptii</a></li>
+                                        <li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>
+                                        @if($navigationManagement)<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
+                                    </ul>
+                                </li>
+                            @endif
+
+                            @if($navigationManagement)
+                                <li class="nav-item me-2 dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('transfers.*', 'tasks.*', 'driver-requests.*') ? 'active' : '' }}" href="#" id="transferuriDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa-solid fa-right-left me-1"></i> Operatiuni
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="transferuriDropdown">
+                                        <li><a class="dropdown-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">Transferuri</a></li>
+                                        <li><a class="dropdown-item {{ request()->routeIs('tasks.index', 'tasks.show', 'tasks.create', 'tasks.edit') ? 'active' : '' }}" href="{{ route('tasks.index') }}">Sarcini soferi</a></li>
+                                        @can('create', \App\Models\Task::class)
+                                            <li><a class="dropdown-item {{ request()->routeIs('tasks.dispatch') ? 'active' : '' }}" href="{{ route('tasks.dispatch') }}">Situatie soferi</a></li>
+                                        @endcan
+                                    </ul>
+                                </li>
+                            @elseif($navigationDriver)
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i class="fa-solid fa-list-check me-1"></i>Sarcinile mele</a></li>
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}"><i class="fa-solid fa-right-left me-1"></i>Transferurile mele</a></li>
+                            @endif
+
+                            @if($navigationOperations)
+                                <li class="nav-item me-2 dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('field.*', 'qr-scan.*') ? 'active' : '' }}" href="#" id="terenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a>
+                                    <ul class="dropdown-menu" aria-labelledby="terenDropdown">
+                                        <li><a class="dropdown-item {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}">Sef santier</a></li>
+                                        <li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Muncitor</a></li>
+                                        <li><a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">Scanare QR</a></li>
+                                    </ul>
+                                </li>
+                            @elseif($navigationManager)
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a></li>
+                            @elseif($navigationWorker)
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamentele mele</a></li>
+                            @endif
+
+                            @if($navigationDriver || $navigationWorker)
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}"><i class="fa-solid fa-qrcode me-1"></i>QR</a></li>
+                            @endif
+
+                            @if($navigationManagement || $navigationAccounting)
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><i class="fa-solid fa-chart-column me-1"></i>Rapoarte</a></li>
+                            @endif
+
+                            @if($navigationUser->hasAnyRole(['admin','super-admin']))
                                 <li class="nav-item me-2 dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-gear me-1"></i> Setari
@@ -126,12 +109,49 @@
                                                 Utilizatori
                                             </a>
                                         </li>
+                                        @can('access-database-tools')
+                                            <li>
+                                                <a class="dropdown-item {{ request()->routeIs('system.database*') ? 'active' : '' }}" href="{{ route('system.database') }}">
+                                                    Baza de date si migrari
+                                                </a>
+                                            </li>
+                                        @endcan
                                     </ul>
                                 </li>
                             @endif
                         </ul>
 
                         <ul class="navbar-nav ms-auto">
+                            @if($notificationsAvailable)
+                            <li class="nav-item dropdown me-2">
+                                <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificari">
+                                    <i class="fa-solid fa-bell"></i>
+                                    @if(auth()->user()->unreadNotifications()->count())
+                                        <span class="badge text-bg-danger">{{ auth()->user()->unreadNotifications()->count() }}</span>
+                                    @endif
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 340px">
+                                    @forelse(auth()->user()->notifications()->latest()->limit(6)->get() as $notification)
+                                        <li>
+                                            <form method="post" action="{{ route('notifications.read', $notification->id) }}">
+                                                @csrf
+                                                <button class="dropdown-item text-wrap {{ $notification->read_at ? '' : 'fw-bold' }}">
+                                                    <span class="d-block">{{ $notification->data['title'] ?? 'Notificare' }}</span>
+                                                    <span class="small text-muted">{{ $notification->data['message'] ?? '' }}</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @empty
+                                        <li><span class="dropdown-item-text text-muted">Nu exista notificari.</span></li>
+                                    @endforelse
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-center" href="{{ route('notifications.index') }}">Vezi toate notificarile</a></li>
+                                    @if(auth()->user()->unreadNotifications()->exists())
+                                        <li><form method="post" action="{{ route('notifications.read-all') }}">@csrf<button class="dropdown-item text-center">Marcheaza toate ca citite</button></form></li>
+                                    @endif
+                                </ul>
+                            </li>
+                            @endif
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fa-solid fa-user me-1"></i> {{ auth()->user()->name }}
@@ -187,5 +207,6 @@
             <a href="https://validsoftware.ro/" class="text-white" target="_blank" rel="noopener">validsoftware.ro</a>
         </span>
     </footer>
+    @stack('scripts')
 </body>
 </html>
