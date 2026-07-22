@@ -78,6 +78,9 @@ class DatabaseController extends Controller
             : collect();
 
         return view('system.database', [
+            'databaseToolsLayout' => $this->applicationNavigationIsAvailable()
+                ? 'layouts.app'
+                : 'layouts.system',
             'databaseInfo' => [
                 'connection' => config('database.default'),
                 'database' => config('database.connections.'.config('database.default').'.database'),
@@ -109,6 +112,13 @@ class DatabaseController extends Controller
             'composerPharPath' => base_path('composer.phar'),
             'composerPharSize' => File::exists(base_path('composer.phar')) ? File::size(base_path('composer.phar')) : null,
         ]);
+    }
+
+    private function applicationNavigationIsAvailable(): bool
+    {
+        return Schema::hasTable('users')
+            && Schema::hasTable('roles')
+            && Schema::hasTable('model_has_roles');
     }
 
     public function migrate(Request $request): RedirectResponse

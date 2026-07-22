@@ -1,4 +1,4 @@
-@extends('layouts.system')
+@extends($databaseToolsLayout ?? 'layouts.system')
 
 @section('title', 'Baza de date si migrari')
 

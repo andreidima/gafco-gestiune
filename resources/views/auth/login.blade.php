@@ -78,7 +78,7 @@
                     <div class="card-body pb-0">
                         <div class="login-helper mb-3">
                             Foloseste codul sau adresa de email si parola primite de la administrator.
-                            @env('local')<span class="d-block mt-1">Demo local: <strong>ADMIN</strong> / <strong>password</strong>.</span>@endenv
+                            <span class="d-block mt-1">Cont pentru verificare: <strong>admin@example.com</strong> / <strong>password</strong>.</span>
                         </div>
 
                         <form method="POST" action="{{ route('login.store') }}">

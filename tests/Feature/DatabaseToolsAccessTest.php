@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class DatabaseToolsAccessTest extends TestCase
@@ -16,11 +17,14 @@ class DatabaseToolsAccessTest extends TestCase
             'email' => 'andrei.dima@usm.ro',
             'login_code' => 'ANDREI',
         ]);
+        Role::findOrCreate('super-admin');
+        $andrei->assignRole('super-admin');
         $otherUser = User::factory()->create();
 
         $this->actingAs($andrei)
             ->get(route('system.database'))
             ->assertOk()
+            ->assertSee('Setari')
             ->assertSee('Baza de date si migrari');
 
         $this->actingAs($otherUser)
@@ -42,5 +46,13 @@ class DatabaseToolsAccessTest extends TestCase
         ])->assertRedirect(route('dashboard'));
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_page_displays_the_shared_verification_account(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('admin@example.com')
+            ->assertSee('password');
     }
 }
