@@ -7,9 +7,11 @@ use App\Http\Controllers\CustodyTransferController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\FieldModeController;
+use App\Http\Controllers\HelpCenterController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\QrScanController;
+use App\Http\Controllers\ReleaseNoteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\SupplierReceptionController;
@@ -41,6 +43,10 @@ Route::get('/', function () {
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/ajutor', [HelpCenterController::class, 'index'])->name('help.index');
+    Route::get('/ajutor/{helpArticle}', [HelpCenterController::class, 'show'])->name('help.show');
+    Route::get('/noutati', [ReleaseNoteController::class, 'index'])->name('release-notes.index');
+    Route::get('/noutati/{releaseNote}', [ReleaseNoteController::class, 'show'])->name('release-notes.show');
 
     Route::resource('locations', LocationController::class)->only(['create', 'store', 'edit', 'update'])
         ->middleware('role:super-admin|admin|dispecer');

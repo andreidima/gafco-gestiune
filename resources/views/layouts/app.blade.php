@@ -122,6 +122,33 @@
                         </ul>
 
                         <ul class="navbar-nav ms-auto">
+                            <li class="nav-item dropdown me-2">
+                                <a
+                                    class="nav-link dropdown-toggle text-white {{ request()->routeIs('help.*', 'release-notes.*') ? 'active' : '' }}"
+                                    href="#"
+                                    id="helpDropdown"
+                                    role="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="Ajutor și noutăți"
+                                    title="Ajutor și noutăți"
+                                >
+                                    <i class="fa-solid fa-circle-question"></i>
+                                    <span class="d-lg-none ms-1">Ajutor</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="helpDropdown">
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('help.*') ? 'active' : '' }}" href="{{ route('help.index') }}">
+                                            <i class="fa-solid fa-book-open me-2"></i>Centru de ajutor
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {{ request()->routeIs('release-notes.*') ? 'active' : '' }}" href="{{ route('release-notes.index') }}">
+                                            <i class="fa-solid fa-bullhorn me-2"></i>Noutăți
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
                             @if($notificationsAvailable)
                             <li class="nav-item dropdown me-2">
                                 <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificari">
