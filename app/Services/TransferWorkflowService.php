@@ -19,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 
 class TransferWorkflowService
 {
+    public function __construct(private readonly StockLedgerService $ledger) {}
+
     public function create(array $data, User $actor, TaskWorkflowService $tasks): Transfer
     {
         return DB::transaction(function () use ($data, $actor, $tasks): Transfer {
@@ -231,7 +233,12 @@ class TransferWorkflowService
                         'last_verified_at' => now(),
                     ]);
                 } else {
-                    $this->moveStock($line->catalog_item_id, $transfer->source_location_id, $transfer->destination_location_id, (float) $line->quantity);
+                    $this->ledger->postTransfer(
+                        $line,
+                        (int) $transfer->source_location_id,
+                        (int) $transfer->destination_location_id,
+                        $actor,
+                    );
                 }
                 $line->update(['received_status' => 'received']);
             }
@@ -459,12 +466,10 @@ class TransferWorkflowService
             return;
         }
 
-        abort_unless(
-            $actor->activeManagedLocations()
-                ->whereIn('locations.id', [$sourceLocationId, $destinationLocationId])
-                ->exists(),
-            403
-        );
+        $allowedCount = $actor->activeManagedLocations()
+            ->whereIn('locations.id', [$sourceLocationId, $destinationLocationId])
+            ->count();
+        abort_unless($allowedCount === count(array_unique([$sourceLocationId, $destinationLocationId])), 403);
     }
 
     private function validateReturnParent(array $data, User $actor, ?Transfer $transfer = null): void
@@ -504,17 +509,6 @@ class TransferWorkflowService
         }
 
         return $driver;
-    }
-
-    private function moveStock(int $catalogItemId, int $sourceLocationId, int $destinationLocationId, float $quantity): void
-    {
-        $source = StockLevel::where('location_id', $sourceLocationId)->where('catalog_item_id', $catalogItemId)->lockForUpdate()->first();
-        if (! $source || (float) $source->quantity < $quantity) {
-            throw ValidationException::withMessages(['stock' => 'Stocul sursa nu mai este suficient pentru receptie.']);
-        }
-        $source->decrement('quantity', $quantity);
-        $destination = StockLevel::firstOrCreate(['location_id' => $destinationLocationId, 'catalog_item_id' => $catalogItemId], ['quantity' => 0]);
-        $destination->increment('quantity', $quantity);
     }
 
     private function direction(Location $source, Location $destination): string

@@ -7,6 +7,8 @@ use App\Models\ConsumptionReport;
 use App\Models\Location;
 use App\Models\StockLevel;
 use App\Models\User;
+use App\Services\LocationAccessService;
+use App\Services\StockLedgerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,10 +19,12 @@ use Illuminate\View\View;
 
 class ConsumptionReportController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
-        $visibleLocationIds = $this->visibleLocationIds($user);
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
         $reports = ConsumptionReport::with([
             'location',
             'reporter',
@@ -38,7 +42,7 @@ class ConsumptionReportController extends Controller
                 ->latest('reported_at')
                 ->paginate(20)
                 ->withQueryString(),
-            'locations' => $this->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
             'items' => CatalogItem::where('tracking_type', 'quantity')->where('active', true)->orderBy('name')->get(),
             'totalReports' => ConsumptionReport::query()
                 ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('location_id', $visibleLocationIds))
@@ -58,7 +62,7 @@ class ConsumptionReportController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StockLedgerService $ledger): RedirectResponse
     {
         $writeLocationIds = $this->writeLocations($request->user())->pluck('locations.id');
         $data = $request->validate([
@@ -72,7 +76,7 @@ class ConsumptionReportController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($data, $request) {
+        DB::transaction(function () use ($data, $request, $ledger) {
             $location = $this->writeLocations($request->user())
                 ->lockForUpdate()
                 ->findOrFail($data['location_id']);
@@ -99,25 +103,16 @@ class ConsumptionReportController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            $report->lines()->create([
+            $line = $report->lines()->create([
                 'catalog_item_id' => $item->id,
                 'quantity' => $data['quantity'],
                 'unit' => $item->unit,
                 'notes' => $data['notes'] ?? null,
             ]);
-
-            $stock->decrement('quantity', (float) $data['quantity']);
+            $ledger->postConsumption($line->load('consumptionReport'), $location->id, $request->user());
         });
 
         return redirect()->route('consumption-reports.index')->with('status', 'Consumul a fost inregistrat si stocul a fost actualizat.');
-    }
-
-    private function visibleLocations(User $user): Builder
-    {
-        return Location::query()
-            ->where('active', true)
-            ->when(! $this->canReadGlobally($user), fn (Builder $query) => $query
-                ->whereIn('id', $this->managedActiveLocationIds($user)));
     }
 
     private function writeLocations(User $user): Builder
@@ -128,11 +123,6 @@ class ConsumptionReportController extends Controller
                 ->whereIn('id', $this->managedActiveLocationIds($user)));
     }
 
-    private function visibleLocationIds(User $user): ?array
-    {
-        return $this->canReadGlobally($user) ? null : $this->managedActiveLocationIds($user);
-    }
-
     /** @return array<int, int> */
     private function managedActiveLocationIds(User $user): array
     {
@@ -140,11 +130,6 @@ class ConsumptionReportController extends Controller
             ->where('locations.active', true)
             ->pluck('locations.id')
             ->all();
-    }
-
-    private function canReadGlobally(User $user): bool
-    {
-        return $user->isOperationsAdmin() || $user->hasRole('contabil');
     }
 
     private function canCreate(User $user): bool

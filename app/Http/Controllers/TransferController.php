@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
-use App\Models\Location;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\LocationAccessService;
 use App\Services\TaskWorkflowService;
 use App\Services\TransferWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +17,8 @@ use Illuminate\View\View;
 
 class TransferController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Transfer::class);
@@ -60,7 +62,7 @@ class TransferController extends Controller
 
         return view('transfers.index', [
             'transfers' => $query->paginate(20)->withQueryString(),
-            'locations' => Location::where('active', true)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
             'drivers' => $request->user()->usesDriverWorkspace()
                 ? collect()
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
@@ -83,7 +85,7 @@ class TransferController extends Controller
             );
         }
 
-        return view('transfers.form', $this->formData(null, $parent));
+        return view('transfers.form', $this->formData($request->user(), null, $parent));
     }
 
     public function store(Request $request, TransferWorkflowService $workflow, TaskWorkflowService $tasks): RedirectResponse
@@ -114,7 +116,7 @@ class TransferController extends Controller
         $this->authorize('update', $transfer);
         $transfer->load(['lines.catalogItem', 'lines.trackedAsset', 'task.currentAssignment']);
 
-        return view('transfers.form', $this->formData($transfer));
+        return view('transfers.form', $this->formData(request()->user(), $transfer));
     }
 
     public function update(Request $request, Transfer $transfer, TransferWorkflowService $workflow, TaskWorkflowService $tasks): RedirectResponse
@@ -153,12 +155,12 @@ class TransferController extends Controller
         return redirect()->route('transfers.index')->with('status', 'Transferul a fost arhivat.');
     }
 
-    private function formData(?Transfer $transfer = null, ?Transfer $parent = null): array
+    private function formData(User $user, ?Transfer $transfer = null, ?Transfer $parent = null): array
     {
         return [
             'transfer' => $transfer,
             'parent' => $parent,
-            'locations' => Location::where('active', true)->orderBy('type')->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
             'items' => CatalogItem::where('active', true)->orderBy('name')->get(),
             'assets' => TrackedAsset::with(['catalogItem', 'currentLocation'])
@@ -215,7 +217,7 @@ class TransferController extends Controller
     private function visibleQuery(User $user): Builder
     {
         $query = Transfer::query();
-        if ($user->isOperationsAdmin()) {
+        if ($user->hasGlobalOperationalReadAccess()) {
             return $query;
         }
         if ($user->usesDriverWorkspace()) {

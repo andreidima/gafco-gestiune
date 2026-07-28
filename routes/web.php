@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\FieldModeController;
 use App\Http\Controllers\HelpCenterController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\QrScanController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\TrackedAssetController;
 use App\Http\Controllers\TransferApprovalController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserPreferenceController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 
@@ -51,17 +53,23 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::resource('locations', LocationController::class)->only(['create', 'store', 'edit', 'update'])
         ->middleware('role:super-admin|admin|dispecer');
     Route::resource('locations', LocationController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
     Route::resource('catalog-items', CatalogItemController::class)->only(['create', 'store', 'edit', 'update'])
         ->middleware('role:super-admin|admin|dispecer|gestionar-baza');
     Route::resource('catalog-items', CatalogItemController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+    Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index')
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::get('inventory/{catalogItem}', [InventoryController::class, 'show'])->name('inventory.show')
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::put('preferences/inventory', [UserPreferenceController::class, 'updateInventory'])->name('preferences.inventory.update')
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['create', 'store', 'edit', 'update'])
         ->middleware('role:super-admin|admin|dispecer');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['show'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|sofer|muncitor|contabil');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor|contabil');
     Route::resource('transfers', TransferController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('transfers/{transfer}/receive', [TransferController::class, 'receive'])->name('transfers.receive');
     Route::post('transfers/{transfer}/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
@@ -81,11 +89,11 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|contabil');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|contabil');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
     Route::resource('custody-transfers', CustodyTransferController::class)->only(['store', 'update']);
@@ -99,7 +107,7 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('qr-scan', [QrScanController::class, 'lookup'])->name('qr-scan.lookup')
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|sofer|muncitor');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index')
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|contabil');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
 
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update'])->middleware('role:admin|super-admin');
 });

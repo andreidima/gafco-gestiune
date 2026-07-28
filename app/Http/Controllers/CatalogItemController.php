@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
+use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -10,8 +11,14 @@ use Illuminate\View\View;
 
 class CatalogItemController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+        $stockScope = fn ($query) => $query
+            ->when($visibleLocationIds !== null, fn ($visible) => $visible->whereIn('location_id', $visibleLocationIds));
+
         return view('catalog-items.index', [
             'items' => CatalogItem::query()
                 ->withCount([
@@ -22,9 +29,9 @@ class CatalogItemController extends Controller
                         $attentionQuery->whereIn('status', ['maintenance', 'lost'])
                             ->orWhereIn('condition', ['damaged', 'needs_service']);
                     }),
-                    'stockLevels',
+                    'stockLevels' => $stockScope,
                 ])
-                ->withSum('stockLevels', 'quantity')
+                ->withSum(['stockLevels' => $stockScope], 'quantity')
                 ->when($request->category, fn ($query, $category) => $query->where('category', $category))
                 ->when($request->tracking_type, fn ($query, $trackingType) => $query->where('tracking_type', $trackingType))
                 ->when($request->filled('active'), fn ($query) => $query->where('active', $request->boolean('active')))

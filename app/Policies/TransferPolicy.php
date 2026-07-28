@@ -10,7 +10,7 @@ class TransferPolicy
     public function viewAny(User $user): bool
     {
         return $user->active
-            && $user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza', 'sofer']);
+            && $user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'manager', 'sef-santier', 'gestionar-baza', 'sofer']);
     }
 
     public function view(User $user, Transfer $transfer): bool
@@ -19,7 +19,7 @@ class TransferPolicy
             return false;
         }
 
-        if ($user->isOperationsAdmin()) {
+        if ($user->hasGlobalOperationalReadAccess()) {
             return true;
         }
 

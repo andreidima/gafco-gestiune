@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Location;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
+use App\Services\LocationAccessService;
 use App\Services\TaskWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +15,8 @@ use Illuminate\View\View;
 
 class TaskController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Task::class);
@@ -45,7 +47,7 @@ class TaskController extends Controller
             'drivers' => $user->usesDriverWorkspace()
                 ? collect()
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
-            'locations' => Location::where('active', true)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
             'totalTasks' => $this->visibleQuery($user)->count(),
         ]);
     }
@@ -54,7 +56,7 @@ class TaskController extends Controller
     {
         $this->authorize('create', Task::class);
 
-        return view('tasks.form', $this->formData());
+        return view('tasks.form', $this->formData($request->user()));
     }
 
     public function store(Request $request, TaskWorkflowService $workflow): RedirectResponse
@@ -127,7 +129,7 @@ class TaskController extends Controller
             return redirect()->route('transfers.edit', $task->transfer);
         }
 
-        return view('tasks.form', $this->formData($task));
+        return view('tasks.form', $this->formData(request()->user(), $task));
     }
 
     public function update(Request $request, Task $task): RedirectResponse
@@ -260,7 +262,7 @@ class TaskController extends Controller
     private function visibleQuery(User $user): Builder
     {
         $query = Task::query();
-        if ($user->isOperationsAdmin()) {
+        if ($user->hasGlobalOperationalReadAccess()) {
             return $query;
         }
         if ($user->usesDriverWorkspace()) {
@@ -312,12 +314,12 @@ class TaskController extends Controller
             ->latest('tasks.id');
     }
 
-    private function formData(?Task $task = null): array
+    private function formData(User $user, ?Task $task = null): array
     {
         return [
             'task' => $task,
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
-            'locations' => Location::where('active', true)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
         ];
     }
 
@@ -334,7 +336,7 @@ class TaskController extends Controller
 
         abort_unless(
             $actor->hasAnyRole(['sef-santier', 'gestionar-baza'])
-                && $actor->activeManagedLocations()->whereIn('locations.id', $locationIds)->exists(),
+                && $actor->activeManagedLocations()->whereIn('locations.id', $locationIds)->count() === $locationIds->count(),
             403
         );
     }

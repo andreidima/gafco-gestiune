@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $dashboardMode = match (true) {
             $user->usesDriverWorkspace() => 'driver',
             $user->usesWorkerWorkspace() => 'worker',
-            $user->isOperationsAdmin() || $user->hasRole('contabil') => 'operations',
+            $user->hasGlobalOperationalReadAccess() || $user->hasRole('contabil') => 'operations',
             $user->hasAnyRole(['sef-santier', 'gestionar-baza']) => 'manager',
             default => 'limited',
         };
@@ -227,7 +227,7 @@ class DashboardController extends Controller
     private function visibleTasks(User $user): Builder
     {
         $query = Task::query();
-        if ($user->isOperationsAdmin()) {
+        if ($user->hasGlobalOperationalReadAccess()) {
             return $query;
         }
         if ($user->usesDriverWorkspace()) {

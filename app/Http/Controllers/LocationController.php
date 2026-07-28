@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Location;
 use App\Models\User;
+use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,8 +13,12 @@ use Illuminate\View\View;
 
 class LocationController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+
         return view('locations.index', [
             'locations' => Location::with('activeManagers')
                 ->withCount([
@@ -34,6 +39,7 @@ class LocationController extends Controller
                             ->whereNull('transfers.cancelled_at')
                             ->whereNull('transfers.archived_at')),
                 ])
+                ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('locations.id', $visibleLocationIds))
                 ->when($request->type, fn ($query, $type) => $query->where('type', $type))
                 ->when($request->filled('active'), fn ($query) => $query->where('active', $request->boolean('active')))
                 ->when($request->search, fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
@@ -46,7 +52,9 @@ class LocationController extends Controller
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString(),
-            'totalLocations' => Location::count(),
+            'totalLocations' => Location::query()
+                ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('id', $visibleLocationIds))
+                ->count(),
         ]);
     }
 

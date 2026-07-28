@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->hasMany(TaskAssignment::class, 'driver_id');
     }
 
+    public function preferences(): HasMany
+    {
+        return $this->hasMany(UserPreference::class);
+    }
+
     public function isOperationsAdmin(): bool
     {
         return $this->hasAnyRole(['super-admin', 'admin', 'dispecer']);
@@ -60,7 +65,31 @@ class User extends Authenticatable
 
     public function isManagementUser(): bool
     {
-        return $this->isOperationsAdmin() || $this->hasAnyRole(['sef-santier', 'gestionar-baza']);
+        return $this->isOperationsAdmin() || $this->hasAnyRole(['manager', 'sef-santier', 'gestionar-baza']);
+    }
+
+    public function hasGlobalOperationalReadAccess(): bool
+    {
+        return $this->isOperationsAdmin() || $this->hasRole('manager');
+    }
+
+    public function hasGlobalInventoryReadAccess(): bool
+    {
+        return $this->hasGlobalOperationalReadAccess() || $this->hasRole('contabil');
+    }
+
+    public function canViewCommercialInventory(): bool
+    {
+        return $this->hasPermissionTo('inventory.view-commercial')
+            || $this->hasAnyRole(['super-admin', 'admin', 'dispecer', 'manager', 'contabil']);
+    }
+
+    public function canViewInventory(): bool
+    {
+        return $this->hasAnyRole([
+            'super-admin', 'admin', 'dispecer', 'manager',
+            'sef-santier', 'gestionar-baza', 'contabil',
+        ]);
     }
 
     public function usesDriverWorkspace(): bool

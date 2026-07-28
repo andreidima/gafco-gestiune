@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,10 +15,15 @@ use Illuminate\View\View;
 
 class TrackedAssetController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+
         return view('tracked-assets.index', [
             'assets' => TrackedAsset::with(['catalogItem', 'currentLocation', 'currentCustodian'])
+                ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('current_location_id', $visibleLocationIds))
                 ->when($request->catalog_item_id, fn ($query, $catalogItemId) => $query->where('catalog_item_id', $catalogItemId))
                 ->when($request->location_id, fn ($query, $locationId) => $query->where('current_location_id', $locationId))
                 ->when($request->status, fn ($query, $status) => $query->where('status', $status))
@@ -34,8 +40,10 @@ class TrackedAssetController extends Controller
                 ->latest('id')
                 ->paginate(20)
                 ->withQueryString(),
-            'totalAssets' => TrackedAsset::count(),
-            'locations' => Location::where('active', true)->orderBy('name')->get(),
+            'totalAssets' => TrackedAsset::query()
+                ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('current_location_id', $visibleLocationIds))
+                ->count(),
+            'locations' => $this->locationAccess->visibleLocations($request->user())->orderBy('name')->get(),
         ]);
     }
 
@@ -56,8 +64,15 @@ class TrackedAssetController extends Controller
         return redirect()->route('tracked-assets.index')->with('status', 'Echipamentul a fost adaugat.');
     }
 
-    public function show(TrackedAsset $trackedAsset): View
+    public function show(Request $request, TrackedAsset $trackedAsset): View
     {
+        if ($request->user()->hasAnyRole(['sef-santier', 'gestionar-baza'])) {
+            abort_unless(
+                $trackedAsset->current_location_id
+                    && $this->locationAccess->canView($request->user(), (int) $trackedAsset->current_location_id),
+                403
+            );
+        }
         $trackedAsset->load(['catalogItem', 'currentLocation', 'currentCustodian']);
 
         return view('tracked-assets.show', [

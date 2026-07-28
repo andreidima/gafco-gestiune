@@ -15,7 +15,7 @@ class ReportController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $canReadGlobally = $user->isOperationsAdmin() || $user->hasRole('contabil');
+        $canReadGlobally = $user->hasGlobalInventoryReadAccess();
         $managedLocationIds = $canReadGlobally
             ? null
             : $user->activeManagedLocations()

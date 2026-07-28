@@ -2101,6 +2101,46 @@ a.filter-chip:hover {
     min-width: 0;
 }
 
+.inventory-shell {
+    width: min(100% - 2rem, 1680px);
+}
+
+.inventory-filter-status {
+    color: #737b8d;
+    font-size: 0.75rem;
+}
+
+.inventory-column-menu {
+    min-width: 230px;
+}
+
+.inventory-row {
+    cursor: pointer;
+}
+
+.inventory-row-zero {
+    background: #fafafa;
+    color: #707887;
+}
+
+.inventory-cell-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.7rem;
+    min-width: 130px;
+    font-size: 0.78rem;
+}
+
+.inventory-density-compact .inventory-table > :not(caption) > * > * {
+    padding-top: 0.42rem;
+    padding-bottom: 0.42rem;
+}
+
+.inventory-density-comfortable .inventory-table > :not(caption) > * > * {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+}
+
 @media (min-width: 768px) {
     .resource-advanced-filters.collapse:not(.show),
     .resource-filter-advanced.collapse:not(.show) {

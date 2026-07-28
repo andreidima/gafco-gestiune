@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CatalogItem;
+use App\Models\InventoryLotBalance;
 use App\Models\Location;
 use App\Models\StockLevel;
 use App\Models\TrackedAsset;
@@ -54,12 +55,27 @@ class TransferWorkflowSecurityTest extends TestCase
         $this->assertSame('received', $transfer->fresh()->status);
         $this->assertSame(15.0, (float) StockLevel::where('location_id', $source->id)->where('catalog_item_id', $item->id)->value('quantity'));
         $this->assertSame(5.0, (float) StockLevel::where('location_id', $destination->id)->where('catalog_item_id', $item->id)->value('quantity'));
+        $this->assertSame(15.0, (float) InventoryLotBalance::where('location_id', $source->id)->sum('quantity'));
+        $this->assertSame(5.0, (float) InventoryLotBalance::where('location_id', $destination->id)->sum('quantity'));
+        $this->assertDatabaseHas('stock_movements', [
+            'catalog_item_id' => $item->id,
+            'location_id' => $source->id,
+            'movement_type' => 'transfer_out',
+            'quantity' => -5,
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'catalog_item_id' => $item->id,
+            'location_id' => $destination->id,
+            'movement_type' => 'transfer_in',
+            'quantity' => 5,
+        ]);
 
         $this->actingAs($destinationManager)
             ->post(route('transfers.receive', $transfer))
             ->assertRedirect();
         $this->assertSame(15.0, (float) StockLevel::where('location_id', $source->id)->where('catalog_item_id', $item->id)->value('quantity'));
         $this->assertSame(5.0, (float) StockLevel::where('location_id', $destination->id)->where('catalog_item_id', $item->id)->value('quantity'));
+        $this->assertDatabaseCount('stock_movements', 3);
     }
 
     public function test_archive_requires_visibility_and_a_terminal_unarchived_transfer(): void
@@ -135,6 +151,7 @@ class TransferWorkflowSecurityTest extends TestCase
     public function test_line_validation_uses_aggregate_material_quantity_and_rejects_duplicate_or_ambiguous_assets(): void
     {
         $manager = $this->user('sef-santier');
+        $manager->assignRole('dispecer');
         $destinationManager = $this->user('sef-santier');
         $source = $this->location('LINE-SRC', 'base', [$manager]);
         $destination = $this->location('LINE-DST', 'site', [$destinationManager]);
@@ -176,6 +193,7 @@ class TransferWorkflowSecurityTest extends TestCase
     public function test_return_requires_an_accessible_received_original_transfer(): void
     {
         $sourceManager = $this->user('sef-santier');
+        $sourceManager->assignRole('dispecer');
         $destinationManager = $this->user('sef-santier');
         $source = $this->location('RET-SRC', 'base', [$sourceManager]);
         $destination = $this->location('RET-DST', 'site', [$destinationManager]);
@@ -244,6 +262,7 @@ class TransferWorkflowSecurityTest extends TestCase
     public function test_transfer_rejects_inactive_or_non_driver_assignees(): void
     {
         $manager = $this->user('sef-santier');
+        $manager->assignRole('dispecer');
         $destinationManager = $this->user('sef-santier');
         $source = $this->location('DRV-SRC', 'base', [$manager]);
         $destination = $this->location('DRV-DST', 'site', [$destinationManager]);
@@ -267,6 +286,7 @@ class TransferWorkflowSecurityTest extends TestCase
     public function test_serialized_asset_is_reserved_by_only_one_open_transfer(): void
     {
         $manager = $this->user('sef-santier');
+        $manager->assignRole('dispecer');
         $destinationManager = $this->user('sef-santier');
         $source = $this->location('RESERVE-SRC', 'base', [$manager]);
         $destination = $this->location('RESERVE-DST', 'site', [$destinationManager]);
@@ -292,6 +312,7 @@ class TransferWorkflowSecurityTest extends TestCase
     public function test_driver_can_be_explicitly_cleared_and_revision_snapshot_keeps_approval_state(): void
     {
         $manager = $this->user('sef-santier');
+        $manager->assignRole('dispecer');
         $destinationManager = $this->user('sef-santier');
         $driver = $this->user('sofer');
         $source = $this->location('UNASSIGN-SRC', 'base', [$manager]);

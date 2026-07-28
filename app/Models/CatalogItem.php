@@ -26,4 +26,14 @@ class CatalogItem extends Model
     {
         return $this->hasMany(StockLevel::class);
     }
+
+    public function inventoryLots(): HasMany
+    {
+        return $this->hasMany(InventoryLot::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
 use App\Models\Location;
-use App\Models\StockLevel;
 use App\Models\Supplier;
 use App\Models\SupplierReception;
 use App\Models\User;
+use App\Services\LocationAccessService;
+use App\Services\StockLedgerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,10 +18,12 @@ use Illuminate\View\View;
 
 class SupplierReceptionController extends Controller
 {
+    public function __construct(private readonly LocationAccessService $locationAccess) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
-        $visibleLocationIds = $this->visibleLocationIds($user);
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
         $receptions = SupplierReception::with([
             'location',
             'supplier',
@@ -41,7 +44,7 @@ class SupplierReceptionController extends Controller
                 ->when($request->date_from, fn ($query, $date) => $query->whereDate('received_at', '>=', $date))
                 ->when($request->date_to, fn ($query, $date) => $query->whereDate('received_at', '<=', $date))
                 ->latest()->paginate(20)->withQueryString(),
-            'locations' => $this->visibleLocations($user)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
             'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
             'items' => CatalogItem::where('active', true)->where('tracking_type', 'quantity')->orderBy('name')->get(),
             'totalReceptions' => SupplierReception::query()
@@ -63,7 +66,7 @@ class SupplierReceptionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StockLedgerService $ledger): RedirectResponse
     {
         $writeLocationIds = $this->writeLocations($request->user())->pluck('locations.id');
         $data = $request->validate([
@@ -80,7 +83,7 @@ class SupplierReceptionController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($data, $request) {
+        DB::transaction(function () use ($data, $request, $ledger) {
             $location = $this->writeLocations($request->user())
                 ->lockForUpdate()
                 ->findOrFail($data['location_id']);
@@ -98,32 +101,15 @@ class SupplierReceptionController extends Controller
                 'received_at' => now(),
                 'notes' => $data['notes'] ?? null,
             ]);
-            $reception->lines()->create([
+            $line = $reception->lines()->create([
                 'catalog_item_id' => $item->id,
                 'quantity' => $data['quantity'],
                 'unit' => $item->unit,
             ]);
-
-            StockLevel::firstOrCreate(
-                ['location_id' => $location->id, 'catalog_item_id' => $item->id],
-                ['quantity' => 0]
-            );
-            $stock = StockLevel::where('location_id', $location->id)
-                ->where('catalog_item_id', $item->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-            $stock->increment('quantity', (float) $data['quantity']);
+            $ledger->postReception($line, $request->user());
         });
 
         return redirect()->route('supplier-receptions.index')->with('status', 'Receptia a fost salvata.');
-    }
-
-    private function visibleLocations(User $user): Builder
-    {
-        return Location::query()
-            ->where('active', true)
-            ->when(! $this->canReadGlobally($user), fn (Builder $query) => $query
-                ->whereIn('id', $this->managedActiveLocationIds($user)));
     }
 
     private function writeLocations(User $user): Builder
@@ -134,11 +120,6 @@ class SupplierReceptionController extends Controller
                 ->whereIn('id', $this->managedActiveLocationIds($user)));
     }
 
-    private function visibleLocationIds(User $user): ?array
-    {
-        return $this->canReadGlobally($user) ? null : $this->managedActiveLocationIds($user);
-    }
-
     /** @return array<int, int> */
     private function managedActiveLocationIds(User $user): array
     {
@@ -146,11 +127,6 @@ class SupplierReceptionController extends Controller
             ->where('locations.active', true)
             ->pluck('locations.id')
             ->all();
-    }
-
-    private function canReadGlobally(User $user): bool
-    {
-        return $user->isOperationsAdmin() || $user->hasRole('contabil');
     }
 
     private function canCreate(User $user): bool

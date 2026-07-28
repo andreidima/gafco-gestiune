@@ -16,4 +16,9 @@ class SupplierReceptionLine extends Model
     {
         return $this->belongsTo(CatalogItem::class);
     }
+
+    public function reception(): BelongsTo
+    {
+        return $this->belongsTo(SupplierReception::class, 'supplier_reception_id');
+    }
 }

@@ -39,6 +39,8 @@ class WorkflowTest extends TestCase
     public function test_one_of_multiple_location_managers_can_satisfy_the_location_approval(): void
     {
         [$creator, $destinationManagerOne, $destinationManagerTwo, $driver] = $this->workflowUsers();
+        Role::findOrCreate('dispecer');
+        $creator->assignRole('dispecer');
         $source = $this->location('B-1', 'base', [$creator]);
         $destination = $this->location('S-1', 'site', [$destinationManagerOne, $destinationManagerTwo]);
         $item = CatalogItem::create([

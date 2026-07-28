@@ -21,7 +21,7 @@ class HelpCenterTest extends TestCase
 
     public function test_every_active_authenticated_role_can_read_published_help_content(): void
     {
-        foreach (['super-admin', 'admin', 'dispecer', 'gestionar-baza', 'sef-santier', 'sofer', 'muncitor', 'contabil', 'user'] as $roleName) {
+        foreach (['super-admin', 'admin', 'dispecer', 'manager', 'gestionar-baza', 'sef-santier', 'sofer', 'muncitor', 'contabil', 'user'] as $roleName) {
             Role::findOrCreate($roleName);
             $user = User::factory()->create([
                 'login_code' => 'HELP-'.strtoupper($roleName),
@@ -42,18 +42,21 @@ class HelpCenterTest extends TestCase
         }
     }
 
-    public function test_initial_articles_have_matching_immutable_revisions(): void
+    public function test_published_articles_have_matching_immutable_revisions(): void
     {
         $articles = HelpArticle::query()->with('revisions')->get();
 
         $this->assertCount(6, $articles);
         $articles->each(function (HelpArticle $article): void {
+            $revisions = $article->revisions->sortBy('revision')->values();
+            $currentRevision = $revisions->last();
+
             $this->assertSame('published', $article->status);
-            $this->assertSame(1, $article->current_revision);
-            $this->assertCount(1, $article->revisions);
-            $this->assertSame($article->title, $article->revisions->first()->title);
-            $this->assertSame($article->body_markdown, $article->revisions->first()->body_markdown);
-            $this->assertSame('system', $article->revisions->first()->source);
+            $this->assertSame(range(1, $article->current_revision), $revisions->pluck('revision')->all());
+            $this->assertSame($article->current_revision, $currentRevision->revision);
+            $this->assertSame($article->title, $currentRevision->title);
+            $this->assertSame($article->body_markdown, $currentRevision->body_markdown);
+            $this->assertTrue($revisions->every(fn ($revision) => $revision->source === 'system'));
         });
     }
 
@@ -123,6 +126,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Fișă completă de inventar pentru materiale',
                 'Centru de ajutor și noutăți în aplicație',
                 'Fluxuri complete pentru transferuri și sarcini',
                 'Navigare mai clară în liste',

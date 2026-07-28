@@ -10,7 +10,7 @@ class TaskPolicy
     public function viewAny(User $user): bool
     {
         return $user->active
-            && $user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza', 'sofer']);
+            && $user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'manager', 'sef-santier', 'gestionar-baza', 'sofer']);
     }
 
     public function view(User $user, Task $task): bool
@@ -19,7 +19,7 @@ class TaskPolicy
             return false;
         }
 
-        if ($user->isOperationsAdmin()) {
+        if ($user->hasGlobalOperationalReadAccess()) {
             return true;
         }
 
