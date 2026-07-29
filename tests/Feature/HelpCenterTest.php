@@ -70,6 +70,53 @@ class HelpCenterTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_minor_corrections_are_not_published_in_help_or_release_notes(): void
+    {
+        $article = HelpArticle::query()
+            ->with('revisions')
+            ->where('slug', 'pagini-si-operatiuni')
+            ->sole();
+
+        $this->assertSame(2, $article->current_revision);
+        $this->assertCount(2, $article->revisions);
+        $this->assertStringNotContainsString('Utilizatori și liste', $article->body_markdown);
+        $this->assertFalse(
+            ReleaseNote::query()->where('slug', '2026-07-29-afisare-roluri-si-liste')->exists()
+        );
+    }
+
+    public function test_minor_corrections_removal_migration_supports_sql_preview(): void
+    {
+        $migration = require database_path('migrations/2026_07_29_000002_remove_minor_corrections_help_and_release_note.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertTrue(true);
+    }
+
+    public function test_minor_corrections_removal_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_07_29_000002_remove_minor_corrections_help_and_release_note.php');
+
+        $migration->down();
+
+        $article = HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->sole();
+        $this->assertSame(3, $article->current_revision);
+        $this->assertStringContainsString('Utilizatori și liste', $article->body_markdown);
+        $this->assertTrue(
+            ReleaseNote::query()->where('slug', '2026-07-29-afisare-roluri-si-liste')->exists()
+        );
+
+        $migration->up();
+
+        $article->refresh();
+        $this->assertSame(2, $article->current_revision);
+        $this->assertStringNotContainsString('Utilizatori și liste', $article->body_markdown);
+        $this->assertFalse(
+            ReleaseNote::query()->where('slug', '2026-07-29-afisare-roluri-si-liste')->exists()
+        );
+    }
+
     public function test_drafts_are_not_exposed_and_markdown_strips_unsafe_html(): void
     {
         $user = User::factory()->create(['login_code' => 'HELP-SAFE']);
@@ -136,7 +183,6 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
-                'Afișare completă a rolurilor și a listelor',
                 'Fișă completă de inventar pentru materiale',
                 'Centru de ajutor și noutăți în aplicație',
                 'Fluxuri complete pentru transferuri și sarcini',
@@ -144,6 +190,7 @@ class HelpCenterTest extends TestCase
                 'Recepții, consum și vizibilitate operațională',
                 'Lansarea aplicației GAFCO Gestiune',
             ])
+            ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)->get(route('release-notes.show', $draft))->assertNotFound();
     }

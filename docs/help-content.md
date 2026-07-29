@@ -12,7 +12,9 @@ The initial migration creates the first published content. The repository does n
 
 ## Required update workflow
 
-Every user-visible application change must include a release-specific data migration that:
+Minor corrections explicitly grouped by Andrei in the Codex task `GAFCO – Corecții minore` must not add or revise Help Center content and must not add release notes unless he explicitly requests them. This exception takes precedence over the workflow below for those corrections.
+
+Every other user-visible application change must include a release-specific data migration that:
 
 1. Inserts one new `release_notes` record with a stable, unique slug.
 2. Updates every affected Help Center article through a new revision.

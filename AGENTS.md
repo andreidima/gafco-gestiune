@@ -12,8 +12,9 @@
 - The application Help Center and user-facing release notes are database-backed. Do not create standalone Markdown files as the live content source.
 - Read `docs/help-content.md` before changing a user-visible workflow, role, status, page, or material-quantity rule.
 - All user-facing Help Center and release-note content must be written in Romanian.
-- Every user-visible application update must add a release note.
-- When a change affects how the application works, update the corresponding Help Center article in the same release.
+- Minor corrections explicitly grouped by Andrei in the Codex task `GAFCO – Corecții minore` must not add Help Center content or release notes unless he explicitly requests them.
+- Every other user-visible application update must add a release note.
+- Outside the minor-corrections exception, when a change affects how the application works, update the corresponding Help Center article in the same release.
 - Preserve article revision history. Never silently overwrite a newer editorial revision or production-authored content.
 - Do not expose credentials, deployment mechanics, internal security details, database identifiers, or other administrator-only information in user-facing content.
 
