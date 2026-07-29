@@ -37,7 +37,7 @@
     <div class="resource-table-card">
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
-                <thead><tr><th>Raport</th><th>Locatie</th><th>Materiale consumate</th><th>Responsabil</th><th>Observatii</th><th>Status</th></tr></thead>
+                <thead><tr><th>Raport</th><th>Locatie</th><th>Materiale consumate</th><th>Responsabil</th><th>Observatii</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>
                 <tbody>
                 @forelse($reports as $report)
                     <tr>
@@ -51,11 +51,27 @@
                         </td>
                         <td>@if($report->reporter)<span>{{ $report->reporter->name }}</span>@else<span class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Responsabil indisponibil</span>@endif</td>
                         <td>@if($report->notes)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($report->notes, 70) }}</span>@else<span class="text-muted">-</span>@endif</td>
-                        <td><x-status :status="$report->status" /></td>
+                        <td>
+                            <div class="resource-cell-stack">
+                                <x-status :status="$report->status" />
+                                @if($report->modified_at)
+                                    <span class="resource-secondary">{{ $report->modified_at->format('d.m.Y H:i') }} · {{ $report->modifier?->name ?? 'Utilizator indisponibil' }}</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td>
+                            <div class="resource-row-actions justify-content-end">
+                                @if($canCorrect)
+                                    <x-resource-icon-button :href="route('consumption-reports.edit', $report)" icon="fa-pen" label="Corecteaza consumul" variant="outline-secondary" />
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4">
+                        <td colspan="7" class="text-center py-4">
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Niciun consum nu corespunde filtrelor selectate.</span>
@@ -109,7 +125,20 @@
                                     <span class="resource-secondary">{{ \Illuminate\Support\Str::limit($report->notes, 120) }}</span>
                                 </div>
                             @endif
+                            @if($report->modified_at)
+                                <div class="resource-mobile-card-wide">
+                                    <span class="resource-filter-label">Ultima corectie</span>
+                                    <span class="resource-secondary">{{ $report->modified_at->format('d.m.Y H:i') }} · {{ $report->modifier?->name ?? 'Utilizator indisponibil' }}</span>
+                                </div>
+                            @endif
                         </div>
+                        @if($canCorrect)
+                            <div class="mt-3 text-end">
+                                <a href="{{ route('consumption-reports.edit', $report) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fa-solid fa-pen me-1"></i>Corecteaza
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </article>
             @empty

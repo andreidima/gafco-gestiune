@@ -77,8 +77,8 @@ class HelpCenterTest extends TestCase
             ->where('slug', 'pagini-si-operatiuni')
             ->sole();
 
-        $this->assertSame(4, $article->current_revision);
-        $this->assertCount(4, $article->revisions);
+        $this->assertSame(5, $article->current_revision);
+        $this->assertCount(5, $article->revisions);
         $this->assertStringNotContainsString('Utilizatori și liste', $article->body_markdown);
         $this->assertStringContainsString('Filtrele listelor', $article->body_markdown);
         $this->assertFalse(
@@ -97,10 +97,12 @@ class HelpCenterTest extends TestCase
 
     public function test_minor_corrections_removal_migration_is_reversible(): void
     {
+        $latestMigration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
         $receptionMigration = require database_path('migrations/2026_07_29_000007_publish_reception_workflow_help_and_release_note.php');
         $currentMigration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
         $migration = require database_path('migrations/2026_07_29_000002_remove_minor_corrections_help_and_release_note.php');
 
+        $latestMigration->down();
         $receptionMigration->down();
         $currentMigration->down();
         $migration->down();
@@ -123,6 +125,7 @@ class HelpCenterTest extends TestCase
 
         $currentMigration->up();
         $receptionMigration->up();
+        $latestMigration->up();
     }
 
     public function test_drafts_are_not_exposed_and_markdown_strips_unsafe_html(): void
@@ -191,6 +194,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Stoc disponibil în transferuri și consumuri corectabile',
                 'Documente, recepții complete și loturi la consum',
                 'Filtre memorate și administrare standardizată',
                 'Schimbare rapidă între utilizatori',
@@ -213,11 +217,11 @@ class HelpCenterTest extends TestCase
             ->where('slug', 'ghiduri-dupa-rol')
             ->sole();
 
-        $this->assertSame(5, $article->current_revision);
-        $this->assertCount(5, $article->revisions);
+        $this->assertSame(6, $article->current_revision);
+        $this->assertCount(6, $article->revisions);
         $this->assertStringContainsString('Schimbarea utilizatorului', $article->body_markdown);
         $this->assertStringContainsString('Revino la contul meu', $article->body_markdown);
-        $this->assertStringNotContainsString('super-administrator', $article->body_markdown);
+        $this->assertStringContainsString('Corectarea consumurilor', $article->body_markdown);
         $this->assertTrue(
             ReleaseNote::query()->where('slug', '2026-07-29-schimbare-utilizator')->exists()
         );
@@ -234,10 +238,12 @@ class HelpCenterTest extends TestCase
 
     public function test_saved_filters_content_migration_supports_sql_preview_and_is_reversible(): void
     {
+        $latestMigration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
         $receptionMigration = require database_path('migrations/2026_07_29_000007_publish_reception_workflow_help_and_release_note.php');
         $migration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $latestMigration->down();
         $receptionMigration->down();
         $migration->down();
 
@@ -259,13 +265,16 @@ class HelpCenterTest extends TestCase
         );
         $this->assertTrue(ReleaseNote::query()->where('slug', '2026-07-29-filtre-memorate-si-administrare-conturi')->exists());
         $receptionMigration->up();
+        $latestMigration->up();
     }
 
     public function test_reception_content_migration_preserves_revisions_and_is_reversible(): void
     {
+        $latestMigration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
         $migration = require database_path('migrations/2026_07_29_000007_publish_reception_workflow_help_and_release_note.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $latestMigration->down();
         $migration->down();
 
         $this->assertSame(2, HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'));
@@ -287,6 +296,32 @@ class HelpCenterTest extends TestCase
         );
         $this->assertTrue(
             ReleaseNote::query()->where('slug', '2026-07-29-documente-receptii-si-loturi')->exists(),
+        );
+        $latestMigration->up();
+    }
+
+    public function test_transfer_and_consumption_content_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+        $migration->down();
+
+        $this->assertSame(3, HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'));
+        $this->assertSame(4, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
+        $this->assertSame(5, HelpArticle::query()->where('slug', 'ghiduri-dupa-rol')->value('current_revision'));
+        $this->assertFalse(
+            ReleaseNote::query()->where('slug', '2026-07-29-stoc-transferuri-consumuri-corectii')->exists(),
+        );
+
+        $migration->up();
+
+        $this->assertStringContainsString(
+            'mai multe materiale',
+            HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('body_markdown'),
+        );
+        $this->assertTrue(
+            ReleaseNote::query()->where('slug', '2026-07-29-stoc-transferuri-consumuri-corectii')->exists(),
         );
     }
 }

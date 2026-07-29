@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CatalogItem;
+use App\Models\StockLevel;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
+use App\Models\TransferLine;
 use App\Models\User;
 use App\Services\LocationAccessService;
 use App\Services\TaskWorkflowService;
 use App\Services\TransferWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -88,6 +90,93 @@ class TransferController extends Controller
         return view('transfers.form', $this->formData($request->user(), null, $parent));
     }
 
+    public function sourceOptions(Request $request): JsonResponse
+    {
+        $this->authorize('create', Transfer::class);
+        $data = $request->validate([
+            'source_location_id' => ['required', 'integer'],
+            'transfer_id' => ['nullable', 'integer', 'exists:transfers,id'],
+        ]);
+
+        $transfer = ! empty($data['transfer_id'])
+            ? Transfer::findOrFail($data['transfer_id'])
+            : null;
+        if ($transfer) {
+            $this->authorize('update', $transfer);
+        }
+
+        $location = $this->locationAccess->visibleLocations($request->user())
+            ->findOrFail($data['source_location_id']);
+        $ignoreTransferId = $transfer?->id;
+
+        $reservedMaterials = TransferLine::query()
+            ->selectRaw('catalog_item_id, SUM(quantity) as reserved_quantity')
+            ->whereNotNull('catalog_item_id')
+            ->whereNull('tracked_asset_id')
+            ->when($ignoreTransferId, fn ($query) => $query->where('transfer_id', '!=', $ignoreTransferId))
+            ->whereHas('transfer', fn ($query) => $query
+                ->whereNull('archived_at')
+                ->whereNotIn('status', ['received', 'cancelled']))
+            ->groupBy('catalog_item_id')
+            ->pluck('reserved_quantity', 'catalog_item_id');
+
+        $materials = StockLevel::query()
+            ->where('location_id', $location->id)
+            ->where('quantity', '>', 0)
+            ->whereHas('catalogItem', fn ($query) => $query
+                ->where('active', true)
+                ->where('tracking_type', 'quantity'))
+            ->with('catalogItem')
+            ->get()
+            ->map(function (StockLevel $stock) use ($reservedMaterials): array {
+                $available = max(
+                    0,
+                    round((float) $stock->quantity - (float) ($reservedMaterials[$stock->catalog_item_id] ?? 0), 3),
+                );
+
+                return [
+                    'id' => $stock->catalog_item_id,
+                    'name' => $stock->catalogItem->name,
+                    'sku' => $stock->catalogItem->sku,
+                    'unit' => $stock->catalogItem->unit,
+                    'available' => number_format($available, 3, '.', ''),
+                ];
+            })
+            ->filter(fn (array $material) => (float) $material['available'] > 0.0005)
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $reservedAssetIds = TransferLine::query()
+            ->whereNotNull('tracked_asset_id')
+            ->when($ignoreTransferId, fn ($query) => $query->where('transfer_id', '!=', $ignoreTransferId))
+            ->whereHas('transfer', fn ($query) => $query
+                ->whereNull('archived_at')
+                ->whereNotIn('status', ['received', 'cancelled']))
+            ->pluck('tracked_asset_id');
+
+        $assets = TrackedAsset::query()
+            ->with('catalogItem')
+            ->where('current_location_id', $location->id)
+            ->whereIn('status', ['available', 'in_use'])
+            ->whereNotIn('id', $reservedAssetIds)
+            ->whereHas('catalogItem', fn ($query) => $query->where('active', true))
+            ->orderBy('asset_code')
+            ->get()
+            ->map(fn (TrackedAsset $asset) => [
+                'id' => $asset->id,
+                'asset_code' => $asset->asset_code,
+                'name' => $asset->catalogItem?->name,
+                'status' => $asset->status,
+            ])
+            ->values();
+
+        return response()->json([
+            'location' => ['id' => $location->id, 'code' => $location->code, 'name' => $location->name],
+            'materials' => $materials,
+            'assets' => $assets,
+        ]);
+    }
+
     public function store(Request $request, TransferWorkflowService $workflow, TaskWorkflowService $tasks): RedirectResponse
     {
         $this->authorize('create', Transfer::class);
@@ -162,10 +251,7 @@ class TransferController extends Controller
             'parent' => $parent,
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
-            'items' => CatalogItem::where('active', true)->orderBy('name')->get(),
-            'assets' => TrackedAsset::with(['catalogItem', 'currentLocation'])
-                ->whereIn('status', ['available', 'in_use'])
-                ->orderBy('asset_code')->get(),
+            'sourceOptionsUrl' => route('transfers.source-options'),
         ];
     }
 

@@ -23,6 +23,7 @@ class PermissionsSeeder extends Seeder
             'reception-details.edit-expiration',
             'accounting.edit-operations',
             'users.impersonate',
+            'consumption-reports.correct',
         ] as $permission) {
             Permission::findOrCreate($permission);
         }
@@ -41,6 +42,7 @@ class PermissionsSeeder extends Seeder
 
         foreach (['super-admin', 'admin'] as $role) {
             Role::findByName($role)->givePermissionTo('users.impersonate');
+            Role::findByName($role)->givePermissionTo('consumption-reports.correct');
         }
 
         foreach (['super-admin', 'admin', 'dispecer', 'gestionar-baza', 'sef-santier', 'muncitor'] as $role) {

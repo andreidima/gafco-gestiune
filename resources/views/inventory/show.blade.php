@@ -8,6 +8,7 @@
         'opening_balance' => 'Sold inițial',
         'reception' => 'Recepție',
         'consumption' => 'Consum',
+        'consumption_correction_reversal' => 'Anulare pentru corecție',
         'transfer_out' => 'Transfer ieșire',
         'transfer_in' => 'Transfer intrare',
         'correction' => 'Corecție',

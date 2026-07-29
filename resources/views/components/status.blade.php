@@ -14,6 +14,7 @@
         'in_transit' => 'In tranzit',
         'received' => 'Receptionat',
         'posted' => 'Inregistrat',
+        'modified' => 'Modificat',
         'accepted' => 'Acceptat',
         'completed' => 'Finalizat',
         'closed' => 'Inchis',

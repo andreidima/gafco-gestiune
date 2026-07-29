@@ -91,6 +91,7 @@ Route::middleware([
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['show'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor|contabil');
+    Route::get('transfers/source-options', [TransferController::class, 'sourceOptions'])->name('transfers.source-options');
     Route::resource('transfers', TransferController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('transfers/{transfer}/receive', [TransferController::class, 'receive'])->name('transfers.receive');
     Route::post('transfers/{transfer}/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
@@ -128,8 +129,13 @@ Route::middleware([
     Route::get('consumption-reports/allocation-proposal', [ConsumptionReportController::class, 'allocationProposal'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
         ->name('consumption-reports.allocation-proposal');
+    Route::get('consumption-reports/stock-options', [ConsumptionReportController::class, 'stockOptions'])
+        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->name('consumption-reports.stock-options');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+    Route::resource('consumption-reports', ConsumptionReportController::class)->only(['edit', 'update'])
+        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class]);
     Route::resource('custody-transfers', CustodyTransferController::class)->only(['store', 'update']);
     Route::get('returns', [ReturnController::class, 'index'])->name('returns.index');
     Route::get('field/driver', [FieldModeController::class, 'driver'])->name('field.driver');

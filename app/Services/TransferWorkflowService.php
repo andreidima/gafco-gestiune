@@ -448,12 +448,32 @@ class TransferWorkflowService
             $stocks = StockLevel::query()
                 ->where('location_id', $sourceLocationId)
                 ->whereIn('catalog_item_id', array_keys($materialTotals))
+                ->lockForUpdate()
                 ->pluck('quantity', 'catalog_item_id');
+            $validMaterialIds = CatalogItem::query()
+                ->whereIn('id', array_keys($materialTotals))
+                ->where('active', true)
+                ->where('tracking_type', 'quantity')
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $reservedMaterials = TransferLine::query()
+                ->selectRaw('catalog_item_id, SUM(quantity) as reserved_quantity')
+                ->whereIn('catalog_item_id', array_keys($materialTotals))
+                ->whereNull('tracked_asset_id')
+                ->when($ignoreTransferId, fn ($query) => $query->where('transfer_id', '!=', $ignoreTransferId))
+                ->whereHas('transfer', fn ($query) => $query
+                    ->whereNull('archived_at')
+                    ->whereNotIn('status', ['received', 'cancelled']))
+                ->groupBy('catalog_item_id')
+                ->pluck('reserved_quantity', 'catalog_item_id');
             foreach ($materialTotals as $catalogItemId => $quantity) {
-                if ((float) ($stocks[$catalogItemId] ?? 0) < $quantity) {
+                $available = (float) ($stocks[$catalogItemId] ?? 0)
+                    - (float) ($reservedMaterials[$catalogItemId] ?? 0);
+                if (! in_array($catalogItemId, $validMaterialIds, true) || $available + 0.0005 < $quantity) {
                     $index = $materialLineIndexes[$catalogItemId];
                     throw ValidationException::withMessages([
-                        "lines.{$index}.quantity" => 'Cantitatea totala solicitata depaseste stocul disponibil in sursa.',
+                        "lines.{$index}.quantity" => 'Cantitatea totală solicitată depășește stocul disponibil și nerezervat în sursă.',
                     ]);
                 }
             }
