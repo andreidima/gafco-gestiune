@@ -33,6 +33,7 @@ class OperationalAlert extends Model
     public const TYPE_LABELS = [
         'lot_expiration' => 'Expirare lot',
         'reception_pending' => 'Recepție neprocesată',
+        'project_plan_overrun' => 'Plan de materiale depășit',
     ];
 
     public const SEVERITY_LABELS = [

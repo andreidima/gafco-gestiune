@@ -55,4 +55,9 @@ class Location extends Model
     {
         return $this->hasMany(MaterialCustody::class);
     }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }

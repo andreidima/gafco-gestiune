@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\Transfer;
+use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TransferPolicy;
 use App\Support\ImpersonationContext;
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+        Gate::policy(Project::class, ProjectPolicy::class);
         Gate::policy(Task::class, TaskPolicy::class);
         Gate::policy(Transfer::class, TransferPolicy::class);
 

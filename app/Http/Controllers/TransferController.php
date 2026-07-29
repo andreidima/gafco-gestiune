@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\StockLevel;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\TransferLine;
 use App\Models\User;
 use App\Services\LocationAccessService;
+use App\Services\OperationalAlertSyncService;
+use App\Services\ProjectAccessService;
+use App\Services\ProjectMaterialPlanService;
 use App\Services\TaskWorkflowService;
 use App\Services\TransferWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +23,12 @@ use Illuminate\View\View;
 
 class TransferController extends Controller
 {
-    public function __construct(private readonly LocationAccessService $locationAccess) {}
+    public function __construct(
+        private readonly LocationAccessService $locationAccess,
+        private readonly ProjectAccessService $projectAccess,
+        private readonly ProjectMaterialPlanService $projectPlans,
+        private readonly OperationalAlertSyncService $alerts,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -31,6 +40,7 @@ class TransferController extends Controller
         $query = $this->visibleQuery($request->user())
             ->with([
                 'sourceLocation', 'destinationLocation', 'task.currentAssignment.driver', 'task.currentAssignment.replacedAssignment.driver',
+                'project',
                 'lines.catalogItem', 'lines.trackedAsset',
                 'approvals.decidedBy', 'approvals.expectedUser', 'approvals.location.activeManagers',
             ])
@@ -61,13 +71,23 @@ class TransferController extends Controller
             ->withCount('lines');
         $this->applyFilters($query, $request);
         $this->applyUrgencyOrdering($query);
+        $transfers = $query->paginate(20)->withQueryString();
+        $projectsOnPage = $transfers->getCollection()
+            ->pluck('project')
+            ->filter()
+            ->unique('id')
+            ->values();
 
         return view('transfers.index', [
-            'transfers' => $query->paginate(20)->withQueryString(),
+            'transfers' => $transfers,
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
             'drivers' => $request->user()->usesDriverWorkspace()
                 ? collect()
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
+            'projects' => $this->projectAccess->canUse($user)
+                ? $this->projectAccess->visibleProjects($user)->orderBy('code')->get()
+                : collect(),
+            'projectProgressById' => $this->projectPlans->progressForProjects($projectsOnPage),
             'totalTransfers' => $this->visibleQuery($request->user())->count(),
         ]);
     }
@@ -182,7 +202,9 @@ class TransferController extends Controller
         $this->authorize('create', Transfer::class);
         $data = $this->validatedData($request);
         $this->authorizeReturnParent($request, $data);
+        $this->authorizeProjectAssociation($request, $data);
         $transfer = $workflow->create($data, $request->user(), $tasks);
+        $this->alerts->sync(force: true);
 
         return redirect()->route('transfers.show', $transfer)->with('status', 'Transferul a fost creat si aprobarile au fost solicitate.');
     }
@@ -192,12 +214,18 @@ class TransferController extends Controller
         $this->authorize('view', $transfer);
         $transfer->load([
             'sourceLocation.activeManagers', 'destinationLocation.activeManagers', 'requester', 'driver',
+            'project.location', 'project.creator', 'project.materialPlans.catalogItem',
             'lines.catalogItem', 'lines.trackedAsset', 'approvals.location.activeManagers', 'approvals.expectedUser',
             'approvals.decidedBy', 'revisions.changedBy', 'parentTransfer', 'returns',
             'task.assignments.driver', 'task.currentAssignment.driver', 'task.currentAssignment.replacedAssignment.driver', 'task.comments.user',
         ]);
 
-        return view('transfers.show', ['transfer' => $transfer]);
+        return view('transfers.show', [
+            'transfer' => $transfer,
+            'projectProgress' => $transfer->project && ! request()->user()->usesDriverWorkspace()
+                ? $this->projectPlans->progress($transfer->project)
+                : collect(),
+        ]);
     }
 
     public function edit(Transfer $transfer): View
@@ -213,7 +241,9 @@ class TransferController extends Controller
         $this->authorize('update', $transfer);
         $data = $this->validatedData($request);
         $this->authorizeReturnParent($request, $data, $transfer);
+        $this->authorizeProjectAssociation($request, $data, $transfer);
         $workflow->revise($transfer, $data, $request->user(), $tasks);
+        $this->alerts->sync(force: true);
 
         return redirect()->route('transfers.show', $transfer)->with('status', 'Transferul a fost actualizat.');
     }
@@ -232,6 +262,7 @@ class TransferController extends Controller
         $this->authorize('cancel', $transfer);
         $data = $request->validate(['notes' => ['required', 'string']]);
         $workflow->cancel($transfer, $request->user(), $data['notes']);
+        $this->alerts->sync(force: true);
 
         return back()->with('status', 'Transferul a fost anulat si ramane in istoric.');
     }
@@ -246,11 +277,38 @@ class TransferController extends Controller
 
     private function formData(User $user, ?Transfer $transfer = null, ?Transfer $parent = null): array
     {
+        $projects = $this->projectAccess->visibleProjects($user)
+            ->where(function (Builder $query) use ($transfer): void {
+                $query->where('status', 'active');
+                if ($transfer?->project_id) {
+                    $query->orWhereKey($transfer->project_id);
+                }
+            })
+            ->with(['location', 'materialPlans.catalogItem'])
+            ->orderBy('code')
+            ->get();
+        $progress = $this->projectPlans->progressForProjects($projects, $transfer?->id);
+
         return [
             'transfer' => $transfer,
             'parent' => $parent,
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
+            'projects' => $projects,
+            'projectPlanData' => $projects->mapWithKeys(fn (Project $project) => [
+                $project->id => [
+                    'location_id' => $project->location_id,
+                    'code' => $project->code,
+                    'name' => $project->name,
+                    'lines' => $progress->get($project->id, collect())->mapWithKeys(fn (array $line) => [
+                        $line['catalog_item']->id => [
+                            'planned' => $line['planned_quantity'],
+                            'committed' => $line['committed_quantity'],
+                            'unit' => $line['unit'],
+                        ],
+                    ]),
+                ],
+            ]),
             'sourceOptionsUrl' => route('transfers.source-options'),
         ];
     }
@@ -260,6 +318,7 @@ class TransferController extends Controller
         $data = $request->validate([
             'purpose' => ['required', 'in:transfer,return'],
             'parent_transfer_id' => ['nullable', 'required_if:purpose,return', 'exists:transfers,id'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'source_location_id' => ['required', 'exists:locations,id'],
             'destination_location_id' => ['required', 'different:source_location_id', 'exists:locations,id'],
             'driver_id' => [
@@ -278,6 +337,8 @@ class TransferController extends Controller
 
         if ($data['purpose'] !== 'return') {
             $data['parent_transfer_id'] = null;
+        } else {
+            $data['project_id'] = null;
         }
 
         return $data;
@@ -298,6 +359,22 @@ class TransferController extends Controller
             422,
             'Returul poate fi legat numai de un transfer initial receptionat.'
         );
+    }
+
+    private function authorizeProjectAssociation(Request $request, array $data, ?Transfer $transfer = null): void
+    {
+        if (empty($data['project_id'])) {
+            return;
+        }
+
+        abort_unless(($data['purpose'] ?? null) === 'transfer', 422);
+        $project = Project::findOrFail($data['project_id']);
+        abort_unless($this->projectAccess->canView($request->user(), $project), 403);
+        abort_unless((int) $project->location_id === (int) $data['destination_location_id'], 422);
+
+        $keepsCurrentProject = $transfer
+            && (int) $transfer->project_id === (int) $project->id;
+        abort_unless($project->status === 'active' || $keepsCurrentProject, 422);
     }
 
     private function visibleQuery(User $user): Builder
@@ -334,6 +411,7 @@ class TransferController extends Controller
             ->when($request->status, fn ($q, $status) => $q->where('status', $status))
             ->when($request->source_location_id, fn ($q, $id) => $q->where('source_location_id', $id))
             ->when($request->destination_location_id, fn ($q, $id) => $q->where('destination_location_id', $id))
+            ->when($request->project_id, fn ($q, $id) => $q->where('project_id', $id))
             ->when($request->driver_id, fn ($q, $id) => $q->whereHas('task.currentAssignment', fn ($assignment) => $assignment->where('driver_id', $id)))
             ->when($request->approval_status, function ($q, $status): void {
                 if ($status === 'approved') {

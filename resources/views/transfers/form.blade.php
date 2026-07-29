@@ -3,8 +3,9 @@
 @php
     $editing = isset($transfer) && $transfer;
     $sourceId = old('source_location_id', $editing ? $transfer->source_location_id : $parent?->destination_location_id);
-    $destinationId = old('destination_location_id', $editing ? $transfer->destination_location_id : $parent?->source_location_id);
+    $destinationId = old('destination_location_id', $editing ? $transfer->destination_location_id : ($parent?->source_location_id ?? request('destination_location_id')));
     $purpose = old('purpose', $editing ? $transfer->purpose : ($parent ? 'return' : 'transfer'));
+    $projectId = old('project_id', $editing ? $transfer->project_id : request('project_id'));
     $initialLines = old('lines');
     if (!$initialLines) {
         $sourceLines = $editing ? $transfer->lines : $parent?->lines;
@@ -71,6 +72,22 @@
                         </option>
                     @endforeach
                 </select>
+            </div>
+            <div class="col-md-4" data-transfer-project-field>
+                <label class="form-label">Proiect / plan de materiale</label>
+                <select name="project_id" class="form-select">
+                    <option value="">Fără proiect asociat</option>
+                    @foreach($projects as $projectOption)
+                        <option
+                            value="{{ $projectOption->id }}"
+                            data-location-id="{{ $projectOption->location_id }}"
+                            @selected((string) $projectId === (string) $projectOption->id)
+                        >
+                            {{ $projectOption->code }} — {{ $projectOption->name }} · {{ $projectOption->location?->code }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="form-text">Planul nu blochează transferul; o depășire este evidențiată și notificată.</div>
             </div>
 
             <div class="col-md-4">
@@ -154,6 +171,13 @@
                     </div>
                 @endforeach
             </div>
+            <div class="col-12 d-none" data-transfer-project-preview>
+                <div class="transfer-project-plan-preview">
+                    <div class="fw-semibold mb-1"><i class="fa-solid fa-chart-column me-1"></i>Impact asupra planului</div>
+                    <div class="small text-muted mb-2" data-transfer-project-preview-title></div>
+                    <div data-transfer-project-preview-lines></div>
+                </div>
+            </div>
         </div>
 
         <div class="card-footer bg-white text-end">
@@ -197,6 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!form) return;
 
     const source = form.querySelector('[name="source_location_id"]');
+    const destination = form.querySelector('[name="destination_location_id"]');
+    const purpose = form.querySelector('[name="purpose"]');
+    const project = form.querySelector('[name="project_id"]');
+    const projectField = form.querySelector('[data-transfer-project-field]');
+    const projectPreview = form.querySelector('[data-transfer-project-preview]');
+    const projectPreviewTitle = form.querySelector('[data-transfer-project-preview-title]');
+    const projectPreviewLines = form.querySelector('[data-transfer-project-preview-lines]');
+    const projectPlans = {{ Illuminate\Support\Js::from($projectPlanData) }};
     const list = form.querySelector('[data-transfer-lines]');
     const template = document.querySelector('[data-transfer-line-template]');
     const state = form.querySelector('[data-source-inventory-state]');
@@ -272,6 +304,64 @@ document.addEventListener('DOMContentLoaded', () => {
             const exceeded = total - Number(material.available) > 0.0005;
             help.textContent = `Disponibil nerezervat: ${formatQuantity(material.available)} ${material.unit}; în document: ${formatQuantity(total)} ${material.unit}.`;
             help.className = `form-text transfer-line-availability ${exceeded ? 'text-danger fw-semibold' : ''}`;
+        });
+        syncProjectPreview();
+    };
+
+    const syncProjectOptions = () => {
+        const isReturn = purpose.value === 'return';
+        projectField.classList.toggle('d-none', isReturn);
+        project.disabled = isReturn;
+        [...project.options].forEach(option => {
+            if (!option.value) return;
+            option.disabled = isReturn || String(option.dataset.locationId) !== String(destination.value);
+        });
+        const selected = project.selectedOptions[0];
+        if (project.value && selected?.disabled) project.value = '';
+        syncProjectPreview();
+    };
+
+    const syncProjectPreview = () => {
+        const plan = projectPlans[project.value];
+        if (!plan || purpose.value !== 'transfer') {
+            projectPreview.classList.add('d-none');
+            projectPreviewLines.replaceChildren();
+            return;
+        }
+
+        const selectedTotals = {};
+        list.querySelectorAll('.transfer-line').forEach(row => {
+            const itemId = row.querySelector('.transfer-line-item').value;
+            const assetId = row.querySelector('.transfer-line-asset').value;
+            const quantity = Number(row.querySelector('.transfer-line-quantity').value || 0);
+            if (itemId && !assetId) selectedTotals[itemId] = (selectedTotals[itemId] || 0) + quantity;
+        });
+        projectPreview.classList.remove('d-none');
+        projectPreviewTitle.textContent = `${plan.code} — ${plan.name}. Echipamentele individuale și retururile nu intră în calcul.`;
+        projectPreviewLines.replaceChildren();
+
+        const entries = Object.entries(selectedTotals);
+        if (!entries.length) {
+            const empty = document.createElement('div');
+            empty.className = 'small text-muted';
+            empty.textContent = 'Documentul nu conține încă materiale cantitative.';
+            projectPreviewLines.append(empty);
+            return;
+        }
+
+        entries.forEach(([itemId, documentQuantity]) => {
+            const plannedLine = plan.lines[itemId] || { planned: 0, committed: 0, unit: inventory.materials.find(entry => String(entry.id) === String(itemId))?.unit || 'buc' };
+            const after = Number(plannedLine.committed) + Number(documentQuantity);
+            const overrun = Math.max(0, after - Number(plannedLine.planned));
+            const material = inventory.materials.find(entry => String(entry.id) === String(itemId));
+            const row = document.createElement('div');
+            row.className = `transfer-project-plan-line ${overrun > 0.0005 ? 'text-danger' : ''}`;
+            const name = document.createElement('strong');
+            name.textContent = material?.name || `Material #${itemId}`;
+            const values = document.createElement('span');
+            values.textContent = `Plan ${formatQuantity(plannedLine.planned)} · deja solicitat ${formatQuantity(plannedLine.committed)} · după document ${formatQuantity(after)} ${plannedLine.unit}${overrun > 0.0005 ? ` · +${formatQuantity(overrun)} peste plan` : ''}`;
+            row.append(name, values);
+            projectPreviewLines.append(row);
         });
     };
 
@@ -370,7 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     source.addEventListener('change', loadInventory);
+    destination.addEventListener('change', syncProjectOptions);
+    purpose.addEventListener('change', syncProjectOptions);
+    project.addEventListener('change', syncProjectPreview);
     syncRemoveButtons();
+    syncProjectOptions();
     loadInventory();
 });
 </script>

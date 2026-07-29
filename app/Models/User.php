@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(MaterialCustody::class);
     }
 
+    public function createdProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'created_by');
+    }
+
     public function isProtectedAdministrator(): bool
     {
         $protectedEmail = Str::lower(trim((string) config('roles.protected_admin_email')));

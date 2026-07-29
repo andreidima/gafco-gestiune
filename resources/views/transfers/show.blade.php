@@ -18,6 +18,7 @@
         return (int) $driver->id === (int) auth()->id() ? 'Tu' : 'Realocare in curs';
     };
     $approvals = $transfer->approvals->where('revision', $transfer->revision);
+    $projectOverruns = $projectProgress->where('has_overrun', true);
     $taskAssignment = $transfer->task?->currentAssignment;
     if ($isDriverViewer
         && $taskAssignment?->driver_id !== auth()->id()
@@ -34,6 +35,7 @@
     </div>
 
     @if($transfer->task?->isOverdue())<div class="alert alert-danger">Deadline-ul original a fost depasit.</div>@endif
+    @if(! $isDriverViewer && $transfer->project && $projectOverruns->isNotEmpty())<div class="alert alert-danger"><strong>Planul proiectului {{ $transfer->project->code }} este depășit.</strong> Situația completă este disponibilă în pagina proiectului.</div>@endif
     @if($approvals->where('status','!=','approved')->isNotEmpty() && in_array($transfer->status,['in_transit','received'],true))<div class="alert alert-warning">Executia a inceput cu aprobari nefinalizate. Situatia ramane vizibila in istoric.</div>@endif
 
     <div class="row g-3">
@@ -87,6 +89,22 @@
         </div>
 
         <div class="col-xl-4">
+            @if(! $isDriverViewer && $transfer->project)
+                <div class="card mb-3">
+                    <div class="card-header bg-white"><strong>Proiect și plan de materiale</strong></div>
+                    <div class="card-body">
+                        <div class="resource-code">{{ $transfer->project->code }}</div>
+                        <div class="fw-bold mb-1">{{ $transfer->project->name }}</div>
+                        <div class="small text-muted mb-3">{{ $transfer->project->location?->code }} — {{ $transfer->project->location?->name }}</div>
+                        @if($projectOverruns->isNotEmpty())
+                            <div class="alert alert-danger py-2 small">{{ $projectOverruns->count() }} {{ $projectOverruns->count() === 1 ? 'material depășește' : 'materiale depășesc' }} planul.</div>
+                        @else
+                            <div class="alert alert-success py-2 small">Cantitățile cumulate sunt în limitele planului.</div>
+                        @endif
+                        <a href="{{ route('projects.show', $transfer->project) }}" class="btn btn-outline-primary w-100">Deschide proiectul</a>
+                    </div>
+                </div>
+            @endif
             <div class="card mb-3"><div class="card-header bg-white"><strong>Sarcina sofer</strong></div><div class="card-body"><div>Sofer: <strong>{{ $visibleDriverName($taskAssignment?->driver) }}</strong></div><div>Deadline: <strong>{{ $transfer->task?->manager_deadline?->format('d.m.Y H:i') ?? '-' }}</strong></div><div>Estimare: <strong>{{ $taskAssignment?->driver_estimate_at?->format('d.m.Y H:i') ?? '-' }}</strong></div>@if($transfer->task)<a href="{{ route('tasks.show',$transfer->task) }}" class="btn btn-outline-primary w-100 mt-3">Deschide sarcina</a>@endif</div></div>
             @if($transfer->parentTransfer)<div class="card mb-3"><div class="card-header bg-white"><strong>Transfer initial</strong></div><div class="card-body"><a href="{{ route('transfers.show',$transfer->parentTransfer) }}">{{ $transfer->parentTransfer->number }}</a></div></div>@endif
             @if($transfer->returns->isNotEmpty())<div class="card mb-3"><div class="card-header bg-white"><strong>Retururi initiate</strong></div><div class="card-body vstack gap-2">@foreach($transfer->returns as $return)<a href="{{ route('transfers.show',$return) }}">{{ $return->number }}</a>@endforeach</div></div>@endif

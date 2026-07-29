@@ -31,7 +31,7 @@ return [
             'location_id' => ['type' => 'visible_location'],
         ],
         'alerts.index' => [
-            'alert_type' => ['type' => 'enum', 'values' => ['lot_expiration', 'reception_pending']],
+            'alert_type' => ['type' => 'enum', 'values' => ['lot_expiration', 'reception_pending', 'project_plan_overrun']],
             'severity' => ['type' => 'enum', 'values' => ['warning', 'danger']],
             'status' => ['type' => 'enum', 'values' => ['active', 'resolved', 'all']],
             'location_id' => ['type' => 'visible_location'],
@@ -60,10 +60,15 @@ return [
             'status' => ['type' => 'enum', 'values' => ['pending_approval', 'approved', 'in_transit', 'received', 'cancelled']],
             'source_location_id' => ['type' => 'visible_location'],
             'destination_location_id' => ['type' => 'visible_location'],
+            'project_id' => ['type' => 'positive_integer'],
             'driver_id' => ['type' => 'positive_integer'],
             'approval_status' => ['type' => 'enum', 'values' => ['pending', 'approved', 'rejected']],
             'overdue' => ['type' => 'boolean'],
             'archived' => ['type' => 'boolean'],
+        ],
+        'projects.index' => [
+            'status' => ['type' => 'enum', 'values' => ['draft', 'active', 'completed', 'archived']],
+            'location_id' => ['type' => 'visible_location'],
         ],
         'tasks.index' => [
             'status' => ['type' => 'enum', 'values' => [

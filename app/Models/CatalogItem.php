@@ -41,4 +41,9 @@ class CatalogItem extends Model
     {
         return $this->hasMany(MaterialCustody::class);
     }
+
+    public function projectMaterialPlans(): HasMany
+    {
+        return $this->hasMany(ProjectMaterialPlan::class);
+    }
 }

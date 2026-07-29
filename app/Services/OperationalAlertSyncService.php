@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\InventoryLotBalance;
 use App\Models\OperationalAlert;
+use App\Models\Project;
 use App\Models\ReceptionIntake;
 use App\Models\User;
 use App\Notifications\OperationalAlertNotification;
@@ -24,6 +25,7 @@ class OperationalAlertSyncService
     public function __construct(
         private readonly AlertRuleResolver $rules,
         private readonly OperationalAlertAccessService $access,
+        private readonly ProjectMaterialPlanService $projectPlans,
     ) {}
 
     /**
@@ -50,6 +52,7 @@ class OperationalAlertSyncService
             $seen = [
                 'lot_expiration' => [],
                 'reception_pending' => [],
+                'project_plan_overrun' => [],
             ];
             $notifications = 0;
 
@@ -155,6 +158,57 @@ class OperationalAlertSyncService
                     $notifications += $this->synchronizeRecipients($alert);
                 });
 
+            if (Schema::hasTable('projects')
+                && Schema::hasTable('project_material_plans')
+                && Schema::hasColumn('transfers', 'project_id')) {
+                $activeProjects = Project::query()
+                    ->where('status', 'active')
+                    ->with(['location', 'creator', 'materialPlans.catalogItem'])
+                    ->orderBy('id')
+                    ->get();
+                $projectProgress = $this->projectPlans->progressForProjects($activeProjects);
+                foreach ($activeProjects as $project) {
+                    foreach ($projectProgress->get($project->id, collect())->where('has_overrun', true) as $line) {
+                        $catalogItem = $line['catalog_item'];
+                        $fingerprint = "project_plan_overrun:{$project->id}:{$catalogItem->id}";
+                        $seen['project_plan_overrun'][] = $fingerprint;
+                        $alert = $this->persistAlert([
+                            'alert_type' => 'project_plan_overrun',
+                            'fingerprint' => $fingerprint,
+                            'severity' => 'danger',
+                            'location_id' => $project->location_id,
+                            'alertable_type' => $project::class,
+                            'alertable_id' => $project->id,
+                            'title' => 'Plan de materiale depășit',
+                            'message' => sprintf(
+                                '%s are %s %s solicitați pentru proiectul %s, față de %s %s planificați (+%s %s).',
+                                $catalogItem->name,
+                                $this->quantity($line['committed_quantity']),
+                                $line['unit'],
+                                $project->code,
+                                $this->quantity($line['planned_quantity']),
+                                $line['unit'],
+                                $this->quantity($line['overrun_quantity']),
+                                $line['unit'],
+                            ),
+                            'url' => route('projects.show', $project, false)."#material-plan-{$catalogItem->id}",
+                            'metadata' => [
+                                'project_id' => $project->id,
+                                'catalog_item_id' => $catalogItem->id,
+                                'planned_quantity' => (string) $line['planned_quantity'],
+                                'committed_quantity' => (string) $line['committed_quantity'],
+                                'overrun_quantity' => (string) $line['overrun_quantity'],
+                                'unit' => $line['unit'],
+                            ],
+                            'triggered_at' => $detectedAt,
+                            'due_at' => null,
+                            'last_detected_at' => $detectedAt,
+                        ]);
+                        $notifications += $this->synchronizeRecipients($alert);
+                    }
+                }
+            }
+
             $resolved = 0;
             foreach ($seen as $alertType => $fingerprints) {
                 $query = OperationalAlert::query()
@@ -170,7 +224,7 @@ class OperationalAlertSyncService
             }
 
             return [
-                'detected' => count($seen['lot_expiration']) + count($seen['reception_pending']),
+                'detected' => collect($seen)->sum(fn (array $fingerprints) => count($fingerprints)),
                 'resolved' => $resolved,
                 'notifications' => $notifications,
             ];
@@ -195,7 +249,7 @@ class OperationalAlertSyncService
             $alert->recipients()->detach();
         }
 
-        return $alert->fresh(['location']);
+        return $alert->fresh(['location', 'alertable']);
     }
 
     private function synchronizeRecipients(OperationalAlert $alert): int
@@ -204,10 +258,12 @@ class OperationalAlertSyncService
             return 0;
         }
 
-        $recipients = ($this->eligibleUsersByLocation[$alert->location_id]
-                ??= $this->access->eligibleUsers($alert->location))
-            ->filter(fn ($user) => $this->rules->shouldReceive($user, $alert))
-            ->values();
+        $recipients = $alert->alert_type === 'project_plan_overrun'
+            ? $this->projectOverrunRecipients($alert)
+            : ($this->eligibleUsersByLocation[$alert->location_id]
+                    ??= $this->access->eligibleUsers($alert->location))
+                ->filter(fn ($user) => $this->rules->shouldReceive($user, $alert))
+                ->values();
         $recipientIds = $recipients->pluck('id')->all();
 
         if ($recipientIds === []) {
@@ -255,6 +311,34 @@ class OperationalAlertSyncService
         }
 
         return $notifications;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function projectOverrunRecipients(OperationalAlert $alert): Collection
+    {
+        $project = $alert->alertable instanceof Project
+            ? $alert->alertable
+            : Project::find($alert->alertable_id);
+        if (! $project) {
+            return collect();
+        }
+
+        return User::query()
+            ->where('active', true)
+            ->where(function ($query) use ($project): void {
+                $query->whereKey($project->created_by)
+                    ->orWhereHas('roles', fn ($roles) => $roles->whereIn('name', [
+                        'super-admin',
+                        'admin',
+                    ]))
+                    ->orWhereHas('activeManagedLocations', fn ($locations) => $locations
+                        ->whereKey($project->location_id)
+                        ->where('locations.active', true));
+            })
+            ->with('roles')
+            ->get();
     }
 
     private function tablesAreAvailable(): bool

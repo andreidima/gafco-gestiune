@@ -7,6 +7,7 @@ use App\Models\ConsumptionReport;
 use App\Models\CustodyTransfer;
 use App\Models\Location;
 use App\Models\MaterialCustody;
+use App\Models\Project;
 use App\Models\StockLevel;
 use App\Models\SupplierReception;
 use App\Models\Task;
@@ -303,6 +304,9 @@ class DashboardController extends Controller
         if ($user->can('create', Transfer::class)) {
             $actions[] = ['label' => 'Transfer nou', 'href' => route('transfers.create'), 'icon' => 'fa-right-left'];
         }
+        if (Schema::hasTable('projects') && $user->can('viewAny', Project::class)) {
+            $actions[] = ['label' => 'Proiecte materiale', 'href' => route('projects.index'), 'icon' => 'fa-diagram-project'];
+        }
         if ($user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza'])) {
             $actions[] = ['label' => 'Recepție nouă', 'href' => route('supplier-receptions.create'), 'icon' => 'fa-receipt'];
         }
@@ -313,7 +317,7 @@ class DashboardController extends Controller
             $actions[] = ['label' => 'Alerte', 'href' => route('alerts.index'), 'icon' => 'fa-triangle-exclamation'];
         }
 
-        return array_slice($actions, 0, 6);
+        return array_slice($actions, 0, 7);
     }
 
     private function visibleTasks(User $user): Builder

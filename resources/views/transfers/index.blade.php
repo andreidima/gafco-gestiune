@@ -56,6 +56,9 @@
         $destinationFilter = $locations->firstWhere('id', (int) request('destination_location_id'));
         $activeTransferFilters['destination_location_id'] = 'Destinatie: '.($destinationFilter?->code ?? '#'.request('destination_location_id'));
     }
+    if (! $isDriver && request()->filled('project_id')) {
+        $activeTransferFilters['project_id'] = 'Proiect: '.($projects->firstWhere('id', (int) request('project_id'))?->code ?? '#'.request('project_id'));
+    }
     if (! $isDriver && request()->filled('driver_id')) {
         $activeTransferFilters['driver_id'] = 'Sofer: '.($drivers->firstWhere('id', (int) request('driver_id'))?->name ?? '#'.request('driver_id'));
     }
@@ -108,6 +111,9 @@
                 <div class="col-xl-2 col-md-3"><label class="resource-filter-label">Status</label><select name="status" class="form-select"><option value="">Toate</option>@foreach($transferStatusLabels as $status => $label)<option value="{{ $status }}" @selected(request('status') === $status)>{{ $label }}</option>@endforeach</select></div>
                 <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Sursa</label><select name="source_location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('source_location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
                 <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Destinatie</label><select name="destination_location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('destination_location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
+                @unless($isDriver)
+                    <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Proiect</label><select name="project_id" class="form-select"><option value="">Toate proiectele</option>@foreach($projects as $project)<option value="{{ $project->id }}" @selected((int) request('project_id') === $project->id)>{{ $project->code }} — {{ $project->name }}</option>@endforeach</select></div>
+                @endunless
                 @unless($isDriver)
                     <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Sofer</label><select name="driver_id" class="form-select" data-tom-select><option value="">Toti</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string) request('driver_id') === (string) $driver->id)>{{ $driver->name }}</option>@endforeach</select></div>
                 @endunless
@@ -175,7 +181,8 @@
                             ? (int) round(($displayAssignment->driver_estimate_at->getTimestamp() - $transfer->task->manager_deadline->getTimestamp()) / 60)
                             : null;
                         $pendingActionLabels = $pendingApprovals->map(fn ($approval) => $approval->scope === 'driver' && ! $approval->expected_user_id ? 'Aloca sofer' : ($approvalScopeLabels[$approval->scope] ?? $approval->scope))->unique()->implode(', ');
-                        $rowAlertClass = ($transfer->task?->isOverdue() || $rejectedApproval) ? 'resource-row-alert resource-row-alert-danger' : (($needsDriverResponse || $needsApprovalAction || $needsAllocation || $isDueSoon) ? 'resource-row-alert resource-row-alert-warning' : '');
+                        $projectOverruns = $transfer->project ? $projectProgressById->get($transfer->project->id, collect())->where('has_overrun', true) : collect();
+                        $rowAlertClass = ($transfer->task?->isOverdue() || $rejectedApproval || (! $isDriver && $projectOverruns->isNotEmpty())) ? 'resource-row-alert resource-row-alert-danger' : (($needsDriverResponse || $needsApprovalAction || $needsAllocation || $isDueSoon) ? 'resource-row-alert resource-row-alert-warning' : '');
                     @endphp
                     <tr class="{{ $rowAlertClass }}">
                         <td>
@@ -196,6 +203,7 @@
                                     <span title="{{ $firstLineLabel }}">{{ \Illuminate\Support\Str::limit($firstLineLabel, 48) }} <span class="resource-secondary">{{ $formatQuantity((float) $firstLine->quantity) }} {{ $firstLine->unit }}</span></span>
                                     @if($transfer->lines_count > 1)<span class="resource-secondary">+{{ $transfer->lines_count - 1 }} {{ $transfer->lines_count === 2 ? 'alta pozitie' : 'alte pozitii' }}</span>@endif
                                 @endif
+                                @if(! $isDriver && $transfer->project)<span><span class="badge {{ $projectOverruns->isNotEmpty() ? 'text-bg-danger' : 'text-bg-light border' }}">{{ $transfer->project->code }}{{ $projectOverruns->isNotEmpty() ? ' · plan depășit' : '' }}</span></span>@endif
                             </div>
                         </td>
                         <td>
@@ -281,7 +289,8 @@
                         ? (int) round(($displayAssignment->driver_estimate_at->getTimestamp() - $transfer->task->manager_deadline->getTimestamp()) / 60)
                         : null;
                     $pendingActionLabels = $pendingApprovals->map(fn ($approval) => $approval->scope === 'driver' && ! $approval->expected_user_id ? 'Aloca sofer' : ($approvalScopeLabels[$approval->scope] ?? $approval->scope))->unique()->implode(', ');
-                    $mobileAlertClass = ($transfer->task?->isOverdue() || $rejectedApproval) ? 'resource-row-alert resource-row-alert-danger' : (($needsDriverResponse || $needsApprovalAction || $needsAllocation || $isDueSoon) ? 'resource-row-alert resource-row-alert-warning' : '');
+                    $projectOverruns = $transfer->project ? $projectProgressById->get($transfer->project->id, collect())->where('has_overrun', true) : collect();
+                    $mobileAlertClass = ($transfer->task?->isOverdue() || $rejectedApproval || (! $isDriver && $projectOverruns->isNotEmpty())) ? 'resource-row-alert resource-row-alert-danger' : (($needsDriverResponse || $needsApprovalAction || $needsAllocation || $isDueSoon) ? 'resource-row-alert resource-row-alert-warning' : '');
                 @endphp
                 <article class="card resource-mobile-card {{ $mobileAlertClass }}">
                     <div class="card-body">
@@ -290,7 +299,7 @@
                             <x-status :status="$transfer->status" />
                         </div>
 
-                        @if($needsDriverResponse || $needsApprovalAction || $needsAllocation || $transfer->task?->isOverdue() || $isDueSoon || $rejectedApproval)
+                        @if($needsDriverResponse || $needsApprovalAction || $needsAllocation || $transfer->task?->isOverdue() || $isDueSoon || $rejectedApproval || (! $isDriver && $projectOverruns->isNotEmpty()))
                             <div class="d-flex flex-wrap gap-1 mt-2">
                                 @if($needsDriverResponse)<span class="badge text-bg-warning">Raspunsul tau</span>@endif
                                 @if($needsApprovalAction)<span class="badge text-bg-warning">Aprobarea ta</span>@endif
@@ -298,6 +307,7 @@
                                 @if($transfer->task?->isOverdue())<span class="badge text-bg-danger">Intarziat</span>@endif
                                 @if($isDueSoon)<span class="badge text-bg-warning">Termen apropiat</span>@endif
                                 @if($rejectedApproval)<span class="badge text-bg-danger">Aprobare refuzata</span>@endif
+                                @if(! $isDriver && $projectOverruns->isNotEmpty())<span class="badge text-bg-danger">Plan proiect depășit</span>@endif
                             </div>
                         @endif
 
@@ -306,6 +316,7 @@
                             <div class="resource-mobile-card-wide">
                                 <span class="resource-filter-label">Continut</span>
                                 @if($firstLine)<strong>{{ $firstLineLabel }}</strong><span class="resource-secondary">{{ $formatQuantity((float) $firstLine->quantity) }} {{ $firstLine->unit }}@if($transfer->lines_count > 1) · +{{ $transfer->lines_count - 1 }} {{ $transfer->lines_count === 2 ? 'pozitie' : 'pozitii' }}@endif</span>@else<strong>Fara continut</strong>@endif
+                                @if(! $isDriver && $transfer->project)<span class="resource-secondary">Proiect: {{ $transfer->project->code }}</span>@endif
                             </div>
                             <div>
                                 <span class="resource-filter-label">Sofer</span>

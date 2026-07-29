@@ -13,7 +13,7 @@
 <div class="resource-shell">
     <x-resource-page-header
         title="Alerte"
-        description="Situații de stoc și documente care necesită verificare. Alertele se închid automat când motivul dispare."
+        description="Situații de stoc, documente și planuri de materiale care necesită verificare. Alertele se închid automat când motivul dispare."
         :count="$alerts->total()"
         icon="fa-triangle-exclamation"
     >

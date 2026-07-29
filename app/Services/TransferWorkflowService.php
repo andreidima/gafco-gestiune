@@ -35,6 +35,7 @@ class TransferWorkflowService
                 'type' => $this->direction($source, $destination),
                 'purpose' => $purpose,
                 'parent_transfer_id' => $data['parent_transfer_id'] ?? null,
+                'project_id' => $data['project_id'] ?? null,
                 'revision' => 1,
                 'status' => 'pending_approval',
                 'source_location_id' => $source->id,
@@ -106,12 +107,14 @@ class TransferWorkflowService
                 || $transfer->document_number !== (($data['document_number'] ?? null) ?: null)
                 || $transfer->notes !== (($data['notes'] ?? null) ?: null)
                 || $transfer->purpose !== $data['purpose']
-                || (int) ($transfer->parent_transfer_id ?? 0) !== (int) ($data['parent_transfer_id'] ?? 0);
+                || (int) ($transfer->parent_transfer_id ?? 0) !== (int) ($data['parent_transfer_id'] ?? 0)
+                || (int) ($transfer->project_id ?? 0) !== (int) ($data['project_id'] ?? 0);
 
             $updates = [
                 'type' => $this->direction($source, $destination),
                 'purpose' => $data['purpose'],
                 'parent_transfer_id' => $data['parent_transfer_id'] ?? null,
+                'project_id' => $data['project_id'] ?? null,
                 'source_location_id' => $source->id,
                 'destination_location_id' => $destination->id,
                 'document_number' => $data['document_number'] ?? null,
@@ -351,6 +354,7 @@ class TransferWorkflowService
                 'snapshot' => [
                     'purpose' => $transfer->purpose,
                     'parent_transfer_id' => $transfer->parent_transfer_id,
+                    'project_id' => $transfer->project_id,
                     'source_location_id' => $transfer->source_location_id,
                     'destination_location_id' => $transfer->destination_location_id,
                     'driver_id' => $transfer->task?->currentAssignment?->driver_id,

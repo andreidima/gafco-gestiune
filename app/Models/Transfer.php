@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[Fillable(['number', 'type', 'purpose', 'parent_transfer_id', 'revision', 'status', 'source_location_id', 'destination_location_id', 'requested_by', 'approved_by', 'driver_id', 'confirmed_by', 'document_number', 'document_path', 'requested_at', 'assigned_at', 'approved_at', 'dispatched_at', 'received_at', 'cancelled_at', 'archived_at', 'received_with_discrepancy', 'discrepancy_notes', 'notes'])]
+#[Fillable(['number', 'type', 'purpose', 'parent_transfer_id', 'project_id', 'revision', 'status', 'source_location_id', 'destination_location_id', 'requested_by', 'approved_by', 'driver_id', 'confirmed_by', 'document_number', 'document_path', 'requested_at', 'assigned_at', 'approved_at', 'dispatched_at', 'received_at', 'cancelled_at', 'archived_at', 'received_with_discrepancy', 'discrepancy_notes', 'notes'])]
 class Transfer extends Model
 {
     use HasFactory, LogsActivity;
@@ -78,6 +78,11 @@ class Transfer extends Model
     public function parentTransfer(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_transfer_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function returns(): HasMany

@@ -147,15 +147,15 @@ class OperationalImprovementTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 9,
-        ]);
-        $this->assertDatabaseHas('help_articles', [
-            'slug' => 'ghiduri-dupa-rol',
             'current_revision' => 10,
         ]);
         $this->assertDatabaseHas('help_articles', [
+            'slug' => 'ghiduri-dupa-rol',
+            'current_revision' => 11,
+        ]);
+        $this->assertDatabaseHas('help_articles', [
             'slug' => 'statusuri-si-termeni',
-            'current_revision' => 4,
+            'current_revision' => 5,
         ]);
         $this->assertStringContainsString(
             'actualizează automat la fiecare 5 minute',

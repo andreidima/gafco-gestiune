@@ -15,6 +15,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NegotiatedOrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationalAlertController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QrScanController;
 use App\Http\Controllers\ReceptionDocumentController;
 use App\Http\Controllers\ReceptionIntakeController;
@@ -96,6 +97,9 @@ Route::middleware([
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['show'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor|contabil');
+    Route::resource('projects', ProjectController::class)
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
     Route::get('transfers/source-options', [TransferController::class, 'sourceOptions'])->name('transfers.source-options');
     Route::resource('transfers', TransferController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::post('transfers/{transfer}/receive', [TransferController::class, 'receive'])->name('transfers.receive');

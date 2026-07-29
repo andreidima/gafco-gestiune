@@ -23,15 +23,15 @@ class NegotiatedOrderWorkflowTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 9,
-        ]);
-        $this->assertDatabaseHas('help_articles', [
-            'slug' => 'ghiduri-dupa-rol',
             'current_revision' => 10,
         ]);
         $this->assertDatabaseHas('help_articles', [
+            'slug' => 'ghiduri-dupa-rol',
+            'current_revision' => 11,
+        ]);
+        $this->assertDatabaseHas('help_articles', [
             'slug' => 'statusuri-si-termeni',
-            'current_revision' => 4,
+            'current_revision' => 5,
         ]);
         $this->assertStringContainsString(
             'Comenzi negociate',
@@ -46,10 +46,12 @@ class NegotiatedOrderWorkflowTest extends TestCase
 
     public function test_order_schema_and_content_migrations_are_reversible_together(): void
     {
+        $planningMigration = require database_path('migrations/2026_07_29_000018_publish_project_material_planning_content.php');
         $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $contentMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000014_create_negotiated_orders.php');
 
+        $planningMigration->down();
         $operationalMigration->down();
         $contentMigration->down();
         $schemaMigration->down();
@@ -61,6 +63,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $schemaMigration->up();
         $contentMigration->up();
         $operationalMigration->up();
+        $planningMigration->up();
 
         $this->assertTrue(Schema::hasTable('negotiated_orders'));
         $this->assertTrue(Schema::hasColumn('supplier_receptions', 'negotiated_order_id'));
