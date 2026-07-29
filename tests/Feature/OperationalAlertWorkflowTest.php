@@ -185,11 +185,11 @@ class OperationalAlertWorkflowTest extends TestCase
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 8,
+            'current_revision' => 9,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
-            'current_revision' => 9,
+            'current_revision' => 10,
         ]);
         $this->assertStringContainsString(
             'Regula locației are prioritatea cea mai mare',

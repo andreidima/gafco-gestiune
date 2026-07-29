@@ -72,13 +72,18 @@
             :create-route="route('tasks.create')"
             create-label="Sarcina noua"
         >
-            <x-slot:actions><a href="{{ route('tasks.dispatch') }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-users-viewfinder me-1"></i>Situatie soferi</a></x-slot:actions>
+            <x-slot:actions>
+                <x-live-view view-key="tasks-index" />
+                <a href="{{ route('tasks.dispatch') }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-users-viewfinder me-1"></i>Situatie soferi</a>
+            </x-slot:actions>
         </x-resource-page-header>
     @else
-        <x-resource-page-header title="Sarcinile mele" description="Deadline-uri, estimari si starea sarcinilor care ti-au fost alocate." :count="$totalTasks" :filtered-count="$tasks->total()" icon="fa-list-check" />
+        <x-resource-page-header title="Sarcinile mele" description="Deadline-uri, estimari si starea sarcinilor care ti-au fost alocate." :count="$totalTasks" :filtered-count="$tasks->total()" icon="fa-list-check">
+            <x-slot:actions><x-live-view view-key="tasks-index" /></x-slot:actions>
+        </x-resource-page-header>
     @endcan
 
-    <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}">
+    <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">
@@ -108,6 +113,7 @@
                 <div class="col-12 d-flex flex-wrap gap-3 pt-1">
                     <div class="form-check"><input type="checkbox" name="overdue" value="1" class="form-check-input" id="task-overdue" @checked(request()->boolean('overdue'))><label for="task-overdue" class="form-check-label small">Doar intarziate</label></div>
                     <div class="form-check"><input type="checkbox" name="archived" value="1" class="form-check-input" id="task-archived" @checked(request()->boolean('archived'))><label for="task-archived" class="form-check-label small">Include arhivate</label></div>
+                    <span class="resource-filter-memory"><i class="fa-solid fa-bookmark me-1"></i>Selecțiile se salvează în cont; căutarea scrisă nu se memorează.</span>
                 </div>
             </div>
         </div>

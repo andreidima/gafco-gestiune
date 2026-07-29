@@ -81,4 +81,9 @@ class Task extends Model
             && $this->manager_deadline->isPast()
             && ! in_array($this->status, ['completed', 'cancelled', 'archived'], true);
     }
+
+    public function isOperationallyLocked(): bool
+    {
+        return in_array($this->status, ['completed', 'cancelled', 'archived'], true);
+    }
 }

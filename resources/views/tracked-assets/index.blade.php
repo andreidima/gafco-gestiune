@@ -26,7 +26,7 @@
         create-label="Echipament nou"
     />
 
-    <form class="resource-filter-panel">
+    <form class="resource-filter-panel" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         @if(request()->filled('catalog_item_id'))<input type="hidden" name="catalog_item_id" value="{{ request('catalog_item_id') }}">@endif
         <div class="row g-2 align-items-end">

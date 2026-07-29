@@ -4,19 +4,148 @@ import TomSelect from 'tom-select';
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-tom-select]').forEach((element) => {
-        new TomSelect(element, {
+        const settings = {
             allowEmptyOption: true,
             create: false,
+        };
+        if (element.multiple) {
+            settings.plugins = {
+                remove_button: {
+                    title: 'Elimină',
+                },
+            };
+            settings.closeAfterSelect = false;
+            settings.hideSelected = true;
+        }
+
+        const select = new TomSelect(element, settings);
+        if (element.matches('[data-manager-selector]')) {
+            const status = element.closest('.resource-form-section')?.querySelector('[data-manager-selection-status] span');
+            const updateManagerCount = () => {
+                const count = select.items.length;
+                if (status) {
+                    status.textContent = `${count} ${count === 1 ? 'responsabil selectat' : 'responsabili selectați'}`;
+                }
+            };
+            select.on('change', updateManagerCount);
+            updateManagerCount();
+        }
+    });
+
+    document.querySelectorAll('[data-auto-submit-filters]').forEach((form) => {
+        let searchTimer;
+
+        form.querySelectorAll('input[name="search"], input[name$="_search"]').forEach((search) => {
+            search.addEventListener('input', () => {
+                window.clearTimeout(searchTimer);
+                searchTimer = window.setTimeout(() => form.requestSubmit(), 400);
+            });
         });
+
+        form.querySelectorAll('select[name], input[type="checkbox"][name], input[type="radio"][name], input[type="date"][name]').forEach((field) => {
+            field.addEventListener('change', () => form.requestSubmit());
+        });
+    });
+
+    document.querySelectorAll('[data-live-view]').forEach((liveView) => {
+        const intervalSeconds = Math.max(60, Number(liveView.dataset.liveViewInterval) || 300);
+        const storageKey = `gafco.live-view.${liveView.dataset.liveViewKey}`;
+        const status = liveView.querySelector('[data-live-view-status]');
+        const toggle = liveView.querySelector('[data-live-view-toggle]');
+        const toggleIcon = toggle?.querySelector('i');
+        const toggleLabel = toggle?.querySelector('.visually-hidden');
+        const refresh = liveView.querySelector('[data-live-view-refresh]');
+        let enabled = true;
+        let deadline = Date.now() + (intervalSeconds * 1000);
+
+        try {
+            enabled = window.localStorage.getItem(storageKey) !== 'paused';
+        } catch {
+            enabled = true;
+        }
+
+        const setStoredState = () => {
+            try {
+                window.localStorage.setItem(storageKey, enabled ? 'active' : 'paused');
+            } catch {
+                // Prefer a working live view even when browser storage is unavailable.
+            }
+        };
+
+        const syncToggle = () => {
+            liveView.classList.toggle('live-view-paused', !enabled);
+            toggle?.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            toggle?.setAttribute('title', enabled ? 'Oprește actualizarea automată' : 'Pornește actualizarea automată');
+            toggleIcon?.classList.toggle('fa-pause', enabled);
+            toggleIcon?.classList.toggle('fa-play', !enabled);
+            if (toggleLabel) {
+                toggleLabel.textContent = enabled ? 'Oprește actualizarea automată' : 'Pornește actualizarea automată';
+            }
+            if (!enabled && status) {
+                status.textContent = 'Actualizare oprită';
+            }
+        };
+
+        const postponeRefresh = (message) => {
+            deadline = Date.now() + 30000;
+            if (status) {
+                status.textContent = message;
+            }
+        };
+
+        const refreshPage = () => {
+            const activeElement = document.activeElement;
+            if (document.hidden) {
+                postponeRefresh('Actualizare amânată · pagina nu este activă');
+                return;
+            }
+            if (activeElement?.matches('input, textarea, select, [contenteditable="true"]')) {
+                postponeRefresh('Actualizare amânată cât timp editezi');
+                return;
+            }
+            window.location.reload();
+        };
+
+        const tick = () => {
+            if (!enabled) {
+                return;
+            }
+            const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            if (remaining <= 0) {
+                refreshPage();
+                return;
+            }
+            const minutes = Math.floor(remaining / 60);
+            const seconds = String(remaining % 60).padStart(2, '0');
+            if (status) {
+                status.textContent = `Actualizare în ${minutes}:${seconds}`;
+            }
+        };
+
+        toggle?.addEventListener('click', () => {
+            enabled = !enabled;
+            deadline = Date.now() + (intervalSeconds * 1000);
+            setStoredState();
+            syncToggle();
+            tick();
+        });
+        refresh?.addEventListener('click', refreshPage);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && enabled) {
+                tick();
+            }
+        });
+
+        syncToggle();
+        tick();
+        window.setInterval(tick, 1000);
     });
 
     const inventoryForm = document.querySelector('[data-inventory-filters]');
     if (inventoryForm) {
-        const search = inventoryForm.querySelector('[data-inventory-search]');
         const status = inventoryForm.querySelector('[data-inventory-save-status]');
         const preferenceUrl = inventoryForm.dataset.preferencesUrl;
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        let searchTimer;
 
         const preferencePayload = () => ({
             columns: Array.from(inventoryForm.querySelectorAll('[data-inventory-column]:checked')).map((input) => input.value),
@@ -54,13 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
             inventoryForm.requestSubmit();
         };
 
-        inventoryForm.querySelectorAll('[data-inventory-change]').forEach((element) => {
-            element.addEventListener('change', () => inventoryForm.requestSubmit());
-        });
-        search?.addEventListener('input', () => {
-            window.clearTimeout(searchTimer);
-            searchTimer = window.setTimeout(() => inventoryForm.requestSubmit(), 350);
-        });
         inventoryForm.querySelectorAll('[data-inventory-column], [data-inventory-density]').forEach((element) => {
             element.addEventListener('change', async () => {
                 const selectedColumns = inventoryForm.querySelectorAll('[data-inventory-column]:checked');

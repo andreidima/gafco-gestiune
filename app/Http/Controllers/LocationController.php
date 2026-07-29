@@ -115,6 +115,7 @@ class LocationController extends Controller
             'location' => $location,
             'managers' => User::where('active', true)
                 ->whereHas('roles', fn ($query) => $query->whereIn('name', ['sef-santier', 'gestionar-baza', 'dispecer', 'admin', 'super-admin']))
+                ->with('roles')
                 ->orderBy('name')
                 ->get(),
         ];

@@ -1,6 +1,21 @@
 @extends('layouts.app')
 
-@php($editing = (bool) $location)
+@php
+    $editing = (bool) $location;
+    $selectedManagerIds = collect(old(
+        'manager_user_ids',
+        $location?->activeManagers?->sortByDesc(fn ($manager) => (bool) $manager->pivot->is_primary)->pluck('id')->all() ?? [],
+    ))
+        ->map(fn ($id) => (int) $id)
+        ->all();
+    $managerRoleLabels = [
+        'super-admin' => 'Super-administrator',
+        'admin' => 'Administrator',
+        'dispecer' => 'Dispecer',
+        'sef-santier' => 'Șef de șantier',
+        'gestionar-baza' => 'Gestionar de bază',
+    ];
+@endphp
 @section('title', $editing ? 'Modifica locatia' : 'Locatie noua')
 
 @section('content')
@@ -26,7 +41,24 @@
         <div class="resource-form-section">
             <div class="resource-form-section-title">Responsabili si observatii</div>
             <div class="row g-3">
-                <div class="col-12"><label class="form-label">Responsabili activi</label><select name="manager_user_ids[]" class="form-select" multiple data-tom-select>@foreach($managers as $manager)<option value="{{ $manager->id }}" @selected(in_array($manager->id, old('manager_user_ids', $location?->activeManagers?->pluck('id')->all() ?? [])))>{{ $manager->name }}</option>@endforeach</select><div class="form-text">Toti sunt notificati; aprobarea unuia dintre ei este suficienta.</div></div>
+                <div class="col-12">
+                    <label class="form-label">Responsabili activi</label>
+                    <select name="manager_user_ids[]" class="form-select" multiple data-tom-select data-manager-selector>
+                        @foreach($managers as $manager)
+                            @php($roleNames = $manager->roles->pluck('name')->map(fn ($role) => $managerRoleLabels[$role] ?? $role)->implode(', '))
+                            <option value="{{ $manager->id }}" @selected(in_array($manager->id, $selectedManagerIds, true))>{{ $manager->name }}{{ $roleNames ? ' · '.$roleNames : '' }}</option>
+                        @endforeach
+                    </select>
+                    <div class="manager-selection-guidance mt-2">
+                        <div class="manager-selection-status" data-manager-selection-status>
+                            <i class="fa-solid fa-users me-1"></i><span>{{ count($selectedManagerIds) }} {{ count($selectedManagerIds) === 1 ? 'responsabil selectat' : 'responsabili selectați' }}</span>
+                        </div>
+                        <ul class="mb-0">
+                            <li>Toți responsabilii activi sunt notificați, dar aprobarea unuia singur este suficientă.</li>
+                            <li>Eliminarea oprește notificările viitoare și, pentru rolurile locale, accesul la locație; aprobările deja înregistrate rămân în istoric.</li>
+                        </ul>
+                    </div>
+                </div>
                 <div class="col-12"><label class="form-label">Observatii</label><textarea name="notes" class="form-control" rows="4">{{ old('notes', $location?->notes) }}</textarea></div>
             </div>
         </div>

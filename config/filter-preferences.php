@@ -36,6 +36,10 @@ return [
             'status' => ['type' => 'enum', 'values' => ['active', 'resolved', 'all']],
             'location_id' => ['type' => 'visible_location'],
         ],
+        'reception-intakes.index' => [
+            'location_id' => ['type' => 'visible_location'],
+            'status' => ['type' => 'enum', 'values' => ['created', 'closed']],
+        ],
         'supplier-receptions.index' => [
             'location_id' => ['type' => 'visible_location'],
             'supplier_id' => ['type' => 'positive_integer'],

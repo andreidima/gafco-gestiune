@@ -8,6 +8,7 @@
     $isDriverViewer = auth()->user()->usesDriverWorkspace();
     $priorityLabels = ['low' => 'Scazuta', 'normal' => 'Normala', 'high' => 'Ridicata', 'urgent' => 'Urgenta'];
     $commentTypeLabels = ['observation' => 'Observatie', 'acceptance' => 'Acceptare', 'rejection' => 'Refuz', 'estimate' => 'Estimare', 'reassignment' => 'Realocare', 'status' => 'Schimbare stare'];
+    $receiptStatusLabels = ['pending' => 'În așteptare', 'received' => 'Primit', 'missing' => 'Lipsă', 'damaged' => 'Deteriorat'];
     $visibleDriverName = static function ($driver) use ($isDriverViewer): string {
         if (! $driver) {
             return 'Nealocat';
@@ -27,6 +28,12 @@
     </div>
 
     @if($task->isOverdue())<div class="alert alert-danger"><strong>Sarcina este intarziata</strong> fata de deadline-ul original al managerului.</div>@endif
+    @if($task->isOperationallyLocked())
+        <div class="alert alert-secondary d-flex gap-2 align-items-start">
+            <i class="fa-solid fa-lock mt-1" aria-hidden="true"></i>
+            <div><strong>Sarcină închisă, disponibilă doar pentru consultare.</strong> Detaliile, alocarea, estimările și observațiile nu mai pot fi modificate. Istoricul rămâne vizibil.</div>
+        </div>
+    @endif
 
     <div class="row g-3">
         <div class="col-xl-8">
@@ -43,6 +50,51 @@
             </div>
 
             @if($task->transfer)
+                <div class="card mb-3">
+                    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <strong>Conținutul transferului {{ $task->transfer->number }}</strong>
+                        <a href="{{ route('transfers.show', $task->transfer) }}" class="btn btn-sm btn-outline-primary">Deschide transferul</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="task-transfer-summary mb-3">
+                            <span><i class="fa-solid fa-boxes-stacked me-1"></i>{{ $task->transfer->lines->count() }} {{ $task->transfer->lines->count() === 1 ? 'poziție' : 'poziții' }}</span>
+                            @if($task->transfer->document_number)<span><i class="fa-solid fa-file-lines me-1"></i>Aviz {{ $task->transfer->document_number }}</span>@endif
+                        </div>
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Articol</th><th>Identificare</th><th class="text-end">Cantitate</th><th>Stare la primire</th></tr></thead>
+                                <tbody>
+                                @forelse($task->transfer->lines as $line)
+                                    <tr>
+                                        <td><strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong>@if($line->notes)<span class="resource-secondary">{{ $line->notes }}</span>@endif</td>
+                                        <td>{{ $line->trackedAsset?->asset_code ?? 'Material cantitativ' }}@if($line->trackedAsset?->serial_number)<span class="resource-secondary">Serie: {{ $line->trackedAsset->serial_number }}</span>@endif</td>
+                                        <td class="text-end text-nowrap">{{ number_format((float) $line->quantity, 3, ',', '.') }} {{ $line->unit }}</td>
+                                        <td>{{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Transferul nu are poziții înregistrate.</td></tr>
+                                @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-grid gap-2 d-md-none">
+                            @forelse($task->transfer->lines as $line)
+                                <div class="task-transfer-line">
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong>
+                                        <span class="text-nowrap">{{ number_format((float) $line->quantity, 3, ',', '.') }} {{ $line->unit }}</span>
+                                    </div>
+                                    <div class="resource-secondary">{{ $line->trackedAsset?->asset_code ?? 'Material cantitativ' }} · {{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</div>
+                                    @if($line->notes)<div class="small mt-1">{{ $line->notes }}</div>@endif
+                                </div>
+                            @empty
+                                <div class="text-muted">Transferul nu are poziții înregistrate.</div>
+                            @endforelse
+                        </div>
+                        @if($task->transfer->notes)<div class="small mt-3"><strong>Observații transfer:</strong> {{ $task->transfer->notes }}</div>@endif
+                    </div>
+                </div>
+
                 <div class="card mb-3">
                     <div class="card-header bg-white d-flex justify-content-between"><strong>Aprobari transfer {{ $task->transfer->number }}</strong><a href="{{ route('transfers.show', $task->transfer) }}">Deschide transferul</a></div>
                     <div class="card-body approval-checklist">
@@ -64,7 +116,9 @@
             <div class="card">
                 <div class="card-header bg-white"><strong>Observatii si istoric</strong></div>
                 <div class="card-body">
-                    <form method="post" action="{{ route('tasks.comments.store', $task) }}" class="d-flex gap-2 mb-3">@csrf<input name="body" class="form-control" placeholder="Adauga o observatie" required><button class="btn btn-outline-primary">Adauga</button></form>
+                    @can('comment', $task)
+                        <form method="post" action="{{ route('tasks.comments.store', $task) }}" class="d-flex gap-2 mb-3">@csrf<input name="body" class="form-control" placeholder="Adauga o observatie" required><button class="btn btn-outline-primary">Adauga</button></form>
+                    @endcan
                     <div class="vstack gap-2">@forelse($task->comments->sortByDesc('created_at') as $comment)@php($commentAuthor = $isDriverViewer && $comment->user?->usesDriverWorkspace() && $comment->user_id !== auth()->id() ? 'Echipa transport' : ($comment->user?->name ?? 'Sistem'))<div class="border rounded-3 p-2"><div>{{ $comment->body }}</div><div class="small text-muted">{{ $commentAuthor }} · {{ $comment->created_at->format('d.m.Y H:i') }} · {{ $commentTypeLabels[$comment->type] ?? $comment->type }}</div></div>@empty<div class="text-muted">Nu exista observatii.</div>@endforelse</div>
                 </div>
             </div>

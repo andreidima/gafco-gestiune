@@ -62,15 +62,30 @@
                 <h3 class="mb-2">{{ $dashboardCopy[2] }}</h3>
                 <p class="mb-0 text-muted">{{ $dashboardCopy[3] }}</p>
             </div>
-            @if($showOperationsOverview)
-                <div class="dashboard-highlight text-end">
-                    <div class="dashboard-highlight-label">Santiere active</div>
-                    <div class="dashboard-highlight-value">{{ $sites }}</div>
-                    <div class="dashboard-highlight-sub">Monitorizate in aplicatie.</div>
-                </div>
-            @endif
+            <div class="dashboard-hero-tools">
+                <x-live-view view-key="dashboard" />
+                @if($showOperationsOverview)
+                    <div class="dashboard-highlight text-end">
+                        <div class="dashboard-highlight-label">Santiere active</div>
+                        <div class="dashboard-highlight-value">{{ $sites }}</div>
+                        <div class="dashboard-highlight-sub">Monitorizate in aplicatie.</div>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
+
+    @if($quickActions)
+        <nav class="dashboard-quick-actions mb-4" aria-label="Scurtături pentru rolul meu">
+            <span class="dashboard-quick-actions-label">Acces rapid</span>
+            @foreach($quickActions as $action)
+                <a href="{{ $action['href'] }}" class="dashboard-quick-action">
+                    <i class="fa-solid {{ $action['icon'] }}" aria-hidden="true"></i>
+                    {{ $action['label'] }}
+                </a>
+            @endforeach
+        </nav>
+    @endif
 
     @if($actionQueues)
     <div class="action-queue-grid mb-4" aria-label="Actiuni prioritare">

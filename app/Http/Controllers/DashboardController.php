@@ -40,6 +40,7 @@ class DashboardController extends Controller
             'dashboardMode' => $dashboardMode,
             'showOperationsOverview' => $showOperationsOverview,
             'actionQueues' => $this->actionQueues($user, $dashboardMode),
+            'quickActions' => $this->quickActions($user, $dashboardMode),
             'ownTasks' => $dashboardMode === 'driver' ? $this->driverTasks($user) : collect(),
             'stats' => [],
             'assetStatusCounts' => collect(),
@@ -271,6 +272,48 @@ class DashboardController extends Controller
             ['title' => 'Transferuri in tranzit', 'count' => Transfer::where('status', 'in_transit')->count(), 'description' => 'Fluxuri active in acest moment.', 'href' => route('transfers.index', ['status' => 'in_transit']), 'icon' => 'fa-right-left', 'tone' => 'accent-amber'],
             ['title' => 'Receptii luna', 'count' => SupplierReception::where('received_at', '>=', now()->subDays(30))->count(), 'description' => 'Intrari inregistrate in ultimele 30 de zile.', 'href' => route('supplier-receptions.index'), 'icon' => 'fa-receipt', 'tone' => 'accent-teal'],
         ];
+    }
+
+    private function quickActions(User $user, string $dashboardMode): array
+    {
+        if ($dashboardMode === 'limited') {
+            return [];
+        }
+
+        if ($dashboardMode === 'driver') {
+            return [
+                ['label' => 'Sarcinile mele', 'href' => route('tasks.index'), 'icon' => 'fa-list-check'],
+                ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
+                ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
+            ];
+        }
+
+        if ($dashboardMode === 'worker') {
+            return [
+                ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
+                ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
+            ];
+        }
+
+        $actions = [];
+        if ($user->can('create', Task::class)) {
+            $actions[] = ['label' => 'Situație șoferi', 'href' => route('tasks.dispatch'), 'icon' => 'fa-users-viewfinder'];
+            $actions[] = ['label' => 'Sarcină nouă', 'href' => route('tasks.create'), 'icon' => 'fa-list-check'];
+        }
+        if ($user->can('create', Transfer::class)) {
+            $actions[] = ['label' => 'Transfer nou', 'href' => route('transfers.create'), 'icon' => 'fa-right-left'];
+        }
+        if ($user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza'])) {
+            $actions[] = ['label' => 'Recepție nouă', 'href' => route('supplier-receptions.create'), 'icon' => 'fa-receipt'];
+        }
+        if ($user->canViewInventory()) {
+            $actions[] = ['label' => 'Fișă inventar', 'href' => route('inventory.index'), 'icon' => 'fa-warehouse'];
+        }
+        if (Schema::hasTable('operational_alerts') && $this->alertAccess->canUse($user)) {
+            $actions[] = ['label' => 'Alerte', 'href' => route('alerts.index'), 'icon' => 'fa-triangle-exclamation'];
+        }
+
+        return array_slice($actions, 0, 6);
     }
 
     private function visibleTasks(User $user): Builder

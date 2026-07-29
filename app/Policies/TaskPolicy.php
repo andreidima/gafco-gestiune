@@ -56,7 +56,7 @@ class TaskPolicy
     {
         return $this->canManage($user, $task)
             && $task->transfer_id === null
-            && ! in_array($task->status, ['completed', 'cancelled', 'archived'], true);
+            && ! $task->isOperationallyLocked();
     }
 
     public function update(User $user, Task $task): bool
@@ -67,7 +67,7 @@ class TaskPolicy
     public function assign(User $user, Task $task): bool
     {
         return $this->canManage($user, $task)
-            && ! in_array($task->status, ['completed', 'cancelled', 'archived'], true);
+            && ! $task->isOperationallyLocked();
     }
 
     public function transition(User $user, Task $task): bool
@@ -79,7 +79,7 @@ class TaskPolicy
     {
         if (! $user->active
             || ! $user->usesDriverWorkspace()
-            || in_array($task->status, ['completed', 'cancelled', 'archived'], true)) {
+            || $task->isOperationallyLocked()) {
             return false;
         }
 
@@ -89,6 +89,11 @@ class TaskPolicy
                 ->whereIn('status', ['accepted', 'reassignment_requested'])
                 ->whereHas('replacementCandidates', fn ($candidate) => $candidate->where('status', 'pending'))
                 ->exists();
+    }
+
+    public function comment(User $user, Task $task): bool
+    {
+        return $this->view($user, $task) && ! $task->isOperationallyLocked();
     }
 
     private function canManage(User $user, Task $task): bool

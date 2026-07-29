@@ -22,7 +22,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel">
+    <form class="resource-filter-panel" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-lg-5">

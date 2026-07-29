@@ -15,13 +15,16 @@
         :count="$totalMaterials"
         :filtered-count="$items->total()"
         icon="fa-warehouse"
-    />
+    >
+        <x-slot:actions><x-live-view view-key="inventory-index" /></x-slot:actions>
+    </x-resource-page-header>
 
     <form
         method="get"
         action="{{ route('inventory.index') }}"
         class="resource-filter-panel"
         data-inventory-filters
+        data-auto-submit-filters
         data-preferences-url="{{ route('preferences.inventory.update') }}"
     >
         <input type="hidden" name="filters_submitted" value="1">

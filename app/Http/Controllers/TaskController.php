@@ -10,6 +10,7 @@ use App\Services\TaskWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -108,6 +109,7 @@ class TaskController extends Controller
         $task->load([
             'sourceLocation.activeManagers', 'destinationLocation.activeManagers', 'creator',
             'transfer.approvals.decidedBy', 'transfer.approvals.location',
+            'transfer.lines.catalogItem', 'transfer.lines.trackedAsset',
             'assignments.driver', 'assignments.assigner', 'comments.user.roles',
         ]);
         if ($request->user()->usesDriverWorkspace()) {
@@ -225,6 +227,17 @@ class TaskController extends Controller
                     'driver' => $driver,
                     'currentAssignment' => $focus,
                     'currentTask' => $focus?->task,
+                    'activeRoutes' => $assignments
+                        ->map(fn ($assignment) => $assignment->task)
+                        ->filter()
+                        ->map(fn (Task $task) => [
+                            'source_location_id' => $task->source_location_id,
+                            'destination_location_id' => $task->destination_location_id,
+                            'task_number' => $task->number,
+                        ])
+                        ->filter(fn (array $route) => $route['source_location_id'] && $route['destination_location_id'])
+                        ->unique(fn (array $route) => $route['source_location_id'].'-'.$route['destination_location_id'])
+                        ->values(),
                     'availabilityAt' => $availabilityAt,
                     'state' => $state,
                     'stateLabel' => $stateLabel,
@@ -252,9 +265,15 @@ class TaskController extends Controller
             ->orderBy('manager_deadline')
             ->latest('id');
 
+        $unassignedTasks = $unassignedQuery->paginate(25, ['*'], 'unassigned_page')->withQueryString();
+        $driverOptionsByTask = $unassignedTasks->getCollection()->mapWithKeys(
+            fn (Task $task) => [$task->id => $this->driverOptionsForTask($task, $driverSummaries)]
+        );
+
         return view('tasks.dispatch', [
             'driverSummaries' => $driverSummaries,
-            'unassignedTasks' => $unassignedQuery->paginate(25, ['*'], 'unassigned_page')->withQueryString(),
+            'unassignedTasks' => $unassignedTasks,
+            'driverOptionsByTask' => $driverOptionsByTask,
             'unassignedTotal' => $this->visibleQuery($request->user())->where('status', 'unassigned')->count(),
         ]);
     }
@@ -374,5 +393,30 @@ class TaskController extends Controller
         if ($assignment) {
             $task->setRelation('currentAssignment', $assignment);
         }
+    }
+
+    private function driverOptionsForTask(Task $task, Collection $driverSummaries): Collection
+    {
+        return $driverSummaries
+            ->map(function (array $summary) use ($task): array {
+                $matchingRoute = $task->source_location_id && $task->destination_location_id
+                    ? $summary['activeRoutes']->first(fn (array $route) => (
+                        (int) $route['source_location_id'] === (int) $task->source_location_id
+                        && (int) $route['destination_location_id'] === (int) $task->destination_location_id
+                    ))
+                    : null;
+
+                return $summary + [
+                    'sameRoute' => (bool) $matchingRoute,
+                    'sameRouteTaskNumber' => $matchingRoute['task_number'] ?? null,
+                ];
+            })
+            ->sortBy(fn (array $summary) => sprintf(
+                '%d|%d|%s',
+                $summary['sameRoute'] ? 0 : 1,
+                $summary['sortRank'],
+                $summary['driver']->name,
+            ))
+            ->values();
     }
 }

@@ -21,6 +21,7 @@
         create-label="Transfer nou"
     >
         <x-slot:actions>
+            <x-live-view view-key="site-manager-operations" />
             <a href="{{ route('consumption-reports.create') }}" class="btn btn-outline-success btn-sm"><i class="fa-solid fa-clipboard-check me-1"></i>Raporteaza consum</a>
         </x-slot:actions>
     </x-resource-page-header>
@@ -88,7 +89,7 @@
     </section>
 
     <section id="active-transfers" aria-labelledby="active-transfers-heading">
-        <form class="resource-filter-panel">
+        <form class="resource-filter-panel" data-auto-submit-filters>
             <input type="hidden" name="filters_submitted" value="1">
             <div class="row g-2 align-items-end">
                 <div class="col-md-6 col-xl-4"><label class="resource-filter-label" for="transfer-search">Cautare</label><input id="transfer-search" name="transfer_search" value="{{ request('transfer_search') }}" class="form-control" placeholder="Transfer sau aviz"></div>

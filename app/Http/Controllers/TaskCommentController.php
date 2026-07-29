@@ -10,7 +10,7 @@ class TaskCommentController extends Controller
 {
     public function store(Request $request, Task $task): RedirectResponse
     {
-        $this->authorize('view', $task);
+        $this->authorize('comment', $task);
         $data = $request->validate(['body' => ['required', 'string']]);
         $task->comments()->create([
             'user_id' => $request->user()->id,

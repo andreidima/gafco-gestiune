@@ -18,6 +18,7 @@
         icon="fa-triangle-exclamation"
     >
         <x-slot:actions>
+            <x-live-view view-key="alerts-index" />
             <span class="badge rounded-pill text-bg-warning">{{ $activeCount }} active</span>
             @if($criticalCount)
                 <span class="badge rounded-pill text-bg-danger">{{ $criticalCount }} critice</span>
@@ -30,7 +31,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel">
+    <form class="resource-filter-panel" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-3 col-lg-6">

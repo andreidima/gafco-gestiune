@@ -80,9 +80,11 @@
         icon="fa-right-left"
         :create-route="Gate::allows('create', \App\Models\Transfer::class) ? route('transfers.create') : null"
         create-label="Transfer nou"
-    />
+    >
+        <x-slot:actions><x-live-view view-key="transfers-index" /></x-slot:actions>
+    </x-resource-page-header>
 
-    <form class="resource-filter-panel" method="get" action="{{ route('transfers.index') }}">
+    <form class="resource-filter-panel" method="get" action="{{ route('transfers.index') }}" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">

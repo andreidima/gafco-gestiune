@@ -21,7 +21,7 @@
         create-label="Comandă nouă"
     />
 
-    <form method="get" class="resource-filter-panel">
+    <form method="get" class="resource-filter-panel" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-3 align-items-end">
             <div class="col-xl-3 col-md-6">

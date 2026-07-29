@@ -26,16 +26,17 @@
             </div>
         </div>
         <div class="resource-page-actions">
+            <x-live-view view-key="inventory-show" />
             <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Inventar</a>
         </div>
     </div>
 
-    <form class="resource-filter-panel" method="get">
+    <form class="resource-filter-panel" method="get" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-md-6">
                 <label class="resource-filter-label">Locație</label>
-                <select name="location_id" class="form-select" onchange="this.form.submit()">
+                <select name="location_id" class="form-select">
                     <option value="">Toate locațiile permise</option>
                     @foreach($locations as $location)
                         <option value="{{ $location->id }}" @selected((int) $selectedLocationId === (int) $location->id)>{{ $location->code }} — {{ $location->name }}</option>

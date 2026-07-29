@@ -77,8 +77,8 @@ class HelpCenterTest extends TestCase
             ->where('slug', 'pagini-si-operatiuni')
             ->sole();
 
-        $this->assertSame(8, $article->current_revision);
-        $this->assertCount(8, $article->revisions);
+        $this->assertSame(9, $article->current_revision);
+        $this->assertCount(9, $article->revisions);
         $this->assertStringNotContainsString('Utilizatori și liste', $article->body_markdown);
         $this->assertStringContainsString('Filtrele listelor', $article->body_markdown);
         $this->assertFalse(
@@ -97,6 +97,7 @@ class HelpCenterTest extends TestCase
 
     public function test_minor_corrections_removal_migration_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $orderMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $custodyMigration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
         $alertMigration = require database_path('migrations/2026_07_29_000011_publish_operational_alert_content.php');
@@ -105,6 +106,7 @@ class HelpCenterTest extends TestCase
         $currentMigration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
         $migration = require database_path('migrations/2026_07_29_000002_remove_minor_corrections_help_and_release_note.php');
 
+        $operationalMigration->down();
         $orderMigration->down();
         $custodyMigration->down();
         $alertMigration->down();
@@ -135,6 +137,7 @@ class HelpCenterTest extends TestCase
         $alertMigration->up();
         $custodyMigration->up();
         $orderMigration->up();
+        $operationalMigration->up();
     }
 
     public function test_drafts_are_not_exposed_and_markdown_strips_unsafe_html(): void
@@ -203,6 +206,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Mai multă claritate în activitatea zilnică',
                 'Comenzi negociate transformabile în recepții',
                 'Custodie personală pentru materiale și echipamente',
                 'Alerte pentru stoc și documente de recepție',
@@ -214,13 +218,13 @@ class HelpCenterTest extends TestCase
                 'Centru de ajutor și noutăți în aplicație',
                 'Fluxuri complete pentru transferuri și sarcini',
                 'Navigare mai clară în liste',
-                'Recepții, consum și vizibilitate operațională',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Recepții, consum și vizibilitate operațională')
             ->assertSee('Lansarea aplicației GAFCO Gestiune')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)->get(route('release-notes.show', $draft))->assertNotFound();
@@ -233,8 +237,8 @@ class HelpCenterTest extends TestCase
             ->where('slug', 'ghiduri-dupa-rol')
             ->sole();
 
-        $this->assertSame(9, $article->current_revision);
-        $this->assertCount(9, $article->revisions);
+        $this->assertSame(10, $article->current_revision);
+        $this->assertCount(10, $article->revisions);
         $this->assertStringContainsString('Schimbarea utilizatorului', $article->body_markdown);
         $this->assertStringContainsString('Revino la contul meu', $article->body_markdown);
         $this->assertStringContainsString('Corectarea consumurilor', $article->body_markdown);
@@ -254,6 +258,7 @@ class HelpCenterTest extends TestCase
 
     public function test_saved_filters_content_migration_supports_sql_preview_and_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $orderMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $custodyMigration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
         $alertMigration = require database_path('migrations/2026_07_29_000011_publish_operational_alert_content.php');
@@ -262,6 +267,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $operationalMigration->down();
         $orderMigration->down();
         $custodyMigration->down();
         $alertMigration->down();
@@ -291,10 +297,12 @@ class HelpCenterTest extends TestCase
         $alertMigration->up();
         $custodyMigration->up();
         $orderMigration->up();
+        $operationalMigration->up();
     }
 
     public function test_reception_content_migration_preserves_revisions_and_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $orderMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $custodyMigration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
         $alertMigration = require database_path('migrations/2026_07_29_000011_publish_operational_alert_content.php');
@@ -302,6 +310,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000007_publish_reception_workflow_help_and_release_note.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $operationalMigration->down();
         $orderMigration->down();
         $custodyMigration->down();
         $alertMigration->down();
@@ -332,16 +341,19 @@ class HelpCenterTest extends TestCase
         $alertMigration->up();
         $custodyMigration->up();
         $orderMigration->up();
+        $operationalMigration->up();
     }
 
     public function test_transfer_and_consumption_content_migration_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $orderMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $custodyMigration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
         $alertMigration = require database_path('migrations/2026_07_29_000011_publish_operational_alert_content.php');
         $migration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $operationalMigration->down();
         $orderMigration->down();
         $custodyMigration->down();
         $alertMigration->down();
@@ -366,14 +378,17 @@ class HelpCenterTest extends TestCase
         $alertMigration->up();
         $custodyMigration->up();
         $orderMigration->up();
+        $operationalMigration->up();
     }
 
     public function test_personal_custody_content_migration_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $orderMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $migration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $operationalMigration->down();
         $orderMigration->down();
         $migration->down();
 
@@ -399,13 +414,16 @@ class HelpCenterTest extends TestCase
             ReleaseNote::query()->where('slug', '2026-07-29-custodie-personala-si-retururi')->exists(),
         );
         $orderMigration->up();
+        $operationalMigration->up();
     }
 
     public function test_negotiated_orders_content_migration_is_reversible(): void
     {
+        $operationalMigration = require database_path('migrations/2026_07_29_000016_publish_operational_improvements_content.php');
         $migration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $operationalMigration->down();
         $migration->down();
 
         $this->assertSame(7, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
@@ -424,5 +442,6 @@ class HelpCenterTest extends TestCase
         $this->assertTrue(
             ReleaseNote::query()->where('slug', '2026-07-29-comenzi-negociate')->exists(),
         );
+        $operationalMigration->up();
     }
 }
