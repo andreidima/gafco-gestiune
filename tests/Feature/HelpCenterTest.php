@@ -126,6 +126,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Afișare completă a rolurilor și a listelor',
                 'Fișă completă de inventar pentru materiale',
                 'Centru de ajutor și noutăți în aplicație',
                 'Fluxuri complete pentru transferuri și sarcini',

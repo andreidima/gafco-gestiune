@@ -4,17 +4,7 @@
 
 @section('content')
 @php
-    $roleLabels = [
-        'super-admin' => 'Super administrator',
-        'admin' => 'Administrator',
-        'dispecer' => 'Dispecer',
-        'gestionar-baza' => 'Gestionar baza',
-        'sef-santier' => 'Sef santier',
-        'sofer' => 'Sofer',
-        'muncitor' => 'Muncitor',
-        'contabil' => 'Contabil',
-        'user' => 'Utilizator',
-    ];
+    $roleLabels = config('roles.labels', []);
     $hasFilters = request()->filled('search')
         || request()->filled('role')
         || (request()->has('active') && request('active') !== '');
@@ -33,7 +23,7 @@
     <form class="resource-filter-panel">
         <div class="row g-2 align-items-end">
             <div class="col-xl-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Nume, cod, telefon sau email"></div>
-            <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Rol</label><select name="role" class="form-select"><option value="">Toate</option>@foreach($roles as $role)<option value="{{ $role->name }}" @selected(request('role') === $role->name)>{{ $role->name }}</option>@endforeach</select></div>
+            <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Rol</label><select name="role" class="form-select"><option value="">Toate</option>@foreach($roles as $role)<option value="{{ $role->name }}" @selected(request('role') === $role->name)>{{ $roleLabels[$role->name] ?? $role->name }}</option>@endforeach</select></div>
             <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Stare</label><select name="active" class="form-select"><option value="">Oricare</option><option value="1" @selected(request('active') === '1')>Activi</option><option value="0" @selected(request('active') === '0')>Inactivi</option></select></div>
             <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('users.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
         </div>
