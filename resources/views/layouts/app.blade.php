@@ -57,7 +57,7 @@
                                             <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
                                         @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Fișă inventar materiale</a></li>
-                                        @if($navigationManagement)
+                                        @if($navigationManagement && $receptionWorkflowAvailable)
                                             <li>
                                                 <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('reception-intakes.*') ? 'active' : '' }}" href="{{ route('reception-intakes.index') }}">
                                                     <span>Documente de procesat</span>
