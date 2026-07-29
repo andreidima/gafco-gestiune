@@ -98,10 +98,14 @@ class InventoryReportingSecurityTest extends TestCase
         $this->actingAs($manager)->post(route('consumption-reports.store'), $this->consumptionPayload($managed, $inactiveItem))
             ->assertSessionHasErrors('catalog_item_id');
 
-        $this->actingAs($manager)->post(route('supplier-receptions.store'), [
+        $response = $this->actingAs($manager)->post(route('supplier-receptions.store'), [
             ...$this->receptionPayload($managed, $item),
             'quantity' => 7.5,
-        ])->assertRedirect(route('supplier-receptions.index'));
+        ]);
+        $response->assertRedirect(route(
+            'supplier-receptions.show',
+            SupplierReception::query()->sole(),
+        ));
 
         $this->assertDatabaseCount('supplier_receptions', 1);
         $this->assertDatabaseHas('stock_levels', [

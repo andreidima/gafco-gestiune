@@ -37,4 +37,14 @@ class SupplierReception extends Model
     {
         return $this->hasMany(SupplierReceptionLine::class);
     }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ReceptionDocument::class);
+    }
+
+    public function intakes(): HasMany
+    {
+        return $this->hasMany(ReceptionIntake::class);
+    }
 }

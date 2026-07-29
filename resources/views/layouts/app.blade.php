@@ -21,6 +21,7 @@
             $navigationAccounting = $navigationUser->hasRole('contabil');
             $navigationManagement = $navigationUser->isManagementUser();
             $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
+            $receptionWorkflowAvailable = \Illuminate\Support\Facades\Schema::hasTable('reception_intakes');
             $impersonationContext = app(\App\Support\ImpersonationContext::class);
             $isImpersonating = $impersonationContext->isActive();
             $impersonationActor = $impersonationContext->actor();
@@ -46,17 +47,33 @@
                             </li>
                             @if($navigationManagement || $navigationAccounting)
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
-                                        @if($navigationManagement)
+                                        @if($navigationManagement && $receptionWorkflowAvailable)
                                             <li><a class="dropdown-item {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">Locatii</a></li>
                                             <li><a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">Echipamente</a></li>
                                             <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
                                         @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Fișă inventar materiale</a></li>
-                                        <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Receptii</a></li>
+                                        @if($navigationManagement)
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('reception-intakes.*') ? 'active' : '' }}" href="{{ route('reception-intakes.index') }}">
+                                                    <span>Documente de procesat</span>
+                                                    @php
+                                                        $navigationOpenReceptionIntakes = app(\App\Services\ReceptionAccessService::class)
+                                                            ->visibleIntakes($navigationUser)
+                                                            ->where('status', 'created')
+                                                            ->count();
+                                                    @endphp
+                                                    @if($navigationOpenReceptionIntakes)
+                                                        <span class="badge rounded-pill text-bg-warning">{{ $navigationOpenReceptionIntakes }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
+                                        @endif
+                                        <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Recepții</a></li>
                                         <li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>
                                         @if($navigationManagement)<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
                                     </ul>
@@ -94,6 +111,15 @@
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a></li>
                             @elseif($navigationWorker)
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamentele mele</a></li>
+                                @if($receptionWorkflowAvailable)
+                                @can('reception-documents.upload')
+                                    <li class="nav-item me-2">
+                                        <a class="nav-link {{ request()->routeIs('reception-intakes.*') ? 'active' : '' }}" href="{{ route('reception-intakes.create') }}">
+                                            <i class="fa-solid fa-camera me-1"></i>Document recepție
+                                        </a>
+                                    </li>
+                                @endcan
+                                @endif
                             @endif
 
                             @if($navigationDriver || $navigationWorker)

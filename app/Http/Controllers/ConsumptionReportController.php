@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\LocationAccessService;
 use App\Services\StockLedgerService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,6 +60,41 @@ class ConsumptionReportController extends Controller
         return view('consumption-reports.create', [
             'locations' => $locations,
             'items' => CatalogItem::where('tracking_type', 'quantity')->where('active', true)->orderBy('name')->get(),
+            'allocationProposalUrl' => route('consumption-reports.allocation-proposal'),
+        ]);
+    }
+
+    public function allocationProposal(Request $request, StockLedgerService $ledger): JsonResponse
+    {
+        $writeLocationIds = $this->writeLocations($request->user())->pluck('locations.id');
+        $data = $request->validate([
+            'location_id' => ['required', Rule::exists('locations', 'id')->where(fn ($query) => $query
+                ->where('active', true)
+                ->whereIn('id', $writeLocationIds))],
+            'catalog_item_id' => ['required', Rule::exists('catalog_items', 'id')->where(fn ($query) => $query
+                ->where('active', true)
+                ->where('tracking_type', 'quantity'))],
+            'quantity' => ['required', 'numeric', 'min:0.001'],
+        ]);
+
+        $proposal = $ledger->suggestConsumptionAllocations(
+            (int) $data['location_id'],
+            (int) $data['catalog_item_id'],
+            (float) $data['quantity'],
+        );
+
+        return response()->json([
+            'allocations' => $proposal->map(fn (array $allocation) => [
+                'inventory_lot_id' => $allocation['lot']->id,
+                'label' => $allocation['lot']->lot_code
+                    ?: ($allocation['lot']->document_number
+                        ?: ($allocation['lot']->is_opening_balance ? 'Sold inițial' : 'Fără cod lot')),
+                'supplier' => $allocation['lot']->supplier?->name,
+                'received_at' => $allocation['lot']->received_at?->format('d.m.Y'),
+                'expires_at' => $allocation['lot']->expires_at?->format('d.m.Y'),
+                'available' => number_format($allocation['available'], 3, '.', ''),
+                'quantity' => number_format($allocation['quantity'], 3, '.', ''),
+            ])->values(),
         ]);
     }
 
@@ -74,6 +110,9 @@ class ConsumptionReportController extends Controller
                 ->where('tracking_type', 'quantity'))],
             'quantity' => ['required', 'numeric', 'min:0.001'],
             'notes' => ['nullable', 'string'],
+            'allocations' => ['nullable', 'array', 'max:50'],
+            'allocations.*.inventory_lot_id' => ['required', 'integer', 'distinct', 'exists:inventory_lots,id'],
+            'allocations.*.quantity' => ['required', 'numeric', 'min:0'],
         ]);
 
         DB::transaction(function () use ($data, $request, $ledger) {
@@ -95,7 +134,7 @@ class ConsumptionReportController extends Controller
             }
 
             $report = ConsumptionReport::create([
-                'number' => 'CS-'.now()->format('Ymd-His'),
+                'number' => 'CS-'.now()->format('Ymd-His').'-'.str()->upper(str()->random(4)),
                 'location_id' => $location->id,
                 'reported_by' => $request->user()->id,
                 'status' => 'posted',
@@ -109,7 +148,15 @@ class ConsumptionReportController extends Controller
                 'unit' => $item->unit,
                 'notes' => $data['notes'] ?? null,
             ]);
-            $ledger->postConsumption($line->load('consumptionReport'), $location->id, $request->user());
+            $requestedAllocations = array_key_exists('allocations', $data)
+                ? array_values($data['allocations'])
+                : null;
+            $ledger->postConsumption(
+                $line->load('consumptionReport'),
+                $location->id,
+                $request->user(),
+                $requestedAllocations,
+            );
         });
 
         return redirect()->route('consumption-reports.index')->with('status', 'Consumul a fost inregistrat si stocul a fost actualizat.');

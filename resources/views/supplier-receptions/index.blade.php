@@ -15,14 +15,30 @@
 @endphp
 <div class="resource-shell">
     <x-resource-page-header
-        title="Receptii furnizori"
-        description="Intrari de materiale in baze si santiere, cu documentele sursa la vedere."
+        title="Recepții furnizori"
+        description="Intrări de materiale în baze și șantiere, cu documentele sursă la vedere."
         :count="$totalReceptions"
         :filtered-count="$receptions->total()"
         icon="fa-truck-ramp-box"
         :create-route="$canCreate ? route('supplier-receptions.create') : null"
-        create-label="Receptie noua"
-    />
+        create-label="Recepție nouă"
+    >
+        <x-slot:actions>
+            @if($canUploadDocuments)
+                <a href="{{ route('reception-intakes.create') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-camera me-1"></i>Trimite documente
+                </a>
+            @endif
+            @if($canViewIntakes)
+                <a href="{{ route('reception-intakes.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-inbox me-1"></i>De procesat
+                    @if($openIntakeCount)
+                        <span class="badge rounded-pill text-bg-warning ms-1">{{ $openIntakeCount }}</span>
+                    @endif
+                </a>
+            @endif
+        </x-slot:actions>
+    </x-resource-page-header>
 
     <form class="resource-filter-panel">
         <input type="hidden" name="filters_submitted" value="1">
@@ -47,8 +63,8 @@
                 <thead><tr><th>Receptie</th><th>Locatie</th><th>Furnizor / document</th><th>Continut</th><th>Observatii</th><th>Status</th></tr></thead>
                 <tbody>
                 @forelse($receptions as $reception)
-                    <tr>
-                        <td><div class="resource-cell-stack"><span class="resource-primary">{{ $reception->number }}</span><span class="resource-secondary"><i class="fa-regular fa-clock me-1"></i>{{ $reception->received_at?->format('d.m.Y H:i') ?? '-' }}</span>@if($reception->receiver)<span class="resource-secondary"><i class="fa-solid fa-user-check me-1"></i>{{ $reception->receiver->name }}</span>@endif</div></td>
+                    <tr data-href="{{ route('supplier-receptions.show', $reception) }}">
+                        <td><div class="resource-cell-stack"><a href="{{ route('supplier-receptions.show', $reception) }}" class="resource-primary text-decoration-none">{{ $reception->number }}</a><span class="resource-secondary"><i class="fa-regular fa-clock me-1"></i>{{ $reception->received_at?->format('d.m.Y H:i') ?? '-' }}</span>@if($reception->receiver)<span class="resource-secondary"><i class="fa-solid fa-user-check me-1"></i>{{ $reception->receiver->name }}</span>@endif</div></td>
                         <td><div class="resource-cell-stack"><span class="resource-primary">{{ $reception->location?->code ?? '-' }}</span><span class="resource-secondary">{{ $reception->location?->name }}</span></div></td>
                         <td><div class="resource-cell-stack">@if($reception->supplier)<span>{{ $reception->supplier->name }}</span>@endif<span class="resource-secondary">{{ strtoupper($reception->document_type) }}@if($reception->document_number) &middot; {{ $reception->document_number }}@endif</span></div></td>
                         <td>
@@ -57,7 +73,22 @@
                                 @if($reception->lines_count > $reception->lines->count())<span class="resource-secondary fw-semibold">+{{ $reception->lines_count - $reception->lines->count() }} {{ $reception->lines_count - $reception->lines->count() === 1 ? 'alt articol' : 'alte articole' }}</span>@endif
                             </div>
                         </td>
-                        <td>@if($reception->notes)<span class="resource-secondary">{{ Illuminate\Support\Str::limit($reception->notes, 70) }}</span>@else<span class="text-muted">-</span>@endif</td>
+                        <td>
+                            <div class="resource-cell-stack">
+                                @if($reception->notes)
+                                    <span class="resource-secondary">{{ Illuminate\Support\Str::limit($reception->notes, 70) }}</span>
+                                @endif
+                                @if($reception->documents_count)
+                                    <span class="resource-secondary">
+                                        <i class="fa-solid fa-paperclip me-1"></i>{{ $reception->documents_count }}
+                                        {{ $reception->documents_count === 1 ? 'fișier' : 'fișiere' }}
+                                    </span>
+                                @endif
+                                @if(!$reception->notes && !$reception->documents_count)
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </div>
+                        </td>
                         <td><x-status :status="$reception->status" /></td>
                     </tr>
                 @empty
@@ -83,7 +114,7 @@
 
         <div class="resource-mobile-list">
             @forelse($receptions as $reception)
-                <article class="card resource-mobile-card">
+                <article class="card resource-mobile-card" data-href="{{ route('supplier-receptions.show', $reception) }}">
                     <div class="card-body">
                         <div class="resource-mobile-card-header">
                             <div class="min-w-0">
@@ -118,6 +149,15 @@
                                     <span class="resource-secondary">{{ Illuminate\Support\Str::limit($reception->notes, 120) }}</span>
                                 </div>
                             @endif
+                            @if($reception->documents_count)
+                                <div>
+                                    <span class="resource-filter-label">Fișiere</span>
+                                    <strong><i class="fa-solid fa-paperclip me-1"></i>{{ $reception->documents_count }}</strong>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="resource-mobile-card-actions">
+                            <a href="{{ route('supplier-receptions.show', $reception) }}" class="btn btn-outline-primary btn-sm">Deschide</a>
                         </div>
                     </div>
                 </article>

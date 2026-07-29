@@ -35,8 +35,11 @@ class StockLedgerService
                 'source_key' => 'reception-line:'.$line->id,
                 'document_number' => $reception?->document_number,
                 'received_at' => $reception?->received_at ?? now(),
-                'currency' => 'RON',
-                'notes' => $reception?->notes,
+                'lot_code' => $line->lot_code,
+                'expires_at' => $line->expires_at,
+                'unit_price' => $line->unit_price,
+                'currency' => $line->currency ?: 'RON',
+                'notes' => $line->notes ?: $reception?->notes,
             ]);
 
             $group = (string) Str::uuid();
@@ -60,9 +63,16 @@ class StockLedgerService
         });
     }
 
-    public function postConsumption(ConsumptionReportLine $line, int $locationId, ?User $actor): void
-    {
-        DB::transaction(function () use ($line, $locationId, $actor): void {
+    /**
+     * @param  array<int, array{inventory_lot_id:int, quantity:float|int|string}>|null  $requestedAllocations
+     */
+    public function postConsumption(
+        ConsumptionReportLine $line,
+        int $locationId,
+        ?User $actor,
+        ?array $requestedAllocations = null,
+    ): void {
+        DB::transaction(function () use ($line, $locationId, $actor, $requestedAllocations): void {
             if (StockMovement::where('reference_type', 'consumption_report')
                 ->where('reference_line_id', $line->id)
                 ->exists()) {
@@ -70,7 +80,14 @@ class StockLedgerService
             }
 
             $this->reconcileUntrackedStock($locationId, (int) $line->catalog_item_id, $actor);
-            $allocations = $this->allocateLots($locationId, (int) $line->catalog_item_id, (float) $line->quantity);
+            $allocations = $requestedAllocations === null
+                ? $this->allocateLots($locationId, (int) $line->catalog_item_id, (float) $line->quantity)
+                : $this->validateRequestedAllocations(
+                    $locationId,
+                    (int) $line->catalog_item_id,
+                    (float) $line->quantity,
+                    $requestedAllocations,
+                );
             $group = (string) Str::uuid();
 
             foreach ($allocations as $allocation) {
@@ -92,6 +109,56 @@ class StockLedgerService
 
             $this->changeStockLevel($locationId, (int) $line->catalog_item_id, -(float) $line->quantity);
         });
+    }
+
+    /**
+     * @return Collection<int, array{lot: InventoryLot, available: float, quantity: float}>
+     */
+    public function suggestConsumptionAllocations(
+        int $locationId,
+        int $catalogItemId,
+        float $requestedQuantity,
+    ): Collection {
+        $remaining = round($requestedQuantity, 3);
+        if ($remaining <= 0) {
+            throw ValidationException::withMessages(['quantity' => 'Introdu o cantitate mai mare decât zero.']);
+        }
+
+        $allocations = collect();
+        $balances = InventoryLotBalance::query()
+            ->where('location_id', $locationId)
+            ->where('quantity', '>', 0)
+            ->whereHas('lot', fn ($query) => $query->where('catalog_item_id', $catalogItemId))
+            ->with(['lot.supplier'])
+            ->join('inventory_lots', 'inventory_lots.id', '=', 'inventory_lot_balances.inventory_lot_id')
+            ->orderByRaw('CASE WHEN inventory_lots.expires_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('inventory_lots.expires_at')
+            ->orderBy('inventory_lots.received_at')
+            ->orderBy('inventory_lot_balances.id')
+            ->select('inventory_lot_balances.*')
+            ->get();
+
+        foreach ($balances as $balance) {
+            if ($remaining <= 0.0005) {
+                break;
+            }
+
+            $quantity = min($remaining, (float) $balance->quantity);
+            $allocations->push([
+                'lot' => $balance->lot,
+                'available' => (float) $balance->quantity,
+                'quantity' => $quantity,
+            ]);
+            $remaining = round($remaining - $quantity, 3);
+        }
+
+        if ($remaining > 0.0005) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Cantitatea depășește stocul disponibil pe loturi pentru această locație.',
+            ]);
+        }
+
+        return $allocations;
     }
 
     public function postTransfer(TransferLine $line, int $sourceLocationId, int $destinationLocationId, ?User $actor): void
@@ -224,6 +291,62 @@ class StockLedgerService
         }
 
         return $allocations;
+    }
+
+    /**
+     * @param  array<int, array{inventory_lot_id:int, quantity:float|int|string}>  $requestedAllocations
+     * @return Collection<int, array{lot: InventoryLot, quantity: float}>
+     */
+    private function validateRequestedAllocations(
+        int $locationId,
+        int $catalogItemId,
+        float $requestedQuantity,
+        array $requestedAllocations,
+    ): Collection {
+        $normalized = collect($requestedAllocations)
+            ->map(fn (array $allocation) => [
+                'inventory_lot_id' => (int) ($allocation['inventory_lot_id'] ?? 0),
+                'quantity' => round((float) ($allocation['quantity'] ?? 0), 3),
+            ])
+            ->filter(fn (array $allocation) => $allocation['quantity'] > 0.0005)
+            ->values();
+
+        if ($normalized->isEmpty()
+            || $normalized->pluck('inventory_lot_id')->duplicates()->isNotEmpty()
+            || abs($normalized->sum('quantity') - round($requestedQuantity, 3)) > 0.0005) {
+            throw ValidationException::withMessages([
+                'allocations' => 'Cantitățile alocate pe loturi trebuie să fie distincte și să însumeze consumul solicitat.',
+            ]);
+        }
+
+        $balances = InventoryLotBalance::query()
+            ->where('location_id', $locationId)
+            ->whereIn('inventory_lot_id', $normalized->pluck('inventory_lot_id'))
+            ->whereHas('lot', fn ($query) => $query->where('catalog_item_id', $catalogItemId))
+            ->with('lot')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('inventory_lot_id');
+
+        if ($balances->count() !== $normalized->count()) {
+            throw ValidationException::withMessages([
+                'allocations' => 'Unul dintre loturile selectate nu mai este disponibil în locația aleasă.',
+            ]);
+        }
+
+        return $normalized->map(function (array $allocation) use ($balances): array {
+            $balance = $balances->get($allocation['inventory_lot_id']);
+            if (! $balance || $allocation['quantity'] - (float) $balance->quantity > 0.0005) {
+                throw ValidationException::withMessages([
+                    'allocations' => 'Cantitatea aleasă depășește soldul disponibil al unui lot.',
+                ]);
+            }
+
+            return [
+                'lot' => $balance->lot,
+                'quantity' => $allocation['quantity'],
+            ];
+        });
     }
 
     private function changeLotBalance(InventoryLot $lot, int $locationId, float $quantity): void

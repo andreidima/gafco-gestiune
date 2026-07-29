@@ -7,6 +7,7 @@ use App\Models\InventoryLotBalance;
 use App\Models\Location;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Models\SupplierReception;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -23,13 +24,17 @@ class InventoryLedgerTest extends TestCase
         $this->assignLocation($keeper, $location);
         $item = $this->item('MAT-LEDGER', 'Material ledger');
 
-        $this->actingAs($keeper)->post(route('supplier-receptions.store'), [
+        $response = $this->actingAs($keeper)->post(route('supplier-receptions.store'), [
             'location_id' => $location->id,
             'document_type' => 'aviz',
             'document_number' => 'AVZ-LEDGER-1',
             'catalog_item_id' => $item->id,
             'quantity' => 10,
-        ])->assertRedirect(route('supplier-receptions.index'));
+        ]);
+        $response->assertRedirect(route(
+            'supplier-receptions.show',
+            SupplierReception::query()->sole(),
+        ));
 
         $this->assertDatabaseHas('stock_levels', [
             'location_id' => $location->id,

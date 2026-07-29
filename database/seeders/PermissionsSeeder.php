@@ -19,6 +19,8 @@ class PermissionsSeeder extends Seeder
             'inventory.view-commercial',
             'inventory.manage',
             'reception-documents.upload',
+            'reception-details.edit-all',
+            'reception-details.edit-expiration',
             'accounting.edit-operations',
             'users.impersonate',
         ] as $permission) {
@@ -39,6 +41,18 @@ class PermissionsSeeder extends Seeder
 
         foreach (['super-admin', 'admin'] as $role) {
             Role::findByName($role)->givePermissionTo('users.impersonate');
+        }
+
+        foreach (['super-admin', 'admin', 'dispecer', 'gestionar-baza', 'sef-santier', 'muncitor'] as $role) {
+            Role::findByName($role)->givePermissionTo('reception-documents.upload');
+        }
+
+        foreach (['super-admin', 'admin'] as $role) {
+            Role::findByName($role)->givePermissionTo('reception-details.edit-all');
+        }
+
+        foreach (['super-admin', 'admin', 'gestionar-baza'] as $role) {
+            Role::findByName($role)->givePermissionTo('reception-details.edit-expiration');
         }
     }
 }

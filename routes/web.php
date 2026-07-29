@@ -13,6 +13,8 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\QrScanController;
+use App\Http\Controllers\ReceptionDocumentController;
+use App\Http\Controllers\ReceptionIntakeController;
 use App\Http\Controllers\ReleaseNoteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
@@ -107,12 +109,25 @@ Route::middleware([
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
-    Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['index'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::resource('reception-intakes', ReceptionIntakeController::class)->only(['create', 'store'])
+        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|muncitor');
+    Route::resource('reception-intakes', ReceptionIntakeController::class)->only(['index', 'show'])
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|muncitor');
+    Route::post('reception-intakes/{receptionIntake}/cancel', [ReceptionIntakeController::class, 'cancel'])
+        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->name('reception-intakes.cancel');
+    Route::get('reception-documents/{receptionDocument}/download', ReceptionDocumentController::class)
+        ->name('reception-documents.download');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+    Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['index', 'show'])
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['edit', 'update']);
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['index'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::get('consumption-reports/allocation-proposal', [ConsumptionReportController::class, 'allocationProposal'])
+        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->name('consumption-reports.allocation-proposal');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
     Route::resource('custody-transfers', CustodyTransferController::class)->only(['store', 'update']);
