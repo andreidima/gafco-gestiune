@@ -12,6 +12,8 @@ use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -19,6 +21,37 @@ use Tests\TestCase;
 class MaterialOperationWorkflowTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_consumption_lines_remain_readable_before_correction_columns_are_migrated(): void
+    {
+        $administrator = $this->user('admin');
+        $location = $this->location('S-BOOTSTRAP', 'site');
+        $material = $this->material('MAT-BOOTSTRAP');
+        $report = ConsumptionReport::create([
+            'number' => 'CS-BOOTSTRAP',
+            'location_id' => $location->id,
+            'reported_by' => $administrator->id,
+            'status' => 'posted',
+            'reported_at' => now(),
+        ]);
+        DB::table('consumption_report_lines')->insert([
+            'consumption_report_id' => $report->id,
+            'catalog_item_id' => $material->id,
+            'quantity' => 1,
+            'unit' => 'buc',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Schema::table('consumption_report_lines', function ($table): void {
+            $table->dropIndex(['superseded_at']);
+        });
+        Schema::table('consumption_report_lines', function ($table): void {
+            $table->dropColumn(['revision', 'superseded_at']);
+        });
+
+        $this->assertCount(1, ConsumptionReport::with('lines')->findOrFail($report->id)->lines);
+    }
 
     public function test_transfer_source_options_and_validation_exclude_reserved_stock_and_assets(): void
     {

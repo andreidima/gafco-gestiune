@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 #[Fillable([
     'number',
@@ -50,7 +51,13 @@ class ConsumptionReport extends Model
 
     public function lines(): HasMany
     {
-        return $this->hasMany(ConsumptionReportLine::class)->whereNull('superseded_at');
+        $relation = $this->hasMany(ConsumptionReportLine::class);
+
+        if (Schema::hasColumn('consumption_report_lines', 'superseded_at')) {
+            $relation->whereNull('superseded_at');
+        }
+
+        return $relation;
     }
 
     public function allLines(): HasMany
