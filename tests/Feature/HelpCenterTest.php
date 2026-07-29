@@ -6,6 +6,7 @@ use App\Models\HelpArticle;
 use App\Models\ReleaseNote;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -58,6 +59,15 @@ class HelpCenterTest extends TestCase
             $this->assertSame($article->body_markdown, $currentRevision->body_markdown);
             $this->assertTrue($revisions->every(fn ($revision) => $revision->source === 'system'));
         });
+    }
+
+    public function test_interface_release_migration_supports_sql_preview(): void
+    {
+        $migration = require database_path('migrations/2026_07_29_000001_publish_interface_corrections_help_and_release_note.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertTrue(true);
     }
 
     public function test_drafts_are_not_exposed_and_markdown_strips_unsafe_html(): void

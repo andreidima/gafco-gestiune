@@ -11,6 +11,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::connection()->pretending()) {
+            return;
+        }
+
         DB::transaction(function (): void {
             $this->reviseArticle();
 
@@ -43,6 +47,10 @@ MARKDOWN,
 
     public function down(): void
     {
+        if (DB::connection()->pretending()) {
+            return;
+        }
+
         DB::transaction(function (): void {
             DB::table('release_notes')->where('slug', self::RELEASE_SLUG)->delete();
 
