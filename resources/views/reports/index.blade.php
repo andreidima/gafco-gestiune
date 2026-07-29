@@ -11,11 +11,12 @@
     </div>
 
     <div class="card mb-4"><div class="card-body"><form class="row g-2 align-items-end">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="col-lg-4"><label class="form-label small">Locatie</label><select name="location_id" class="form-select"><option value="">Toate locatiile</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)request('location_id')===(string)$location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
         <div class="col-lg-2"><label class="form-label small">Status transfer</label><select name="status" class="form-select"><option value="">Toate</option>@foreach(['pending_approval','approved','in_transit','received','cancelled'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ str_replace('_',' ',$status) }}</option>@endforeach</select></div>
         <div class="col-lg-2"><label class="form-label small">De la</label><input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control"></div>
         <div class="col-lg-2"><label class="form-label small">Pana la</label><input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control"></div>
-        <div class="col-lg-1"><button class="btn btn-outline-primary w-100"><i class="fa-solid fa-filter"></i></button></div><div class="col-lg-1"><a href="{{ route('reports.index') }}" class="btn btn-outline-secondary w-100"><i class="fa-solid fa-rotate-right"></i></a></div>
+        <div class="col-lg-1"><button class="btn btn-outline-primary w-100"><i class="fa-solid fa-filter"></i></button></div><div class="col-lg-1"><a href="{{ route('reports.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary w-100"><i class="fa-solid fa-rotate-right"></i></a></div>
     </form></div></div>
 
     <div class="row g-3">

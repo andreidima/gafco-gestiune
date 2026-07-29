@@ -18,17 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         let searchTimer;
 
-        const preferencePayload = (overrides = {}) => ({
-            filters: overrides.filters ?? {
-                search: search?.value ?? '',
-                location_id: inventoryForm.querySelector('[name="location_id"]')?.value || null,
-                hide_zero: inventoryForm.querySelector('[name="hide_zero"][type="checkbox"]')?.checked ?? false,
-            },
+        const preferencePayload = () => ({
             columns: Array.from(inventoryForm.querySelectorAll('[data-inventory-column]:checked')).map((input) => input.value),
             density: inventoryForm.querySelector('[data-inventory-density]')?.value ?? 'compact',
         });
 
-        const savePreferences = async (overrides = {}) => {
+        const savePreferences = async () => {
             if (!preferenceUrl || !csrfToken) {
                 return;
             }
@@ -42,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                body: JSON.stringify(preferencePayload(overrides)),
+                body: JSON.stringify(preferencePayload()),
             });
             if (!response.ok) {
                 throw new Error('Preferințele nu au putut fi salvate.');
@@ -60,11 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         inventoryForm.querySelectorAll('[data-inventory-change]').forEach((element) => {
-            element.addEventListener('change', saveAndSubmit);
+            element.addEventListener('change', () => inventoryForm.requestSubmit());
         });
         search?.addEventListener('input', () => {
             window.clearTimeout(searchTimer);
-            searchTimer = window.setTimeout(saveAndSubmit, 350);
+            searchTimer = window.setTimeout(() => inventoryForm.requestSubmit(), 350);
         });
         inventoryForm.querySelectorAll('[data-inventory-column], [data-inventory-density]').forEach((element) => {
             element.addEventListener('change', async () => {
@@ -75,18 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 await saveAndSubmit();
             });
-        });
-        inventoryForm.querySelector('[data-inventory-reset]')?.addEventListener('click', async (event) => {
-            event.preventDefault();
-            const resetUrl = event.currentTarget.href;
-            try {
-                await savePreferences({
-                    filters: { search: '', location_id: null, hide_zero: false },
-                });
-            } catch (error) {
-                status.textContent = error.message;
-            }
-            window.location.assign(resetUrl);
         });
     }
 

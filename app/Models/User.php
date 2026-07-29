@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -56,6 +57,14 @@ class User extends Authenticatable
     public function preferences(): HasMany
     {
         return $this->hasMany(UserPreference::class);
+    }
+
+    public function isProtectedAdministrator(): bool
+    {
+        $protectedEmail = Str::lower(trim((string) config('roles.protected_admin_email')));
+
+        return $protectedEmail !== ''
+            && Str::lower(trim((string) $this->email)) === $protectedEmail;
     }
 
     public function isOperationsAdmin(): bool

@@ -29,6 +29,7 @@ use App\Http\Controllers\UserPreferenceController;
 use App\Http\Middleware\AuditImpersonatedRequest;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RejectImpersonatedRequest;
+use App\Http\Middleware\RememberFilterPreferences;
 use App\Http\Middleware\ValidateImpersonation;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +53,7 @@ Route::middleware([
     ValidateImpersonation::class,
     EnsureUserIsActive::class,
     AuditImpersonatedRequest::class,
+    RememberFilterPreferences::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/ajutor', [HelpCenterController::class, 'index'])->name('help.index');

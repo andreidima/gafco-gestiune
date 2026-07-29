@@ -25,6 +25,7 @@
     />
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Numar receptie sau document"></div>
             <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
@@ -35,7 +36,7 @@
             <div class="col-xl-1 col-md-4"><label class="resource-filter-label">Pana la</label><input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control"></div>
             <div class="col-12 d-flex justify-content-end gap-2">
                 <button class="btn btn-primary"><i class="fa-solid fa-filter me-1"></i>Aplica filtrele</button>
-                <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
+                <a href="{{ route('supplier-receptions.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
     </form>
@@ -65,7 +66,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Nicio receptie nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('supplier-receptions.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -124,7 +125,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Nicio receptie nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('supplier-receptions.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nu exista inca receptii de la furnizori.</p>
                         @if($canCreate)<a href="{{ route('supplier-receptions.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Inregistreaza prima receptie</a>@endif

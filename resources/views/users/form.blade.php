@@ -25,7 +25,7 @@
             <div class="resource-form-section-title">Contact si acces</div>
             <div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Telefon / WhatsApp</label><input name="phone" value="{{ old('phone', $user?->phone) }}" class="form-control" placeholder="07... sau 407..."></div>
-                <div class="col-md-4"><label class="form-label">Email optional</label><input name="email" type="email" value="{{ old('email', $user?->email && !str_ends_with($user->email, '@login.invalid') ? $user->email : '') }}" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Email optional</label><input name="email" type="email" value="{{ old('email', $user?->email && !str_ends_with($user->email, '@login.invalid') ? $user->email : '') }}" class="form-control" @readonly($user?->isProtectedAdministrator())></div>
                 <div class="col-md-4"><label class="form-label">Roluri</label><select name="roles[]" class="form-select" multiple data-tom-select>@foreach($roles as $role)<option value="{{ $role->name }}" @selected(in_array($role->name, old('roles', $user?->roles?->pluck('name')->all() ?? [])))>{{ config("roles.labels.{$role->name}", $role->name) }}</option>@endforeach</select></div>
                 <div class="col-12"><div class="form-check"><input type="hidden" name="active" value="0"><input name="active" value="1" class="form-check-input" type="checkbox" id="user-active" @checked(old('active', $user?->active ?? true))><label class="form-check-label" for="user-active">Cont activ</label></div></div>
             </div>

@@ -116,23 +116,29 @@ class InventoryLedgerTest extends TestCase
             ->assertSee('Material fără stoc');
 
         $this->actingAs($manager)->putJson(route('preferences.inventory.update'), [
-            'filters' => [
-                'search' => 'fără stoc',
-                'location_id' => $location->id,
-                'hide_zero' => true,
-            ],
             'columns' => ['locations', 'lots'],
             'density' => 'comfortable',
         ])->assertOk()->assertJson(['saved' => true]);
+
+        $this->actingAs($manager)->get(route('inventory.index', [
+            'filters_submitted' => 1,
+            'search' => 'fără stoc',
+            'location_id' => $location->id,
+            'hide_zero' => 1,
+        ]))->assertOk();
 
         $this->assertDatabaseHas('user_preferences', [
             'user_id' => $manager->id,
             'key' => 'inventory.index',
         ]);
+        $this->assertDatabaseHas('user_preferences', [
+            'user_id' => $manager->id,
+            'key' => 'filters.inventory.index',
+        ]);
 
         $this->actingAs($manager)->get(route('inventory.index'))
             ->assertOk()
-            ->assertViewHas('filters', fn (array $filters) => $filters['search'] === 'fără stoc'
+            ->assertViewHas('filters', fn (array $filters) => $filters['search'] === ''
                 && $filters['location_id'] === $location->id
                 && $filters['hide_zero'] === true)
             ->assertViewHas('density', 'comfortable')

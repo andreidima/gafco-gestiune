@@ -93,13 +93,13 @@
                 <button class="btn btn-primary" type="submit" title="Reîncarcă rezultatele">
                     <i class="fa-solid fa-rotate"></i>
                 </button>
-                <a href="{{ route('inventory.index', ['filters_submitted' => 1]) }}" class="btn btn-outline-secondary" title="Resetează filtrele" data-inventory-reset>
+                <a href="{{ route('inventory.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Resetează filtrele">
                     <i class="fa-solid fa-filter-circle-xmark"></i>
                 </a>
             </div>
         </div>
         <div class="inventory-filter-status mt-2" data-inventory-save-status aria-live="polite">
-            Filtrele și coloanele sunt salvate automat în contul tău.
+            Selecțiile din filtre și coloanele sunt salvate în contul tău. Căutarea scrisă nu este memorată.
         </div>
     </form>
 

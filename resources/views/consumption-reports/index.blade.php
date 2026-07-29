@@ -23,13 +23,14 @@
     />
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Numar raport"></div>
             <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
             <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Material</label><select name="catalog_item_id" class="form-select" data-tom-select><option value="">Toate</option>@foreach($items as $item)<option value="{{ $item->id }}" @selected((string) request('catalog_item_id') === (string) $item->id)>{{ $item->name }}</option>@endforeach</select></div>
             <div class="col-xl-1 col-md-3"><label class="resource-filter-label">De la</label><input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control"></div>
             <div class="col-xl-1 col-md-3"><label class="resource-filter-label">Pana la</label><input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control"></div>
-            <div class="col-xl-1 col-md-12 d-flex gap-2"><button class="btn btn-primary flex-fill" title="Aplica filtrele"><i class="fa-solid fa-filter"></i></button><a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+            <div class="col-xl-1 col-md-12 d-flex gap-2"><button class="btn btn-primary flex-fill" title="Aplica filtrele"><i class="fa-solid fa-filter"></i></button><a href="{{ route('consumption-reports.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
         </div>
     </form>
 
@@ -58,7 +59,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Niciun consum nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('consumption-reports.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -115,7 +116,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Niciun consum nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('consumption-reports.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('consumption-reports.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nu exista inca rapoarte de consum.</p>
                         @if($canCreate)<a href="{{ route('consumption-reports.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Raporteaza primul consum</a>@endif

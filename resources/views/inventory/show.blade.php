@@ -30,6 +30,7 @@
     </div>
 
     <form class="resource-filter-panel" method="get">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-md-6">
                 <label class="resource-filter-label">Locație</label>
@@ -41,7 +42,7 @@
                 </select>
             </div>
             <div class="col-md-6 text-md-end">
-                <a href="{{ route('inventory.show', $item) }}" class="btn btn-outline-secondary">Resetează filtrul</a>
+                <a href="{{ route('inventory.show', ['catalogItem' => $item, 'filters_reset' => 1]) }}" class="btn btn-outline-secondary">Resetează filtrul</a>
             </div>
         </div>
     </form>

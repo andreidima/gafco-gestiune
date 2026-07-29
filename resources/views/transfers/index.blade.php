@@ -83,6 +83,7 @@
     />
 
     <form class="resource-filter-panel" method="get" action="{{ route('transfers.index') }}">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">
                 <label for="transfer-search" class="resource-filter-label">Cautare</label>
@@ -109,7 +110,7 @@
                     <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Sofer</label><select name="driver_id" class="form-select" data-tom-select><option value="">Toti</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string) request('driver_id') === (string) $driver->id)>{{ $driver->name }}</option>@endforeach</select></div>
                 @endunless
                 <div class="col-xl-2 col-md-6"><label class="resource-filter-label">Aprobari</label><select name="approval_status" class="form-select"><option value="">Toate</option>@foreach($approvalStatusLabels as $status => $label)<option value="{{ $status }}" @selected(request('approval_status') === $status)>{{ $label }}</option>@endforeach</select></div>
-                <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="fa-solid fa-filter me-1"></i>Aplica</button><a href="{{ route('transfers.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+                <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="fa-solid fa-filter me-1"></i>Aplica</button><a href="{{ route('transfers.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
                 <div class="col-xl-10 col-12 d-flex flex-wrap align-items-center gap-3 pb-1">
                     <div class="form-check"><input name="overdue" value="1" type="checkbox" class="form-check-input" id="transfer-overdue" @checked(request()->boolean('overdue'))><label for="transfer-overdue" class="form-check-label small">Doar intarziate</label></div>
                     <div class="form-check"><input name="archived" value="1" type="checkbox" class="form-check-input" id="transfer-archived" @checked(request()->boolean('archived'))><label for="transfer-archived" class="form-check-label small">Include arhivate</label></div>
@@ -120,21 +121,21 @@
 
     <nav class="resource-filter-presets" aria-label="Vizualizari rapide transferuri">
         <span class="results-meta">Vizualizari rapide</span>
-        <a class="resource-filter-preset {{ request('status') === 'pending_approval' ? 'active' : '' }}" href="{{ route('transfers.index', ['status' => 'pending_approval']) }}"><i class="fa-solid fa-user-check"></i>Asteapta aprobari</a>
-        <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('transfers.index', ['overdue' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
-        <a class="resource-filter-preset {{ request('status') === 'in_transit' ? 'active' : '' }}" href="{{ route('transfers.index', ['status' => 'in_transit']) }}"><i class="fa-solid fa-truck-fast"></i>In tranzit</a>
-        <a class="resource-filter-preset {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}"><i class="fa-solid fa-rotate-left"></i>Retururi</a>
+        <a class="resource-filter-preset {{ request('status') === 'pending_approval' ? 'active' : '' }}" href="{{ route('transfers.index', ['status' => 'pending_approval', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-user-check"></i>Asteapta aprobari</a>
+        <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('transfers.index', ['overdue' => 1, 'filters_submitted' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
+        <a class="resource-filter-preset {{ request('status') === 'in_transit' ? 'active' : '' }}" href="{{ route('transfers.index', ['status' => 'in_transit', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-truck-fast"></i>In tranzit</a>
+        <a class="resource-filter-preset {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-rotate-left"></i>Retururi</a>
     </nav>
 
     @if($activeTransferFilters)
         <div class="resource-filter-chips mb-2 px-1" aria-label="Filtre active">
             <span class="results-meta">Filtre active:</span>
             @foreach($activeTransferFilters as $filterKey => $filterLabel)
-                <a class="filter-chip" href="{{ route('transfers.index', request()->except([$filterKey, 'page'])) }}" title="Elimina filtrul {{ $filterLabel }}">
+                <a class="filter-chip" href="{{ route('transfers.index', array_merge(request()->except([$filterKey, 'page']), ['filters_submitted' => 1])) }}" title="Elimina filtrul {{ $filterLabel }}">
                     {{ $filterLabel }} <i class="fa-solid fa-xmark ms-1" aria-hidden="true"></i>
                 </a>
             @endforeach
-            <a class="filter-chip filter-chip-clear" href="{{ route('transfers.index') }}">Sterge toate</a>
+            <a class="filter-chip filter-chip-clear" href="{{ route('transfers.index', ['filters_reset' => 1]) }}">Sterge toate</a>
         </div>
     @endif
 

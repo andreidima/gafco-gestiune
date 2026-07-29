@@ -23,11 +23,12 @@
     />
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Nume, cod, telefon sau email"></div>
             <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Rol</label><select name="role" class="form-select"><option value="">Toate</option>@foreach($roles as $role)<option value="{{ $role->name }}" @selected(request('role') === $role->name)>{{ $roleLabels[$role->name] ?? $role->name }}</option>@endforeach</select></div>
             <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Stare</label><select name="active" class="form-select"><option value="">Oricare</option><option value="1" @selected(request('active') === '1')>Activi</option><option value="0" @selected(request('active') === '0')>Inactivi</option></select></div>
-            <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('users.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+            <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('users.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
         </div>
     </form>
 
@@ -39,6 +40,7 @@
                 @forelse($users as $user)
                     @php
                         $userRoleNames = $user->roles->pluck('name');
+                        $visibleRoles = $user->roles->where('name', '!=', 'super-admin');
                         $requiresManagedLocation = $userRoleNames->intersect(['sef-santier', 'gestionar-baza'])->isNotEmpty();
                         $requiresPhone = $userRoleNames->intersect(['sofer', 'sef-santier', 'gestionar-baza', 'dispecer'])->isNotEmpty();
                     @endphp
@@ -50,7 +52,7 @@
                                 @if($user->email && !str_ends_with($user->email, '@login.invalid'))<span class="resource-secondary"><i class="fa-regular fa-envelope me-1"></i>{{ $user->email }}</span>@endif
                             </div>
                         </td>
-                        <td>@forelse($user->roles as $role)<span class="badge text-bg-light border me-1 mb-1">{{ $roleLabels[$role->name] ?? $role->name }}</span>@empty<span class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara rol</span>@endforelse</td>
+                        <td>@forelse($visibleRoles as $role)<span class="badge text-bg-light border me-1 mb-1">{{ $roleLabels[$role->name] ?? $role->name }}</span>@empty<span class="{{ $user->isProtectedAdministrator() ? 'text-muted' : 'text-warning' }}">@unless($user->isProtectedAdministrator())<i class="fa-solid fa-triangle-exclamation me-1"></i>@endunless{{ $user->isProtectedAdministrator() ? '-' : 'Fara rol' }}</span>@endforelse</td>
                         <td>
                             <div class="resource-cell-stack">
                                 @forelse($user->activeManagedLocations->take(2) as $location)<span>{{ $location->code }} - {{ $location->name }}</span>@empty<span class="{{ $requiresManagedLocation ? 'text-warning' : 'resource-secondary' }}">{{ $requiresManagedLocation ? 'Lipseste locatia gestionata' : '-' }}</span>@endforelse
@@ -82,7 +84,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Niciun utilizator nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('users.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -101,9 +103,10 @@
             @forelse($users as $user)
                 @php
                     $userRoleNames = $user->roles->pluck('name');
+                    $visibleRoles = $user->roles->where('name', '!=', 'super-admin');
                     $requiresManagedLocation = $userRoleNames->intersect(['sef-santier', 'gestionar-baza'])->isNotEmpty();
                     $requiresPhone = $userRoleNames->intersect(['sofer', 'sef-santier', 'gestionar-baza', 'dispecer'])->isNotEmpty();
-                    $hasMissingProfileData = $userRoleNames->isEmpty()
+                    $hasMissingProfileData = ($visibleRoles->isEmpty() && ! $user->isProtectedAdministrator())
                         || ($requiresManagedLocation && $user->activeManagedLocations->isEmpty())
                         || ($requiresPhone && ! $user->phone);
                 @endphp
@@ -125,7 +128,7 @@
                             </div>
                             <div>
                                 <span class="resource-filter-label">Roluri</span>
-                                @forelse($user->roles as $role)<span class="badge text-bg-light border me-1 mb-1">{{ $roleLabels[$role->name] ?? $role->name }}</span>@empty<span class="text-warning fw-semibold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Fara rol</span>@endforelse
+                                @forelse($visibleRoles as $role)<span class="badge text-bg-light border me-1 mb-1">{{ $roleLabels[$role->name] ?? $role->name }}</span>@empty<span class="{{ $user->isProtectedAdministrator() ? 'text-muted' : 'text-warning fw-semibold' }}">@unless($user->isProtectedAdministrator())<i class="fa-solid fa-triangle-exclamation me-1"></i>@endunless{{ $user->isProtectedAdministrator() ? '-' : 'Fara rol' }}</span>@endforelse
                             </div>
                             <div class="resource-mobile-card-wide">
                                 <span class="resource-filter-label">Locatii gestionate</span>
@@ -151,7 +154,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Niciun utilizator nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('users.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nu exista inca utilizatori.</p>
                         <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus me-1"></i>Adauga primul utilizator</a>

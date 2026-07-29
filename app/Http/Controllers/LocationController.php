@@ -8,6 +8,7 @@ use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -121,6 +122,10 @@ class LocationController extends Controller
 
     private function validatedData(Request $request, ?Location $location = null): array
     {
+        $request->merge([
+            'code' => Str::upper(trim((string) $request->input('code'))),
+        ]);
+
         return $request->validate([
             'type' => ['required', 'in:base,site'],
             'code' => ['required', 'string', 'max:40', Rule::unique('locations', 'code')->ignore($location)],

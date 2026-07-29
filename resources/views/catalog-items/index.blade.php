@@ -28,6 +28,7 @@
     </x-resource-page-header>
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-5">
                 <label class="resource-filter-label">Cautare</label>
@@ -57,7 +58,7 @@
             </div>
             <div class="col-xl-2 d-flex gap-2">
                 <button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button>
-                <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
+                <a href="{{ route('catalog-items.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
     </form>
@@ -122,7 +123,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Niciun articol nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('catalog-items.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -189,7 +190,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Niciun articol nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('catalog-items.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('catalog-items.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nomenclatorul este gol.</p>
                         @if(auth()->user()->canManageInventoryMasterData())<a href="{{ route('catalog-items.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul articol</a>@endif

@@ -17,7 +17,10 @@ class UserInterfaceTest extends TestCase
             Role::findOrCreate($roleName);
         }
 
-        $admin = User::factory()->create(['login_code' => 'ADMIN-ROLURI']);
+        $admin = User::factory()->create([
+            'login_code' => 'ADMIN-ROLURI',
+            'email' => config('roles.protected_admin_email'),
+        ]);
         $admin->assignRole('super-admin');
 
         $this->actingAs($admin)
@@ -26,7 +29,8 @@ class UserInterfaceTest extends TestCase
             ->assertSee('Gestionar de bază')
             ->assertSee('Șef de șantier')
             ->assertSee('Șofer')
-            ->assertSee('Utilizator');
+            ->assertSee('Utilizator')
+            ->assertDontSee('Super administrator');
 
         $this->actingAs($admin)
             ->get(route('users.index'))
@@ -34,14 +38,18 @@ class UserInterfaceTest extends TestCase
             ->assertSee('Gestionar de bază')
             ->assertSee('Șef de șantier')
             ->assertSee('Șofer')
-            ->assertSee('Utilizator');
+            ->assertSee('Utilizator')
+            ->assertDontSee('Super administrator');
     }
 
     public function test_paginated_result_summary_is_displayed_in_romanian(): void
     {
         Role::findOrCreate('super-admin');
 
-        $admin = User::factory()->create(['login_code' => 'ADMIN-PAGINARE']);
+        $admin = User::factory()->create([
+            'login_code' => 'ADMIN-PAGINARE',
+            'email' => config('roles.protected_admin_email'),
+        ]);
         $admin->assignRole('super-admin');
         User::factory()->count(20)->create();
 

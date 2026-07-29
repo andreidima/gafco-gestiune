@@ -89,10 +89,11 @@
 
     <section id="active-transfers" aria-labelledby="active-transfers-heading">
         <form class="resource-filter-panel">
+            <input type="hidden" name="filters_submitted" value="1">
             <div class="row g-2 align-items-end">
                 <div class="col-md-6 col-xl-4"><label class="resource-filter-label" for="transfer-search">Cautare</label><input id="transfer-search" name="transfer_search" value="{{ request('transfer_search') }}" class="form-control" placeholder="Transfer sau aviz"></div>
                 <div class="col-md-4 col-xl-3"><label class="resource-filter-label" for="transfer-status">Status</label><select id="transfer-status" name="transfer_status" class="form-select"><option value="">Toate starile active</option><option value="pending_approval" @selected(request('transfer_status') === 'pending_approval')>Asteapta aprobari</option><option value="approved" @selected(request('transfer_status') === 'approved')>Aprobat</option><option value="in_transit" @selected(request('transfer_status') === 'in_transit')>In tranzit</option></select></div>
-                <div class="col-md-2 col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-filter me-1"></i>Filtreaza</button><a href="{{ route('field.site-manager') }}#active-transfers" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+                <div class="col-md-2 col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-filter me-1"></i>Filtreaza</button><a href="{{ route('field.site-manager', ['filters_reset' => 1]) }}#active-transfers" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
             </div>
         </form>
 

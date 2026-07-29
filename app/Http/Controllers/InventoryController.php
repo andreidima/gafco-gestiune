@@ -23,11 +23,10 @@ class InventoryController extends Controller
         $preference = UserPreference::where('user_id', $user->id)
             ->where('key', 'inventory.index')
             ->first()?->value ?? [];
-        $usingRequestFilters = $request->boolean('filters_submitted');
         $filters = [
-            'search' => $usingRequestFilters ? trim((string) $request->input('search')) : (string) data_get($preference, 'filters.search', ''),
-            'location_id' => $usingRequestFilters ? $request->integer('location_id') : (int) data_get($preference, 'filters.location_id', 0),
-            'hide_zero' => $usingRequestFilters ? $request->boolean('hide_zero') : (bool) data_get($preference, 'filters.hide_zero', false),
+            'search' => trim((string) $request->input('search')),
+            'location_id' => $request->integer('location_id'),
+            'hide_zero' => $request->boolean('hide_zero'),
         ];
         $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
         $locations = $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get();

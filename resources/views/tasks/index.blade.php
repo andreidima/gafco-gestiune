@@ -79,6 +79,7 @@
     @endcan
 
     <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">
                 <label for="task-search" class="resource-filter-label">Cautare</label>
@@ -103,7 +104,7 @@
                     <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Sofer</label><select name="driver_id" class="form-select" data-tom-select><option value="">Toti</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string) request('driver_id') === (string) $driver->id)>{{ $driver->name }}</option>@endforeach</select></div>
                 @endunless
                 <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
-                <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="fa-solid fa-filter me-1"></i>Aplica</button><a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+                <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="fa-solid fa-filter me-1"></i>Aplica</button><a href="{{ route('tasks.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
                 <div class="col-12 d-flex flex-wrap gap-3 pt-1">
                     <div class="form-check"><input type="checkbox" name="overdue" value="1" class="form-check-input" id="task-overdue" @checked(request()->boolean('overdue'))><label for="task-overdue" class="form-check-label small">Doar intarziate</label></div>
                     <div class="form-check"><input type="checkbox" name="archived" value="1" class="form-check-input" id="task-archived" @checked(request()->boolean('archived'))><label for="task-archived" class="form-check-label small">Include arhivate</label></div>
@@ -115,23 +116,23 @@
     <nav class="resource-filter-presets" aria-label="Vizualizari rapide sarcini">
         <span class="results-meta">Vizualizari rapide</span>
         @if($isDriver)
-            <a class="resource-filter-preset {{ request('status') === 'pending_acceptance' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'pending_acceptance']) }}"><i class="fa-solid fa-hand-pointer"></i>Necesita raspuns</a>
+            <a class="resource-filter-preset {{ request('status') === 'pending_acceptance' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'pending_acceptance', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-hand-pointer"></i>Necesita raspuns</a>
         @else
-            <a class="resource-filter-preset {{ request('status') === 'unassigned' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'unassigned']) }}"><i class="fa-solid fa-inbox"></i>Necesita alocare</a>
+            <a class="resource-filter-preset {{ request('status') === 'unassigned' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'unassigned', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-inbox"></i>Necesita alocare</a>
         @endif
-        <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['overdue' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
-        <a class="resource-filter-preset {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress']) }}"><i class="fa-solid fa-truck-fast"></i>In lucru</a>
+        <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['overdue' => 1, 'filters_submitted' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
+        <a class="resource-filter-preset {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-truck-fast"></i>In lucru</a>
     </nav>
 
     @if($activeTaskFilters)
         <div class="resource-filter-chips mb-2 px-1" aria-label="Filtre active">
             <span class="results-meta">Filtre active:</span>
             @foreach($activeTaskFilters as $filterKey => $filterLabel)
-                <a class="filter-chip" href="{{ route('tasks.index', request()->except([$filterKey, 'page'])) }}" title="Elimina filtrul {{ $filterLabel }}">
+                <a class="filter-chip" href="{{ route('tasks.index', array_merge(request()->except([$filterKey, 'page']), ['filters_submitted' => 1])) }}" title="Elimina filtrul {{ $filterLabel }}">
                     {{ $filterLabel }} <i class="fa-solid fa-xmark ms-1" aria-hidden="true"></i>
                 </a>
             @endforeach
-            <a class="filter-chip filter-chip-clear" href="{{ route('tasks.index') }}">Sterge toate</a>
+            <a class="filter-chip filter-chip-clear" href="{{ route('tasks.index', ['filters_reset' => 1]) }}">Sterge toate</a>
         </div>
     @endif
 

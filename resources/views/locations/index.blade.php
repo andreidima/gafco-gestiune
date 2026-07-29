@@ -20,6 +20,7 @@
     />
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-6">
                 <label class="resource-filter-label">Cautare</label>
@@ -35,7 +36,7 @@
             </div>
             <div class="col-xl-2 d-flex gap-2">
                 <button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button>
-                <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
+                <a href="{{ route('locations.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
     </form>
@@ -83,7 +84,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Nicio locatie nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('locations.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -142,7 +143,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Nicio locatie nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('locations.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('locations.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nu exista inca nicio locatie.</p>
                         @if(auth()->user()->canManageLocations())<a href="{{ route('locations.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga prima locatie</a>@endif

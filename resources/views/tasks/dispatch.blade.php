@@ -107,6 +107,7 @@
 
     <section id="unassigned-tasks" aria-labelledby="unassigned-heading">
         <form class="resource-filter-panel">
+            <input type="hidden" name="filters_submitted" value="1">
             <div class="row g-2 align-items-end">
                 <div class="col-md-7 col-xl-5">
                     <label class="resource-filter-label" for="dispatch-search">Cautare sarcina</label>
@@ -120,7 +121,7 @@
                 </div>
                 <div class="col-md-2 col-xl-2 d-flex gap-2">
                     <button class="btn btn-primary flex-fill"><i class="fa-solid fa-filter me-1"></i>Filtreaza</button>
-                    <a href="{{ route('tasks.dispatch') }}#unassigned-tasks" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
+                    <a href="{{ route('tasks.dispatch', ['filters_reset' => 1]) }}#unassigned-tasks" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a>
                 </div>
             </div>
         </form>

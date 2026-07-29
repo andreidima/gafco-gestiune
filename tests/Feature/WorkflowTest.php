@@ -275,7 +275,10 @@ class WorkflowTest extends TestCase
         foreach (['super-admin', 'sef-santier', 'sofer'] as $role) {
             Role::findOrCreate($role);
         }
-        $admin = User::factory()->create(['login_code' => 'ADMIN-UI']);
+        $admin = User::factory()->create([
+            'login_code' => 'ADMIN-UI',
+            'email' => config('roles.protected_admin_email'),
+        ]);
         $admin->assignRole('super-admin');
         $location = Location::create(['code' => 'UI-BASE', 'name' => 'Baza UI', 'type' => 'base', 'active' => true]);
         $item = CatalogItem::create([
@@ -312,7 +315,10 @@ class WorkflowTest extends TestCase
         foreach (['super-admin', 'sef-santier'] as $role) {
             Role::findOrCreate($role);
         }
-        $admin = User::factory()->create(['login_code' => 'ADMIN-CRUD']);
+        $admin = User::factory()->create([
+            'login_code' => 'ADMIN-CRUD',
+            'email' => config('roles.protected_admin_email'),
+        ]);
         $admin->assignRole('super-admin');
         $manager = User::factory()->create(['login_code' => 'MANAGER-CRUD']);
         $manager->assignRole('sef-santier');

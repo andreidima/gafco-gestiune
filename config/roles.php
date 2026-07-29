@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'protected_admin_email' => env('PROTECTED_ADMIN_EMAIL', 'andrei.dima@usm.ro'),
+
     'labels' => [
         'super-admin' => 'Super administrator',
         'admin' => 'Administrator',

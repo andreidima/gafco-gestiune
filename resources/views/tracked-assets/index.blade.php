@@ -27,13 +27,14 @@
     />
 
     <form class="resource-filter-panel">
+        <input type="hidden" name="filters_submitted" value="1">
         @if(request()->filled('catalog_item_id'))<input type="hidden" name="catalog_item_id" value="{{ request('catalog_item_id') }}">@endif
         <div class="row g-2 align-items-end">
             <div class="col-xl-3"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Cod intern, QR, serie sau denumire"></div>
             <div class="col-xl-3 col-md-5"><label class="resource-filter-label">Locatie</label><select name="location_id" class="form-select"><option value="">Toate locatiile</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)request('location_id') === (string)$location->id)>{{ $location->code }} - {{ $location->name }}</option>@endforeach</select></div>
             <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Status</label><select name="status" class="form-select"><option value="">Toate</option>@foreach($statusLabels as $value=>$label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
             <div class="col-xl-2 col-md-4"><label class="resource-filter-label">Conditie</label><select name="condition" class="form-select"><option value="">Toate</option>@foreach($conditionLabels as $value=>$label)<option value="{{ $value }}" @selected(request('condition') === $value)>{{ $label }}</option>@endforeach</select></div>
-            <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
+            <div class="col-xl-2 d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Cauta</button><a href="{{ route('tracked-assets.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Reseteaza filtrele" aria-label="Reseteaza filtrele"><i class="fa-solid fa-rotate-left"></i></a></div>
         </div>
     </form>
 
@@ -74,7 +75,7 @@
                             @if($hasFilters)
                                 <div class="d-flex flex-column align-items-center gap-2">
                                     <span class="text-muted">Niciun echipament nu corespunde filtrelor selectate.</span>
-                                    <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                                    <a href="{{ route('tracked-assets.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                                 </div>
                             @else
                                 <div class="d-flex flex-column align-items-center gap-2">
@@ -139,7 +140,7 @@
                 <div class="resource-empty-state">
                     @if($hasFilters)
                         <p class="mb-2">Niciun echipament nu corespunde filtrelor selectate.</p>
-                        <a href="{{ route('tracked-assets.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
+                        <a href="{{ route('tracked-assets.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate-left me-1"></i>Reseteaza filtrele</a>
                     @else
                         <p class="mb-2">Nu exista inca echipamente urmarite prin QR.</p>
                         @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i>Adauga primul echipament</a>@endif
