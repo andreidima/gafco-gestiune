@@ -54,7 +54,7 @@
                             </li>
                             @if($navigationManagement || $navigationAccounting)
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*', 'alerts.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
@@ -92,6 +92,7 @@
                                         @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Recepții</a></li>
                                         <li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>
+                                        @if($navigationManagement)<li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>@endif
                                         @if($navigationManagement)<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
                                     </ul>
                                 </li>
@@ -113,6 +114,7 @@
                             @elseif($navigationDriver)
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i class="fa-solid fa-list-check me-1"></i>Sarcinile mele</a></li>
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}"><i class="fa-solid fa-right-left me-1"></i>Transferurile mele</a></li>
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-hand-holding-hand me-1"></i>Custodia mea</a></li>
                             @endif
 
                             @if($navigationOperations)
@@ -120,14 +122,14 @@
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('field.*', 'qr-scan.*') ? 'active' : '' }}" href="#" id="terenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a>
                                     <ul class="dropdown-menu" aria-labelledby="terenDropdown">
                                         <li><a class="dropdown-item {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}">Sef santier</a></li>
-                                        <li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Muncitor</a></li>
+                                        <li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>
                                         <li><a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">Scanare QR</a></li>
                                     </ul>
                                 </li>
                             @elseif($navigationManager)
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a></li>
                             @elseif($navigationWorker)
-                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamentele mele</a></li>
+                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-hand-holding-hand me-1"></i>Custodia mea</a></li>
                                 @if($receptionWorkflowAvailable)
                                 @can('reception-documents.upload')
                                     <li class="nav-item me-2">

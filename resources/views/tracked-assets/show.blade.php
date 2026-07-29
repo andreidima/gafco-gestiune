@@ -115,5 +115,54 @@
             </table>
         </div>
     </div>
+
+    <div class="card dashboard-chart-card mt-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong><i class="fa-solid fa-hand-holding-hand me-1"></i> Istoric custodie</strong>
+            <span class="badge text-bg-light">{{ $custodyHistory->count() }} operațiuni</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="culoare2 text-white">Data</th>
+                        <th class="culoare2 text-white">Operațiune</th>
+                        <th class="culoare2 text-white">De la</th>
+                        <th class="culoare2 text-white">Către</th>
+                        <th class="culoare2 text-white">Confirmări</th>
+                        <th class="culoare2 text-white">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($custodyHistory as $custody)
+                    <tr>
+                        <td class="text-nowrap">{{ ($custody->accepted_at ?? $custody->created_at)?->format('d.m.Y H:i') }}</td>
+                        <td>
+                            {{ match($custody->operation_type) {
+                                'issue' => 'Alocare din locație',
+                                'return' => 'Retur la locație',
+                                default => 'Predare între persoane',
+                            } }}
+                            <span class="resource-secondary">{{ $custody->qr_token }}</span>
+                        </td>
+                        <td>{{ $custody->fromUser ? $visiblePerson($custody->fromUser, 'Alt responsabil') : ($custody->location?->name ?? 'Locație') }}</td>
+                        <td>{{ $custody->operation_type === 'return' ? ($custody->location?->name ?? 'Locație') : $visiblePerson($custody->toUser, 'Alt responsabil') }}</td>
+                        <td class="small">
+                            @if($custody->status === 'accepted')
+                                <span class="text-success">Confirmări finalizate</span>
+                            @else
+                                <span class="{{ $custody->from_approved_at ? 'text-success' : 'text-secondary' }}">{{ $custody->from_approved_at ? 'Predare confirmată' : 'Așteaptă predarea' }}</span>
+                                <span class="d-block {{ $custody->to_approved_at ? 'text-success' : 'text-secondary' }}">{{ $custody->to_approved_at ? 'Primire confirmată' : 'Așteaptă primirea' }}</span>
+                            @endif
+                        </td>
+                        <td><x-status :status="$custody->status" /></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="text-center text-secondary py-4">Nu există operațiuni de custodie pentru acest echipament.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 @endsection

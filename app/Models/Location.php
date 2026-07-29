@@ -50,4 +50,9 @@ class Location extends Model
     {
         return $this->hasMany(TransferApproval::class);
     }
+
+    public function materialCustodies(): HasMany
+    {
+        return $this->hasMany(MaterialCustody::class);
+    }
 }

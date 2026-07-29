@@ -3,157 +3,91 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustodyTransfer;
-use App\Models\TrackedAsset;
 use App\Models\User;
-use App\Notifications\WorkflowNotification;
+use App\Services\CustodyWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class CustodyTransferController extends Controller
 {
+    public function __construct(private readonly CustodyWorkflowService $workflow) {}
+
     public function store(Request $request): RedirectResponse
     {
-        abort_unless($request->user()->isOperationsAdmin() || $request->user()->usesWorkerWorkspace(), 403);
-        $data = $request->validate([
-            'tracked_asset_id' => ['required', 'exists:tracked_assets,id'],
-            'to_user_id' => ['required', 'different:from_user_id', Rule::exists('users', 'id')->where('active', true)],
-            'notes' => ['nullable', 'string'],
+        $this->authorizeWorkspace($request);
+
+        $request->merge([
+            'operation_type' => $request->input('operation_type', 'handoff'),
+            'item_type' => $request->input('item_type', 'equipment'),
+            'to_user_code' => $request->filled('to_user_code')
+                ? mb_strtoupper(trim((string) $request->input('to_user_code')))
+                : null,
         ]);
+        $data = $request->validate([
+            'operation_type' => ['required', 'in:issue,handoff,return'],
+            'item_type' => ['required', 'in:equipment,material'],
+            'tracked_asset_id' => ['nullable', 'exists:tracked_assets,id'],
+            'material_custody_id' => ['nullable', 'exists:material_custodies,id'],
+            'catalog_item_id' => ['nullable', 'exists:catalog_items,id'],
+            'location_id' => ['nullable', 'exists:locations,id'],
+            'to_user_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where('active', true),
+            ],
+            'to_user_code' => [
+                'nullable',
+                Rule::exists('users', 'login_code')->where('active', true),
+            ],
+            'quantity' => ['nullable', 'numeric', 'gt:0', 'max:99999999999'],
+            'return_condition' => ['nullable', 'in:good,used,damaged,needs_service'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+        if (! isset($data['to_user_id']) && isset($data['to_user_code'])) {
+            $data['to_user_id'] = User::where('active', true)
+                ->where('login_code', $data['to_user_code'])
+                ->value('id');
+        }
 
-        $transfer = DB::transaction(function () use ($data, $request): CustodyTransfer {
-            $asset = TrackedAsset::lockForUpdate()->findOrFail($data['tracked_asset_id']);
-            if (! in_array($asset->status, ['available', 'in_use'], true)) {
-                throw ValidationException::withMessages([
-                    'tracked_asset_id' => 'Echipamentul nu poate fi predat cat timp este in transfer, service sau marcat lipsa.',
-                ]);
-            }
-            if (! $request->user()->isOperationsAdmin()) {
-                abort_unless((int) $asset->current_custodian_id === (int) $request->user()->id, 403);
-            }
-            $fromUserId = $asset->current_custodian_id ?: $request->user()->id;
+        $transfer = $this->workflow->initiate($request->user(), $data);
+        $message = $transfer->status === 'accepted'
+            ? 'Operațiunea '.$transfer->qr_token.' a fost finalizată.'
+            : 'Operațiunea '.$transfer->qr_token.' a fost inițiată și așteaptă confirmările afișate.';
 
-            if ((int) $data['to_user_id'] === (int) $fromUserId) {
-                throw ValidationException::withMessages(['to_user_id' => 'Destinatarul trebuie sa fie diferit de persoana care preda.']);
-            }
-
-            CustodyTransfer::where('tracked_asset_id', $asset->id)
-                ->where('status', 'pending')
-                ->whereNotNull('expires_at')
-                ->where('expires_at', '<=', now())
-                ->update(['status' => 'expired']);
-
-            if (CustodyTransfer::where('tracked_asset_id', $asset->id)->where('status', 'pending')->exists()) {
-                throw ValidationException::withMessages([
-                    'tracked_asset_id' => 'Exista deja o predare in asteptare pentru acest echipament.',
-                ]);
-            }
-
-            $transfer = CustodyTransfer::create([
-                'tracked_asset_id' => $asset->id,
-                'from_user_id' => $fromUserId,
-                'to_user_id' => $data['to_user_id'],
-                'status' => 'pending',
-                'qr_token' => 'CUST-'.Str::upper(Str::random(10)),
-                'expires_at' => now()->addDay(),
-                'from_approved_at' => $fromUserId === $request->user()->id ? now() : null,
-                'notes' => $data['notes'] ?? null,
-            ]);
-
-            User::whereIn('id', [$fromUserId, $data['to_user_id']])
-                ->where('id', '!=', $request->user()->id)
-                ->get()
-                ->each(fn (User $user) => $user->notify(new WorkflowNotification(
-                    'Aprobare predare necesara',
-                    'Predarea '.$transfer->qr_token.' asteapta acordul tau.',
-                    route('field.worker')
-                )));
-
-            return $transfer;
-        });
-
-        return back()->with('status', 'Predarea '.$transfer->qr_token.' a fost initiata si asteapta acordurile ambelor persoane.');
+        return back()->with('status', $message);
     }
 
     public function update(Request $request, CustodyTransfer $custodyTransfer): RedirectResponse
     {
-        abort_unless($request->user()->isOperationsAdmin() || $request->user()->usesWorkerWorkspace(), 403);
+        $this->authorizeWorkspace($request);
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
+            'response_notes' => ['nullable', 'required_if:decision,rejected', 'string', 'max:2000'],
+            'return_condition' => ['nullable', 'in:good,used,damaged,needs_service'],
+        ], [
+            'response_notes.required_if' => 'Scrie pe scurt motivul refuzului.',
         ]);
 
-        $outcome = DB::transaction(function () use ($custodyTransfer, $data, $request): ?string {
-            $custodyTransfer = CustodyTransfer::lockForUpdate()->findOrFail($custodyTransfer->id);
-            abort_unless($custodyTransfer->status === 'pending', 422);
-            $actorId = $request->user()->id;
-            abort_unless(in_array($actorId, [$custodyTransfer->from_user_id, $custodyTransfer->to_user_id], true), 403);
-
-            if ($custodyTransfer->expires_at?->isPast()) {
-                $custodyTransfer->update(['status' => 'expired']);
-
-                return 'expired';
-            }
-
-            if ($data['decision'] === 'rejected') {
-                $custodyTransfer->update([
-                    'status' => 'rejected',
-                    'rejected_at' => now(),
-                    'rejected_by' => $actorId,
-                ]);
-
-                return null;
-            }
-
-            $field = $actorId === $custodyTransfer->from_user_id ? 'from_approved_at' : 'to_approved_at';
-            $custodyTransfer->update([$field => now()]);
-            $custodyTransfer->refresh();
-
-            if ($custodyTransfer->from_approved_at && $custodyTransfer->to_approved_at) {
-                $asset = TrackedAsset::lockForUpdate()->findOrFail($custodyTransfer->tracked_asset_id);
-                if ((int) $asset->current_custodian_id !== (int) $custodyTransfer->from_user_id) {
-                    $custodyTransfer->update([
-                        'status' => 'rejected',
-                        'rejected_at' => now(),
-                        'notes' => trim(($custodyTransfer->notes ? $custodyTransfer->notes."\n" : '').'Predare inchisa automat: custodia s-a schimbat intre timp.'),
-                    ]);
-
-                    return 'custody_changed';
-                }
-
-                if (! in_array($asset->status, ['available', 'in_use'], true)) {
-                    $custodyTransfer->update([
-                        'status' => 'rejected',
-                        'rejected_at' => now(),
-                        'notes' => trim(($custodyTransfer->notes ? $custodyTransfer->notes."\n" : '').'Predare inchisa automat: echipamentul nu mai este disponibil operational.'),
-                    ]);
-
-                    return 'asset_unavailable';
-                }
-
-                $custodyTransfer->update(['status' => 'accepted', 'accepted_at' => now()]);
-                $asset->update([
-                    'current_custodian_id' => $custodyTransfer->to_user_id,
-                    'status' => 'in_use',
-                    'last_verified_at' => now(),
-                ]);
-            }
-
-            return null;
-        });
-
-        if ($outcome === 'expired') {
-            return back()->withErrors(['decision' => 'Aceasta predare a expirat. Initiaza una noua.']);
-        }
-        if ($outcome === 'custody_changed') {
-            return back()->withErrors(['decision' => 'Predarea a fost inchisa deoarece custodia s-a schimbat intre timp.']);
-        }
-        if ($outcome === 'asset_unavailable') {
-            return back()->withErrors(['decision' => 'Predarea a fost inchisa deoarece echipamentul nu mai este disponibil operational.']);
+        $outcome = $this->workflow->decide($custodyTransfer, $request->user(), $data);
+        if ($outcome) {
+            return back()->withErrors(['decision' => match ($outcome) {
+                'expired' => 'Această operațiune a expirat. Inițiază una nouă.',
+                'asset_unavailable' => 'Operațiunea a fost închisă deoarece echipamentul nu mai este disponibil operațional.',
+                'material_unavailable' => 'Operațiunea a fost închisă deoarece stocul disponibil nu mai acoperă cantitatea.',
+                default => 'Operațiunea a fost închisă deoarece custodia s-a schimbat între timp.',
+            }]);
         }
 
-        return back()->with('status', 'Decizia a fost inregistrata. Predarea se finalizeaza dupa acordul ambelor persoane.');
+        return back()->with('status', $data['decision'] === 'rejected'
+            ? 'Refuzul și observația au fost înregistrate.'
+            : 'Confirmarea a fost înregistrată. Operațiunea se finalizează după toate acordurile necesare.');
+    }
+
+    private function authorizeWorkspace(Request $request): void
+    {
+        abort_unless($request->user()->hasAnyRole([
+            'super-admin', 'admin', 'dispecer', 'sef-santier',
+            'gestionar-baza', 'sofer', 'muncitor',
+        ]), 403);
     }
 }

@@ -66,6 +66,11 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function materialCustodies(): HasMany
+    {
+        return $this->hasMany(MaterialCustody::class);
+    }
+
     public function isProtectedAdministrator(): bool
     {
         $protectedEmail = Str::lower(trim((string) config('roles.protected_admin_email')));

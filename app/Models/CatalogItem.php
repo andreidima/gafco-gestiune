@@ -36,4 +36,9 @@ class CatalogItem extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+
+    public function materialCustodies(): HasMany
+    {
+        return $this->hasMany(MaterialCustody::class);
+    }
 }

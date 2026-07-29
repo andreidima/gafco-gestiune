@@ -1389,6 +1389,399 @@ body {
     border-bottom: 0;
 }
 
+.custody-shell {
+    width: min(100% - 2rem, 1380px);
+    margin: 0 auto;
+}
+
+.custody-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid rgba(20, 24, 80, 0.1);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #fff 0%, #f8f3ef 58%, #eef3ff 100%);
+    box-shadow: 0 16px 36px rgba(20, 24, 80, 0.07);
+}
+
+.custody-hero h1,
+.custody-section h2 {
+    margin: 0;
+    color: #141850;
+    font-weight: 800;
+}
+
+.custody-hero h1 {
+    font-size: clamp(1.55rem, 3vw, 2.2rem);
+}
+
+.custody-hero p {
+    max-width: 760px;
+    margin: 0.35rem 0 0;
+    color: #667085;
+}
+
+.custody-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0.85rem 0;
+}
+
+.custody-stat {
+    display: grid;
+    grid-template-columns: 42px auto 1fr;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    padding: 0.8rem 0.95rem;
+    border: 1px solid rgba(20, 24, 80, 0.09);
+    border-radius: 14px;
+    background: #fff;
+    color: #20263a;
+    text-decoration: none;
+    box-shadow: 0 8px 22px rgba(20, 24, 80, 0.04);
+}
+
+.custody-stat:hover {
+    border-color: rgba(112, 59, 59, 0.28);
+    color: #703b3b;
+}
+
+.custody-stat > span,
+.custody-item-icon,
+.custody-operation-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #703b3b;
+    background: rgba(112, 59, 59, 0.1);
+}
+
+.custody-stat > span {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+}
+
+.custody-stat strong {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.custody-stat small {
+    overflow: hidden;
+    color: #667085;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custody-stat-warning {
+    border-color: rgba(216, 92, 39, 0.24);
+    background: #fffaf3;
+}
+
+.custody-section {
+    margin-top: 0.85rem;
+    padding: 1rem;
+    border: 1px solid rgba(20, 24, 80, 0.09);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(20, 24, 80, 0.05);
+}
+
+.custody-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.custody-section h2 {
+    font-size: 1.15rem;
+}
+
+.custody-eyebrow {
+    display: block;
+    margin-bottom: 0.12rem;
+    color: #8a6d55;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.custody-decision-grid,
+.custody-holdings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.custody-decision-card {
+    padding: 0.95rem;
+    border: 1px solid rgba(216, 92, 39, 0.18);
+    border-left: 4px solid #d85c27;
+    border-radius: 14px;
+    background: #fffdf9;
+}
+
+.custody-card-topline,
+.custody-route,
+.custody-history-route {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.custody-card-topline {
+    justify-content: space-between;
+}
+
+.custody-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #703b3b;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.custody-decision-card h3 {
+    margin: 0.65rem 0 0.15rem;
+    color: #20263a;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.custody-quantity,
+.custody-holding-quantity {
+    color: #141850;
+    font-weight: 800;
+}
+
+.custody-route {
+    justify-content: space-between;
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: #f7f3ef;
+    color: #493b30;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.custody-route span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custody-approval-state,
+.custody-note {
+    margin: 0.55rem 0 0;
+    color: #667085;
+    font-size: 0.76rem;
+}
+
+.custody-note {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.custody-approve-form {
+    margin-top: 0.7rem;
+}
+
+.custody-reject {
+    margin-top: 0.5rem;
+    color: #a33b32;
+    font-size: 0.76rem;
+    text-align: center;
+}
+
+.custody-reject summary {
+    cursor: pointer;
+}
+
+.custody-empty {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-height: 145px;
+    padding: 1rem;
+    border: 1px dashed rgba(20, 24, 80, 0.18);
+    border-radius: 14px;
+    color: #667085;
+    text-align: center;
+}
+
+.custody-empty > i {
+    color: #56af71;
+    font-size: 1.65rem;
+}
+
+.custody-empty-compact {
+    min-height: 78px;
+}
+
+.custody-holding-card {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(20, 24, 80, 0.08);
+    border-radius: 12px;
+    background: #fbfcff;
+}
+
+.custody-item-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+}
+
+.custody-holding-card strong,
+.custody-holding-card span {
+    display: block;
+}
+
+.custody-holding-card > div > span {
+    overflow: hidden;
+    color: #667085;
+    font-size: 0.76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custody-stock-note {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0.75rem 0 0;
+    color: #667085;
+    font-size: 0.76rem;
+}
+
+.custody-more {
+    margin-top: 0.65rem;
+}
+
+.custody-more > summary {
+    cursor: pointer;
+    color: #703b3b;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.custody-accordion .accordion-item {
+    overflow: hidden;
+    margin-bottom: 0.55rem;
+    border: 1px solid rgba(20, 24, 80, 0.09);
+    border-radius: 12px;
+}
+
+.custody-accordion .accordion-button {
+    gap: 0.7rem;
+    color: #20263a;
+    background: #fff;
+    box-shadow: none;
+}
+
+.custody-accordion .accordion-button:not(.collapsed) {
+    color: #703b3b;
+    background: #fbf8f5;
+}
+
+.custody-accordion .accordion-button span:last-child {
+    display: grid;
+}
+
+.custody-accordion .accordion-button small {
+    color: #667085;
+    font-size: 0.72rem;
+    font-weight: 400;
+}
+
+.custody-operation-icon {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 11px;
+}
+
+.custody-operation-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.custody-operation-form [hidden] {
+    display: none !important;
+}
+
+.custody-form-wide {
+    grid-column: 1 / -1;
+}
+
+.custody-history-heading {
+    align-items: flex-end;
+}
+
+.custody-filters {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.custody-history-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.custody-history-card {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.1fr) minmax(210px, 0.8fr) minmax(230px, 1fr);
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(20, 24, 80, 0.08);
+    border-radius: 12px;
+}
+
+.custody-history-main,
+.custody-history-meta {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.custody-history-main > span,
+.custody-history-meta {
+    color: #667085;
+    font-size: 0.74rem;
+}
+
+.custody-history-route {
+    justify-content: center;
+    color: #493b30;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.custody-history-route span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 991.98px) {
     .dashboard-shell {
         padding: 1.25rem;
@@ -1410,6 +1803,14 @@ body {
     .donut-chart {
         margin: 0 auto;
     }
+
+    .custody-history-card {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .custody-history-meta {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -1420,6 +1821,68 @@ body {
     .dashboard-highlight {
         width: 100%;
         text-align: left;
+    }
+
+    .custody-shell {
+        width: min(100% - 1rem, 100%);
+    }
+
+    .custody-hero {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .custody-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .custody-stat {
+        grid-template-columns: 42px 44px 1fr;
+    }
+
+    .custody-decision-grid,
+    .custody-holdings-grid,
+    .custody-operation-form {
+        grid-template-columns: 1fr;
+    }
+
+    .custody-form-wide {
+        grid-column: auto;
+    }
+
+    .custody-history-heading,
+    .custody-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .custody-filters {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .custody-filters input {
+        flex: 1 0 100%;
+    }
+
+    .custody-filters select {
+        flex: 1;
+    }
+
+    .custody-history-card {
+        grid-template-columns: 1fr;
+    }
+
+    .custody-history-meta {
+        grid-column: auto;
+    }
+
+    .custody-history-route {
+        justify-content: flex-start;
+        padding: 0.45rem 0;
+        border-top: 1px solid rgba(20, 24, 80, 0.07);
+        border-bottom: 1px solid rgba(20, 24, 80, 0.07);
     }
 }
 

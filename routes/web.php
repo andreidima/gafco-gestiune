@@ -157,7 +157,7 @@ Route::middleware([
     Route::get('field/driver', [FieldModeController::class, 'driver'])->name('field.driver');
     Route::get('field/site-manager', [FieldModeController::class, 'siteManager'])->name('field.site-manager');
     Route::get('field/worker', [FieldModeController::class, 'worker'])->name('field.worker')
-        ->middleware('role:super-admin|admin|dispecer|muncitor');
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor');
     Route::get('qr-scan', [QrScanController::class, 'index'])->name('qr-scan.index')
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|sofer|muncitor');
     Route::post('qr-scan', [QrScanController::class, 'lookup'])->name('qr-scan.lookup')

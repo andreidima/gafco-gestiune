@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
+use App\Models\CustodyTransfer;
 use App\Models\Location;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
@@ -80,6 +81,11 @@ class TrackedAssetController extends Controller
             'history' => Transfer::query()
                 ->whereHas('lines', fn ($query) => $query->where('tracked_asset_id', $trackedAsset->id))
                 ->with(['sourceLocation', 'destinationLocation', 'driver', 'approver', 'confirmer'])
+                ->latest()
+                ->get(),
+            'custodyHistory' => CustodyTransfer::query()
+                ->where('tracked_asset_id', $trackedAsset->id)
+                ->with(['fromUser', 'toUser', 'location', 'managerApprover'])
                 ->latest()
                 ->get(),
         ]);

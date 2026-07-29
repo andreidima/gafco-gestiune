@@ -6,6 +6,7 @@ use App\Models\CatalogItem;
 use App\Models\ConsumptionReport;
 use App\Models\CustodyTransfer;
 use App\Models\Location;
+use App\Models\MaterialCustody;
 use App\Models\StockLevel;
 use App\Models\SupplierReception;
 use App\Models\Task;
@@ -137,6 +138,9 @@ class DashboardController extends Controller
 
         if ($dashboardMode === 'driver') {
             $tasks = $this->visibleTasks($user);
+            $pendingCustody = CustodyTransfer::where('status', 'pending')
+                ->where(fn ($query) => $query->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id))
+                ->count();
 
             return [
                 [
@@ -166,6 +170,14 @@ class DashboardController extends Controller
                     'icon' => 'fa-truck-fast',
                     'tone' => 'accent-forest',
                 ],
+                [
+                    'title' => 'Custodie de confirmat',
+                    'count' => $pendingCustody,
+                    'description' => 'Confirmă primirea, predarea sau returul bunurilor.',
+                    'href' => route('field.worker', ['status' => 'pending']),
+                    'icon' => 'fa-hand-holding-hand',
+                    'tone' => 'accent-slate',
+                ],
             ];
         }
 
@@ -173,10 +185,14 @@ class DashboardController extends Controller
             $pendingCustody = CustodyTransfer::where('status', 'pending')
                 ->where(fn ($query) => $query->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id))
                 ->count();
+            $custodyPositions = TrackedAsset::where('current_custodian_id', $user->id)->count()
+                + (Schema::hasTable('material_custodies')
+                    ? MaterialCustody::where('user_id', $user->id)->where('quantity', '>', 0)->count()
+                    : 0);
 
             return [
-                ['title' => 'Predari de confirmat', 'count' => $pendingCustody, 'description' => 'Confirma predarea sau primirea echipamentelor.', 'href' => route('field.worker', ['status' => 'pending']), 'icon' => 'fa-handshake', 'tone' => 'accent-amber'],
-                ['title' => 'Echipamentele mele', 'count' => TrackedAsset::where('current_custodian_id', $user->id)->count(), 'description' => 'Bunurile aflate acum in custodia ta.', 'href' => route('field.worker'), 'icon' => 'fa-screwdriver-wrench', 'tone' => 'accent-forest'],
+                ['title' => 'Predări de confirmat', 'count' => $pendingCustody, 'description' => 'Confirmă predarea, primirea sau returul.', 'href' => route('field.worker', ['status' => 'pending']), 'icon' => 'fa-handshake', 'tone' => 'accent-amber'],
+                ['title' => 'Custodia mea', 'count' => $custodyPositions, 'description' => 'Echipamente și materiale aflate în responsabilitatea ta.', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand', 'tone' => 'accent-forest'],
                 ['title' => 'Scanare QR', 'count' => null, 'description' => 'Deschide rapid un echipament dupa cod.', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode', 'tone' => 'accent-slate'],
             ];
         }
@@ -184,6 +200,24 @@ class DashboardController extends Controller
         $tasks = $this->visibleTasks($user);
         $canDispatch = $user->can('create', Task::class);
         if ($canDispatch) {
+            $managedLocationIds = $user->activeManagedLocations()->pluck('locations.id');
+            $pendingCustody = Schema::hasColumn('custody_transfers', 'operation_type')
+                ? CustodyTransfer::where('status', 'pending')
+                    ->where(function ($query) use ($user, $managedLocationIds): void {
+                        $query->where('from_user_id', $user->id)
+                            ->orWhere('to_user_id', $user->id)
+                            ->orWhere(function ($returns) use ($user, $managedLocationIds): void {
+                                $returns->where('operation_type', 'return')
+                                    ->whereNull('to_approved_at')
+                                    ->when(
+                                        ! $user->isOperationsAdmin(),
+                                        fn ($visible) => $visible->whereIn('location_id', $managedLocationIds),
+                                    );
+                            });
+                    })
+                    ->count()
+                : 0;
+
             return [
                 [
                     'title' => 'Necesita aprobarea mea',
@@ -221,6 +255,14 @@ class DashboardController extends Controller
                     'href' => route('tasks.dispatch'),
                     'icon' => 'fa-users-viewfinder',
                     'tone' => 'accent-forest',
+                ],
+                [
+                    'title' => 'Custodii de confirmat',
+                    'count' => $pendingCustody,
+                    'description' => 'Predări și retururi care așteaptă o decizie.',
+                    'href' => route('field.worker', ['status' => 'pending']),
+                    'icon' => 'fa-hand-holding-hand',
+                    'tone' => 'accent-slate',
                 ],
             ];
         }
@@ -332,14 +374,14 @@ class DashboardController extends Controller
                 'status' => $reception->status,
             ]);
 
-        $custody = CustodyTransfer::with(['trackedAsset', 'toUser'])
+        $custody = CustodyTransfer::with(['trackedAsset.catalogItem', 'catalogItem', 'toUser'])
             ->latest()
             ->limit(5)
             ->get()
             ->map(fn (CustodyTransfer $transfer) => [
                 'icon' => 'fa-qrcode',
                 'type' => 'Custodie',
-                'title' => $transfer->trackedAsset?->asset_code ?? $transfer->qr_token,
+                'title' => $transfer->itemLabel(),
                 'description' => $transfer->toUser?->name ?? '-',
                 'date' => $transfer->accepted_at ?? $transfer->created_at,
                 'status' => $transfer->status,

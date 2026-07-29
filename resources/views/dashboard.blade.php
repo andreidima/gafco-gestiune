@@ -511,9 +511,9 @@
             <div class="card-body text-center py-5">
                 <span class="resource-page-icon mx-auto mb-3"><i class="fa-solid fa-mobile-screen-button"></i></span>
                 <h4>Continua din modul de teren</h4>
-                <p class="text-muted">Acolo gasesti confirmarile si echipamentele relevante pentru rolul tau.</p>
+                <p class="text-muted">Acolo găsești confirmările, echipamentele și materialele aflate în responsabilitatea ta.</p>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
-                    <a href="{{ route('field.worker') }}" class="btn btn-primary"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Echipamentele mele</a>
+                    <a href="{{ route('field.worker') }}" class="btn btn-primary"><i class="fa-solid fa-hand-holding-hand me-1"></i>Custodia mea</a>
                     <a href="{{ route('qr-scan.index') }}" class="btn btn-outline-primary"><i class="fa-solid fa-qrcode me-1"></i>Scaneaza QR</a>
                 </div>
             </div>

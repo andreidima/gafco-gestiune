@@ -103,7 +103,7 @@
             </div>
         </div>
         <div class="col-lg-5">
-            <div class="card h-100">
+            <div class="card mb-3">
                 <div class="card-header bg-white"><strong>Ce arată această fișă</strong></div>
                 <div class="card-body">
                     <ul class="mb-0">
@@ -112,6 +112,28 @@
                         <li>istoricul intrărilor, consumurilor și transferurilor;</li>
                         <li>soldurile inițiale preluate fără a inventa documente sau prețuri.</li>
                     </ul>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>În custodie personală</strong>
+                    <span class="badge text-bg-light">{{ $materialCustodies->count() }} responsabili</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    @forelse($materialCustodies as $custody)
+                        <div class="list-group-item d-flex justify-content-between gap-3">
+                            <div>
+                                <strong class="d-block">{{ $custody->user?->name }}</strong>
+                                <span class="resource-secondary">{{ $custody->location?->code }} — {{ $custody->location?->name }}</span>
+                            </div>
+                            <span class="fw-semibold text-nowrap">{{ $formatQuantity($custody->quantity) }} {{ $custody->unit }}</span>
+                        </div>
+                    @empty
+                        <div class="list-group-item text-secondary">Nicio cantitate nu are acum un responsabil personal.</div>
+                    @endforelse
+                </div>
+                <div class="card-footer bg-white small text-secondary">
+                    Aceste cantități sunt incluse în stocul locației; custodia arată responsabilul.
                 </div>
             </div>
         </div>

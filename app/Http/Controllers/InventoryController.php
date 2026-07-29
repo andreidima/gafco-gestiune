@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
 use App\Models\InventoryLot;
+use App\Models\MaterialCustody;
 use App\Models\StockMovement;
 use App\Models\UserPreference;
 use App\Services\LocationAccessService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class InventoryController extends Controller
@@ -165,6 +167,15 @@ class InventoryController extends Controller
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
             'selectedLocationId' => $locationId,
             'canViewCommercial' => $user->canViewCommercialInventory(),
+            'materialCustodies' => Schema::hasTable('material_custodies')
+                ? MaterialCustody::with(['user', 'location'])
+                    ->where('catalog_item_id', $catalogItem->id)
+                    ->where('quantity', '>', 0)
+                    ->when($visibleLocationIds !== null, fn (Builder $query) => $query->whereIn('location_id', $visibleLocationIds))
+                    ->when($locationId, fn (Builder $query) => $query->where('location_id', $locationId))
+                    ->orderByDesc('quantity')
+                    ->get()
+                : collect(),
         ]);
     }
 
