@@ -40,10 +40,10 @@ return new class extends Migration
                 $table->text('message');
                 $table->string('url', 500);
                 $table->json('metadata')->nullable();
-                $table->timestamp('triggered_at')->index();
-                $table->timestamp('due_at')->nullable()->index();
-                $table->timestamp('last_detected_at')->index();
-                $table->timestamp('resolved_at')->nullable()->index();
+                $table->dateTime('triggered_at')->index();
+                $table->dateTime('due_at')->nullable()->index();
+                $table->dateTime('last_detected_at')->index();
+                $table->dateTime('resolved_at')->nullable()->index();
                 $table->timestamps();
                 $table->index(['location_id', 'resolved_at']);
             });
