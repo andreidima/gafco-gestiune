@@ -327,10 +327,10 @@
 
     <main class="flex-shrink-0 py-4">
         @if(session('status'))
-            <div class="container">
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <div class="container app-flash-container">
+                <div class="alert alert-success alert-dismissible fade show app-flash-message" role="status" data-flash-message data-flash-timeout="4500">
                     {{ session('status') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide mesajul"></button>
                 </div>
             </div>
         @endif

@@ -61,7 +61,7 @@
     $advancedTaskFilterCount = count($activeTaskFilters) - (isset($activeTaskFilters['search']) ? 1 : 0);
 @endphp
 
-<div class="resource-shell">
+<div class="resource-shell {{ $isDriver ? 'driver-task-index' : '' }}">
     @can('create', \App\Models\Task::class)
         <x-resource-page-header
             title="Sarcini soferi"
@@ -82,6 +82,26 @@
             <x-slot:actions><x-live-view view-key="tasks-index" /></x-slot:actions>
         </x-resource-page-header>
     @endcan
+
+    @if($isDriver)
+        <nav class="driver-task-tabs" aria-label="Starea sarcinilor mele">
+            <a class="driver-task-tab {{ ! request()->filled('status') && ! request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['filters_reset' => 1]) }}">
+                <span>Toate</span><span class="driver-task-tab-count">{{ $driverTaskCounts['all'] }}</span>
+            </a>
+            <a class="driver-task-tab {{ request('status') === 'pending_acceptance' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'pending_acceptance', 'filters_submitted' => 1]) }}">
+                <span>De răspuns</span><span class="driver-task-tab-count">{{ $driverTaskCounts['pending_acceptance'] }}</span>
+            </a>
+            <a class="driver-task-tab {{ request('status') === 'accepted' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'accepted', 'filters_submitted' => 1]) }}">
+                <span>De pornit</span><span class="driver-task-tab-count">{{ $driverTaskCounts['accepted'] }}</span>
+            </a>
+            <a class="driver-task-tab {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress', 'filters_submitted' => 1]) }}">
+                <span>În lucru</span><span class="driver-task-tab-count">{{ $driverTaskCounts['in_progress'] }}</span>
+            </a>
+            <a class="driver-task-tab {{ request('status') === 'completed' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'completed', 'filters_submitted' => 1]) }}">
+                <span>Finalizate</span><span class="driver-task-tab-count">{{ $driverTaskCounts['completed'] }}</span>
+            </a>
+        </nav>
+    @endif
 
     <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}" data-auto-submit-filters>
         <input type="hidden" name="filters_submitted" value="1">
@@ -119,16 +139,14 @@
         </div>
     </form>
 
-    <nav class="resource-filter-presets" aria-label="Vizualizari rapide sarcini">
-        <span class="results-meta">Vizualizari rapide</span>
-        @if($isDriver)
-            <a class="resource-filter-preset {{ request('status') === 'pending_acceptance' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'pending_acceptance', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-hand-pointer"></i>Necesita raspuns</a>
-        @else
+    @unless($isDriver)
+        <nav class="resource-filter-presets" aria-label="Vizualizari rapide sarcini">
+            <span class="results-meta">Vizualizari rapide</span>
             <a class="resource-filter-preset {{ request('status') === 'unassigned' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'unassigned', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-inbox"></i>Necesita alocare</a>
-        @endif
-        <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['overdue' => 1, 'filters_submitted' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
-        <a class="resource-filter-preset {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-truck-fast"></i>In lucru</a>
-    </nav>
+            <a class="resource-filter-preset {{ request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['overdue' => 1, 'filters_submitted' => 1]) }}"><i class="fa-solid fa-triangle-exclamation"></i>Intarziate</a>
+            <a class="resource-filter-preset {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-truck-fast"></i>In lucru</a>
+        </nav>
+    @endunless
 
     @if($activeTaskFilters)
         <div class="resource-filter-chips mb-2 px-1" aria-label="Filtre active">
@@ -183,6 +201,8 @@
                                 @if($isDriver && $assignment && ! $assignmentBelongsToDriver)
                                     <span class="resource-primary">Realocata</span>
                                     <span class="resource-secondary">Nu mai este alocata tie</span>
+                                @elseif($isDriver)
+                                    <span class="resource-primary">{{ $assignmentLabels[$displayAssignment?->status] ?? 'Sarcina ta' }}</span>
                                 @else
                                     <span class="resource-primary">{{ $displayAssignment?->driver?->name ?? 'Nealocat' }}</span>
                                     @if($displayAssignment)<span class="resource-secondary {{ $displayAssignment->status === 'reassignment_requested' ? 'text-warning fw-bold' : '' }}">{{ $assignmentLabels[$displayAssignment->status] ?? $displayAssignment->status }}</span>@endif
@@ -196,12 +216,12 @@
                         <td>
                             <div class="resource-cell-stack">
                                 @if($task->manager_deadline)
-                                    <span class="resource-deadline-manager {{ $task->isOverdue() ? 'deadline-overdue fw-bold' : '' }}"><i class="fa-solid fa-flag-checkered me-1"></i>Manager: {{ $task->manager_deadline->format('d.m.Y H:i') }}</span>
+                                    <span class="resource-deadline-manager {{ $task->isOverdue() ? 'deadline-overdue fw-bold' : '' }}"><i class="fa-solid fa-flag-checkered me-1"></i>{{ $isDriver ? 'Termen' : 'Manager' }}: {{ $task->manager_deadline->format('d.m.Y H:i') }}</span>
                                     @if($task->isOverdue())<span class="resource-deadline-overdue text-danger fw-bold">Intarziata cu {{ ltrim($formatMinuteDelta(max(1, (int) ceil((now()->getTimestamp() - $task->manager_deadline->getTimestamp()) / 60))), '+') }}</span>
                                     @elseif($isDueSoon)<span class="resource-deadline-soon text-warning fw-bold">Expira in {{ ltrim($formatMinuteDelta(max(1, (int) ceil(($task->manager_deadline->getTimestamp() - now()->getTimestamp()) / 60))), '+') }}</span>@endif
                                 @endif
                                 @if($displayAssignment?->driver_estimate_at)
-                                    <span class="resource-secondary"><i class="fa-solid fa-user-clock me-1"></i>Sofer: {{ $displayAssignment->driver_estimate_at->format('d.m.Y H:i') }} @if($estimateDelta !== null)<strong class="{{ $estimateDelta > 0 ? 'resource-deadline-late text-danger' : ($estimateDelta < 0 ? 'resource-deadline-early text-success' : '') }}">({{ $formatMinuteDelta($estimateDelta) }})</strong>@endif</span>
+                                    <span class="resource-secondary"><i class="fa-solid fa-user-clock me-1"></i>{{ $isDriver ? 'Estimarea mea' : 'Sofer' }}: {{ $displayAssignment->driver_estimate_at->format('d.m.Y H:i') }} @if($estimateDelta !== null)<strong class="{{ $estimateDelta > 0 ? 'resource-deadline-late text-danger' : ($estimateDelta < 0 ? 'resource-deadline-early text-success' : '') }}">({{ $formatMinuteDelta($estimateDelta) }})</strong>@endif</span>
                                 @elseif($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true))
                                     <span class="resource-secondary text-warning"><i class="fa-solid fa-user-clock me-1"></i>Estimare necomunicata</span>
                                 @endif
@@ -234,7 +254,7 @@
                         : null;
                     $mobileAlertClass = $task->isOverdue() ? 'resource-row-alert resource-row-alert-danger' : (($needsDriverResponse || $needsManagerAction || $isDueSoon) ? 'resource-row-alert resource-row-alert-warning' : '');
                 @endphp
-                <article class="card resource-mobile-card {{ $mobileAlertClass }}">
+                <article class="card resource-mobile-card {{ $isDriver ? 'driver-task-mobile-card' : '' }} {{ $mobileAlertClass }}">
                     <div class="card-body">
                         <div class="resource-mobile-card-header">
                             <div class="min-w-0"><a class="resource-primary text-decoration-none" href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a><div class="resource-code">{{ $task->number }}</div></div>
@@ -251,27 +271,43 @@
                             </div>
                         @endif
 
-                        <div class="resource-mobile-card-grid">
-                            <div><span class="resource-filter-label">Traseu</span><strong>{{ $task->sourceLocation?->code ?? 'Nespecificat' }} <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> {{ $task->destinationLocation?->code ?? 'Nespecificat' }}</strong></div>
-                            <div>
-                                <span class="resource-filter-label">Alocare</span>
-                                @if($isDriver && $assignment && ! $assignmentBelongsToDriver)<strong>Realocata</strong><span class="resource-secondary">Nu mai este alocata tie</span>
-                                @else<strong>{{ $displayAssignment?->driver?->name ?? 'Nealocat' }}</strong>@if($displayAssignment)<span class="resource-secondary">{{ $assignmentLabels[$displayAssignment->status] ?? $displayAssignment->status }}</span>@endif
-                                @endif
-                                @if(! $isDriver && ! $displayAssignment && $latestRejection)<span class="resource-secondary text-danger">Refuzata de {{ $latestRejection->driver?->name ?? 'sofer' }}</span>@if($latestRejection->response_notes)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($latestRejection->response_notes, 70) }}</span>@endif @endif
+                        @if($isDriver)
+                            <div class="driver-task-card-route">
+                                <i class="fa-solid fa-route" aria-hidden="true"></i>
+                                <strong>{{ $task->sourceLocation?->code ?? 'Nespecificat' }} <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> {{ $task->destinationLocation?->code ?? 'Nespecificat' }}</strong>
                             </div>
-                            <div class="resource-mobile-card-wide">
-                                <span class="resource-filter-label">Termene</span>
-                                @if($task->manager_deadline)<strong class="{{ $task->isOverdue() ? 'deadline-overdue' : '' }}">Manager: {{ $task->manager_deadline->format('d.m.Y H:i') }}</strong>@if($isDueSoon)<span class="resource-secondary text-warning fw-bold">Expira in {{ ltrim($formatMinuteDelta(max(1, (int) ceil(($task->manager_deadline->getTimestamp() - now()->getTimestamp()) / 60))), '+') }}</span>@endif @endif
-                                @if($displayAssignment?->driver_estimate_at)<span class="resource-secondary">Sofer: {{ $displayAssignment->driver_estimate_at->format('d.m.Y H:i') }} @if($estimateDelta !== null)<strong class="{{ $estimateDelta > 0 ? 'text-danger' : ($estimateDelta < 0 ? 'text-success' : '') }}">({{ $formatMinuteDelta($estimateDelta) }})</strong>@endif</span>
-                                @elseif($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true))<span class="resource-secondary text-warning">Estimare necomunicata</span>@endif
-                                @if($displayAssignment?->driver_estimate_note)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($displayAssignment->driver_estimate_note, 80) }}</span>@endif
-                                @if(! $task->manager_deadline && ! $displayAssignment?->driver_estimate_at && ! ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true)))<span class="text-muted">&mdash;</span>@endif
+                            <div class="driver-task-card-timing">
+                                <div><span>Termen</span><strong class="{{ $task->isOverdue() ? 'deadline-overdue' : '' }}">{{ $task->manager_deadline?->format('d.m.Y H:i') ?? 'Nespecificat' }}</strong></div>
+                                <div><span>Estimarea mea</span><strong class="{{ ! $displayAssignment?->driver_estimate_at && $displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'text-warning' : '' }}">{{ $displayAssignment?->driver_estimate_at?->format('d.m.Y H:i') ?? ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'Necomunicată' : '—') }}</strong></div>
                             </div>
-                        </div>
+                        @else
+                            <div class="resource-mobile-card-grid">
+                                <div><span class="resource-filter-label">Traseu</span><strong>{{ $task->sourceLocation?->code ?? 'Nespecificat' }} <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> {{ $task->destinationLocation?->code ?? 'Nespecificat' }}</strong></div>
+                                <div>
+                                    <span class="resource-filter-label">Alocare</span>
+                                    <strong>{{ $displayAssignment?->driver?->name ?? 'Nealocat' }}</strong>@if($displayAssignment)<span class="resource-secondary">{{ $assignmentLabels[$displayAssignment->status] ?? $displayAssignment->status }}</span>@endif
+                                    @if(! $displayAssignment && $latestRejection)<span class="resource-secondary text-danger">Refuzata de {{ $latestRejection->driver?->name ?? 'sofer' }}</span>@if($latestRejection->response_notes)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($latestRejection->response_notes, 70) }}</span>@endif @endif
+                                </div>
+                                <div class="resource-mobile-card-wide">
+                                    <span class="resource-filter-label">Termene</span>
+                                    @if($task->manager_deadline)<strong class="{{ $task->isOverdue() ? 'deadline-overdue' : '' }}">Manager: {{ $task->manager_deadline->format('d.m.Y H:i') }}</strong>@if($isDueSoon)<span class="resource-secondary text-warning fw-bold">Expira in {{ ltrim($formatMinuteDelta(max(1, (int) ceil(($task->manager_deadline->getTimestamp() - now()->getTimestamp()) / 60))), '+') }}</span>@endif @endif
+                                    @if($displayAssignment?->driver_estimate_at)<span class="resource-secondary">Sofer: {{ $displayAssignment->driver_estimate_at->format('d.m.Y H:i') }} @if($estimateDelta !== null)<strong class="{{ $estimateDelta > 0 ? 'text-danger' : ($estimateDelta < 0 ? 'text-success' : '') }}">({{ $formatMinuteDelta($estimateDelta) }})</strong>@endif</span>
+                                    @elseif($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true))<span class="resource-secondary text-warning">Estimare necomunicata</span>@endif
+                                    @if($displayAssignment?->driver_estimate_note)<span class="resource-secondary">{{ \Illuminate\Support\Str::limit($displayAssignment->driver_estimate_note, 80) }}</span>@endif
+                                    @if(! $task->manager_deadline && ! $displayAssignment?->driver_estimate_at && ! ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true)))<span class="text-muted">&mdash;</span>@endif
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="resource-mobile-card-actions">
-                            <a href="{{ route('tasks.show', $task) }}" class="btn btn-primary btn-sm flex-grow-1"><i class="fa-solid fa-eye me-1"></i>Deschide</a>
+                            <a href="{{ route('tasks.show', $task) }}" class="btn btn-primary btn-sm flex-grow-1">
+                                @if($isDriver)
+                                    <i class="fa-solid {{ $needsDriverResponse ? 'fa-hand-pointer' : ($task->status === 'accepted' ? 'fa-play' : ($task->status === 'in_progress' ? 'fa-truck-fast' : 'fa-eye')) }} me-1"></i>
+                                    {{ $needsDriverResponse ? 'Răspunde' : ($task->status === 'accepted' ? 'Estimează și pornește' : ($task->status === 'in_progress' ? 'Continuă sarcina' : 'Vezi sarcina')) }}
+                                @else
+                                    <i class="fa-solid fa-eye me-1"></i>Deschide
+                                @endif
+                            </a>
                             @can('update', $task)<a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-secondary btn-sm" aria-label="Modifica sarcina"><i class="fa-solid fa-pen"></i></a>@endcan
                         </div>
                     </div>

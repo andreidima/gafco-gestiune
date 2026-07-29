@@ -42,6 +42,18 @@ class TaskController extends Controller
         if ($user->usesDriverWorkspace()) {
             $tasks->getCollection()->each(fn (Task $task) => $this->useDriverAssignmentForPresentation($task, $user));
         }
+        $driverTaskCounts = $user->usesDriverWorkspace()
+            ? collect([
+                'all' => null,
+                'pending_acceptance' => 'pending_acceptance',
+                'accepted' => 'accepted',
+                'in_progress' => 'in_progress',
+                'completed' => 'completed',
+            ])->map(fn (?string $status) => $this->visibleQuery($user)
+                ->whereNull('archived_at')
+                ->when($status, fn ($countQuery) => $countQuery->where('status', $status))
+                ->count())
+            : collect();
 
         return view('tasks.index', [
             'tasks' => $tasks,
@@ -50,6 +62,7 @@ class TaskController extends Controller
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
             'totalTasks' => $this->visibleQuery($user)->count(),
+            'driverTaskCounts' => $driverTaskCounts,
         ]);
     }
 
@@ -110,7 +123,7 @@ class TaskController extends Controller
             'sourceLocation.activeManagers', 'destinationLocation.activeManagers', 'creator',
             'transfer.approvals.decidedBy', 'transfer.approvals.location',
             'transfer.lines.catalogItem', 'transfer.lines.trackedAsset',
-            'assignments.driver', 'assignments.assigner', 'comments.user.roles',
+            'assignments.driver', 'assignments.assigner', 'assignments.estimates.driver', 'comments.user.roles',
         ]);
         if ($request->user()->usesDriverWorkspace()) {
             $this->useDriverAssignmentForPresentation($task, $request->user());

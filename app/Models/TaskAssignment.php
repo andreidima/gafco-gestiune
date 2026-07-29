@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -53,5 +54,15 @@ class TaskAssignment extends Model
     public function replacementCandidates(): HasMany
     {
         return $this->hasMany(self::class, 'replaced_assignment_id');
+    }
+
+    public function estimates(): HasMany
+    {
+        return $this->hasMany(TaskAssignmentEstimate::class);
+    }
+
+    public function latestEstimate(): HasOne
+    {
+        return $this->hasOne(TaskAssignmentEstimate::class)->latestOfMany();
     }
 }

@@ -6,6 +6,15 @@
 @php
     $assignment = $task->currentAssignment;
     $isDriverViewer = auth()->user()->usesDriverWorkspace();
+    $latestEstimate = $assignment?->estimates?->sortByDesc('id')->first();
+    $canCorrectLatestEstimate = $latestEstimate?->canBeCorrected() ?? false;
+    $estimateInputValue = old(
+        'driver_estimate_at',
+        $canCorrectLatestEstimate
+            ? $latestEstimate->estimated_at->format('Y-m-d\TH:i')
+            : now()->addHour()->startOfMinute()->format('Y-m-d\TH:i'),
+    );
+    $estimateNoteValue = old('driver_estimate_note', $canCorrectLatestEstimate ? $latestEstimate->note : '');
     $priorityLabels = ['low' => 'Scazuta', 'normal' => 'Normala', 'high' => 'Ridicata', 'urgent' => 'Urgenta'];
     $commentTypeLabels = ['observation' => 'Observatie', 'acceptance' => 'Acceptare', 'rejection' => 'Refuz', 'estimate' => 'Estimare', 'reassignment' => 'Realocare', 'status' => 'Schimbare stare'];
     $receiptStatusLabels = ['pending' => 'În așteptare', 'received' => 'Primit', 'missing' => 'Lipsă', 'damaged' => 'Deteriorat'];
@@ -35,19 +44,23 @@
         </div>
     @endif
 
+    @include('tasks.partials.driver-action-panel')
+
     <div class="row g-3">
-        <div class="col-xl-8">
+        <div class="{{ $isDriverViewer ? 'col-12' : 'col-xl-8' }}">
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong>Detalii operationale</strong></div>
                 <div class="card-body row g-3">
                     <div class="col-md-6"><span class="text-muted">Traseu</span><div class="fw-semibold">{{ $task->sourceLocation?->name ?? 'Nespecificat' }} → {{ $task->destinationLocation?->name ?? 'Nespecificat' }}</div></div>
-                    <div class="col-md-3"><span class="text-muted">Deadline manager</span><div class="fw-semibold {{ $task->isOverdue() ? 'deadline-overdue' : '' }}">{{ $task->manager_deadline?->format('d.m.Y H:i') ?? '-' }}</div></div>
-                    <div class="col-md-3"><span class="text-muted">Estimare sofer</span><div class="fw-semibold">{{ $assignment?->driver_estimate_at?->format('d.m.Y H:i') ?? '-' }}</div></div>
-                    <div class="col-md-6"><span class="text-muted">Sofer</span><div class="fw-semibold">{{ $visibleDriverName($assignment?->driver) }}</div></div>
+                    <div class="col-md-3"><span class="text-muted">{{ $isDriverViewer ? 'Termen' : 'Deadline manager' }}</span><div class="fw-semibold {{ $task->isOverdue() ? 'deadline-overdue' : '' }}">{{ $task->manager_deadline?->format('d.m.Y H:i') ?? '-' }}</div></div>
+                    <div class="col-md-3"><span class="text-muted">{{ $isDriverViewer ? 'Estimarea mea' : 'Estimare sofer' }}</span><div class="fw-semibold">{{ $assignment?->driver_estimate_at?->format('d.m.Y H:i') ?? '-' }}</div></div>
+                    @unless($isDriverViewer)<div class="col-md-6"><span class="text-muted">Sofer</span><div class="fw-semibold">{{ $visibleDriverName($assignment?->driver) }}</div></div>@endunless
                     <div class="col-md-6"><span class="text-muted">Prioritate</span><div class="fw-semibold">{{ $priorityLabels[$task->priority] ?? $task->priority }}</div></div>
                     @if($task->notes)<div class="col-12"><span class="text-muted">Observatii initiale</span><div>{{ $task->notes }}</div></div>@endif
                 </div>
             </div>
+
+            @include('tasks.partials.estimate-history')
 
             @if($task->transfer)
                 <div class="card mb-3">
@@ -124,29 +137,18 @@
             </div>
         </div>
 
-        <div class="col-xl-4">
-            @if(auth()->user()->usesDriverWorkspace() && $assignment?->driver_id === auth()->id())
-                @if($assignment->status === 'pending')
-                    <div class="card mb-3"><div class="card-header bg-white"><strong>Raspunsul tau</strong></div><div class="card-body">
-                        <form method="post" action="{{ route('task-assignments.respond', $assignment) }}" class="vstack gap-2">@csrf<textarea name="response_notes" class="form-control" placeholder="Observatie obligatorie la refuz"></textarea><div class="d-flex gap-2"><button name="decision" value="accepted" class="btn btn-success flex-fill">Accepta</button><button name="decision" value="rejected" class="btn btn-outline-danger flex-fill">Refuza</button></div></form>
-                    </div></div>
-                @elseif(in_array($assignment->status, ['accepted','reassignment_requested'], true))
-                    <div class="card mb-3"><div class="card-header bg-white"><strong>Estimarea mea</strong></div><div class="card-body">
-                        <form method="post" action="{{ route('task-assignments.estimate', $assignment) }}" class="vstack gap-2">@csrf<input name="driver_estimate_at" type="datetime-local" value="{{ $assignment->driver_estimate_at?->format('Y-m-d\TH:i') }}" class="form-control" required><textarea name="driver_estimate_note" class="form-control" placeholder="Explica estimarea" required>{{ $assignment->driver_estimate_note }}</textarea><button class="btn btn-outline-primary">Salveaza estimarea</button></form>
-                    </div></div>
-                    @if($assignment->status === 'accepted')<div class="card mb-3"><div class="card-header bg-white"><strong>Realocare</strong></div><div class="card-body"><form method="post" action="{{ route('task-assignments.request-reassignment', $assignment) }}" class="vstack gap-2">@csrf<textarea name="notes" class="form-control" placeholder="Motivul realocarii" required></textarea><button class="btn btn-outline-warning">Solicita realocare</button></form></div></div>@endif
-                @endif
-            @else
+        @unless($isDriverViewer)
+            <div class="col-xl-4">
                 @can('assign', $task)
                     <div class="card mb-3"><div class="card-header bg-white"><strong>Alocare sofer</strong></div><div class="card-body"><form method="post" action="{{ route('tasks.assignments.store', $task) }}" class="vstack gap-2">@csrf<select name="driver_id" class="form-select" data-tom-select required><option value="">Alege sofer</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}">{{ $driver->name }}</option>@endforeach</select><button class="btn btn-primary">{{ $assignment ? 'Propune inlocuitor' : 'Trimite spre acceptare' }}</button></form></div></div>
                     @if($whatsAppRecipients->isNotEmpty())<div class="card mb-3"><div class="card-header bg-white"><strong>WhatsApp</strong></div><div class="card-body"><form method="get" action="{{ route('tasks.whatsapp', $task) }}" class="vstack gap-2"><select name="user_id" class="form-select" data-tom-select required><option value="">Destinatar</option>@foreach($whatsAppRecipients as $recipient)<option value="{{ $recipient->id }}">{{ $recipient->name }} · {{ $recipient->phone }}</option>@endforeach</select><button class="btn btn-success"><i class="fa-brands fa-whatsapp me-1"></i> Pregateste mesajul</button></form></div></div>@endif
                 @endcan
-            @endif
 
-            @if($assignment?->status === 'accepted' && in_array($task->status, ['accepted','in_progress'], true))
-                <div class="card"><div class="card-header bg-white"><strong>Executie</strong></div><div class="card-body"><form method="post" action="{{ route('tasks.transition', $task) }}" class="vstack gap-2">@csrf<input type="hidden" name="status" value="{{ $task->status === 'accepted' ? 'in_progress' : 'completed' }}"><textarea name="notes" class="form-control" placeholder="Observatie optionala"></textarea><button class="btn btn-{{ $task->status === 'accepted' ? 'primary' : 'success' }}">{{ $task->status === 'accepted' ? 'Porneste sarcina' : 'Finalizeaza sarcina' }}</button></form></div></div>
-            @endif
-        </div>
+                @if($assignment?->status === 'accepted' && in_array($task->status, ['accepted','in_progress'], true))
+                    <div class="card"><div class="card-header bg-white"><strong>Executie</strong></div><div class="card-body"><form method="post" action="{{ route('tasks.transition', $task) }}" class="vstack gap-2">@csrf<input type="hidden" name="status" value="{{ $task->status === 'accepted' ? 'in_progress' : 'completed' }}"><textarea name="notes" class="form-control" placeholder="Observatie optionala"></textarea><button class="btn btn-{{ $task->status === 'accepted' ? 'primary' : 'success' }}">{{ $task->status === 'accepted' ? 'Porneste sarcina' : 'Finalizeaza sarcina' }}</button></form></div></div>
+                @endif
+            </div>
+        @endunless
     </div>
 </div>
 @endsection

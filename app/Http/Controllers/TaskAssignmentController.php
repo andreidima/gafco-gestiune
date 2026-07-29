@@ -42,11 +42,16 @@ class TaskAssignmentController extends Controller
         abort_unless($assignment->driver_id === $request->user()->id && in_array($assignment->status, ['accepted', 'reassignment_requested'], true), 403);
         $data = $request->validate([
             'driver_estimate_at' => ['required', 'date'],
-            'driver_estimate_note' => ['required', 'string'],
+            'driver_estimate_note' => ['nullable', 'string'],
         ]);
-        $workflow->updateEstimate($assignment, $request->user(), $data['driver_estimate_at'], $data['driver_estimate_note']);
+        $workflow->updateEstimate($assignment, $request->user(), $data['driver_estimate_at'], $data['driver_estimate_note'] ?? null);
 
-        return back()->with('status', 'Estimarea si observatia au fost salvate.');
+        $assignment->task->refresh();
+        $message = $assignment->task->status === 'accepted'
+            ? 'Estimarea a fost salvata. Sarcina nu este inca pornita.'
+            : 'Estimarea a fost salvata.';
+
+        return back()->with('status', $message);
     }
 
     public function requestReassignment(Request $request, TaskAssignment $assignment, TaskWorkflowService $workflow): RedirectResponse

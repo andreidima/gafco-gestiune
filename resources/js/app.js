@@ -3,6 +3,18 @@ import 'bootstrap';
 import TomSelect from 'tom-select';
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-flash-message]').forEach((message) => {
+        const timeout = Math.max(1000, Number(message.dataset.flashTimeout) || 4500);
+        window.setTimeout(() => {
+            const closeButton = message.querySelector('[data-bs-dismiss="alert"]');
+            if (closeButton) {
+                closeButton.click();
+            } else {
+                message.remove();
+            }
+        }, timeout);
+    });
+
     document.querySelectorAll('[data-tom-select]').forEach((element) => {
         const settings = {
             allowEmptyOption: true,

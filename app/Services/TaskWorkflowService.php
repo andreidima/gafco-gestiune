@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Task;
 use App\Models\TaskAssignment;
+use App\Models\TaskAssignmentEstimate;
 use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\TransferApproval;
@@ -182,9 +183,9 @@ class TaskWorkflowService
         });
     }
 
-    public function updateEstimate(TaskAssignment $assignment, User $driver, mixed $estimate, string $note): void
+    public function updateEstimate(TaskAssignment $assignment, User $driver, mixed $estimate, ?string $note): TaskAssignmentEstimate
     {
-        DB::transaction(function () use ($assignment, $driver, $estimate, $note): void {
+        return DB::transaction(function () use ($assignment, $driver, $estimate, $note): TaskAssignmentEstimate {
             $task = Task::query()->lockForUpdate()->findOrFail($assignment->task_id);
             $assignment = TaskAssignment::query()->lockForUpdate()->findOrFail($assignment->getKey());
             $task->load('currentAssignment.replacedAssignment');
@@ -196,21 +197,50 @@ class TaskWorkflowService
                     'driver_estimate_at' => 'Estimarea nu mai poate fi modificata pentru aceasta sarcina.',
                 ]);
             }
+            $latestEstimate = TaskAssignmentEstimate::query()
+                ->where('task_assignment_id', $assignment->id)
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+            $isCorrection = $latestEstimate?->canBeCorrected() ?? false;
+
+            if ($isCorrection) {
+                $latestEstimate->update([
+                    'estimated_at' => $estimate,
+                    'note' => $note,
+                ]);
+                $savedEstimate = $latestEstimate->refresh();
+            } else {
+                $savedEstimate = $assignment->estimates()->create([
+                    'driver_id' => $driver->id,
+                    'estimated_at' => $estimate,
+                    'note' => $note,
+                    'correctable_until' => now()->addMinutes(5),
+                ]);
+            }
+
             $assignment->update([
                 'driver_estimate_at' => $estimate,
                 'driver_estimate_note' => $note,
             ]);
+            $estimateLabel = $savedEstimate->estimated_at->format('d.m.Y H:i');
+            $commentBody = ($isCorrection ? 'Estimare corectata: ' : 'Estimare comunicata: ').$estimateLabel.'.';
+            if ($note) {
+                $commentBody .= ' '.$note;
+            }
             $task->comments()->create([
                 'user_id' => $driver->id,
                 'type' => 'estimate',
-                'body' => $note,
+                'body' => $commentBody,
             ]);
             $this->notifyManagers(
                 $task,
                 $driver,
-                'Estimare sofer modificata',
-                $driver->name.' a propus o alta estimare pentru '.$task->number.'.'
+                $isCorrection ? 'Estimare sofer corectata' : 'Estimare sofer noua',
+                $driver->name.($isCorrection ? ' a corectat estimarea pentru ' : ' a comunicat o estimare pentru ').$task->number.'.'
             );
+
+            return $savedEstimate;
         });
     }
 

@@ -143,6 +143,145 @@
     background: #f9fafb;
 }
 
+.driver-action-panel {
+    overflow: hidden;
+    border-color: rgba(43, 122, 88, 0.24);
+    box-shadow: 0 8px 24px rgba(28, 76, 57, 0.08);
+}
+
+.driver-action-panel > .card-header {
+    border-bottom-color: rgba(43, 122, 88, 0.14);
+}
+
+.driver-action-kicker {
+    display: block;
+    margin-bottom: 0.08rem;
+    color: #2f7459;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.driver-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.driver-action-step {
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid #dfe7e3;
+    border-radius: 0.8rem;
+    background: #fafcfb;
+}
+
+.driver-action-step-primary {
+    border-color: #b9dccd;
+    background: #f1faf6;
+}
+
+.driver-action-step-muted {
+    color: #5f6b66;
+    background: #f7f8f8;
+}
+
+.driver-action-step-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-bottom: 0.8rem;
+}
+
+.driver-action-step-heading small {
+    display: block;
+    margin-top: 0.12rem;
+    color: #6a7771;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.driver-action-step-number {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #2f7459;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.driver-start-reminder {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #abd7c5;
+    border-radius: 0.65rem;
+    background: #e8f7f0;
+    color: #235f47;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.driver-start-reminder.is-pending {
+    border-color: #f1d49b;
+    background: #fff8e8;
+    color: #7a5716;
+}
+
+.driver-secondary-action {
+    color: #5a6570;
+    font-size: 0.86rem;
+}
+
+.driver-secondary-action summary,
+.task-estimate-history summary {
+    cursor: pointer;
+}
+
+.task-estimate-history > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    list-style: none;
+}
+
+.task-estimate-history > summary::-webkit-details-marker {
+    display: none;
+}
+
+.task-estimate-latest {
+    color: #6d7780;
+    font-size: 0.8rem;
+}
+
+.task-estimate-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.task-estimate-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid #edf0f2;
+}
+
+.task-estimate-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
 .manager-selection-guidance {
     padding: 0.75rem 0.85rem;
     border: 1px solid #dfe6ea;
@@ -2483,6 +2622,63 @@ body {
     margin: -0.2rem 0 0.65rem;
 }
 
+.driver-task-tabs {
+    display: flex;
+    gap: 0.45rem;
+    margin: -0.2rem 0 0.8rem;
+    overflow-x: auto;
+    padding: 0.15rem 0 0.35rem;
+    scrollbar-width: none;
+}
+
+.driver-task-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.driver-task-tab {
+    display: inline-flex;
+    min-width: max-content;
+    min-height: 40px;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid rgba(20, 24, 80, 0.12);
+    border-radius: 10px;
+    background: #fff;
+    color: #5c6572;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.driver-task-tab:hover,
+.driver-task-tab.active {
+    border-color: #3c8064;
+    background: #eff8f4;
+    color: #27634c;
+}
+
+.driver-task-tab-count {
+    display: inline-flex;
+    min-width: 1.4rem;
+    min-height: 1.4rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: rgba(39, 99, 76, 0.1);
+    font-size: 0.7rem;
+}
+
+.app-flash-container {
+    position: relative;
+    z-index: 1030;
+}
+
+.app-flash-message {
+    box-shadow: 0 8px 24px rgba(20, 24, 80, 0.12);
+}
+
 .resource-filter-preset {
     display: inline-flex;
     align-items: center;
@@ -2663,6 +2859,51 @@ a.filter-chip:hover {
     flex: 1;
     align-items: center;
     justify-content: center;
+}
+
+.driver-task-card-route {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+    color: #35423d;
+}
+
+.driver-task-card-route > i {
+    color: #438066;
+}
+
+.driver-task-card-timing {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.6rem;
+}
+
+.driver-task-card-timing > div {
+    min-width: 0;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.55rem;
+    background: #f5f7f7;
+}
+
+.driver-task-card-timing span,
+.driver-task-card-timing strong {
+    display: block;
+}
+
+.driver-task-card-timing span {
+    margin-bottom: 0.08rem;
+    color: #747f7a;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.driver-task-card-timing strong {
+    font-size: 0.8rem;
+    line-height: 1.3;
 }
 
 .resource-empty-state {
@@ -3204,6 +3445,48 @@ a.filter-chip:hover {
         flex-wrap: wrap;
     }
 
+    .driver-task-tabs {
+        margin-top: -0.35rem;
+    }
+
+    .driver-task-index .resource-page-header p {
+        display: none;
+    }
+
+    .driver-task-tab {
+        min-height: 38px;
+        padding: 0.4rem 0.62rem;
+    }
+
+    .app-flash-container {
+        padding-right: 0.65rem;
+        padding-left: 0.65rem;
+    }
+
+    .app-flash-message {
+        margin-bottom: 0.75rem;
+        padding: 0.7rem 2.5rem 0.7rem 0.8rem;
+        font-size: 0.84rem;
+    }
+
+    .driver-action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .driver-action-panel .card-body {
+        padding: 0.75rem;
+    }
+
+    .driver-action-step {
+        padding: 0.75rem;
+    }
+
+    .task-estimate-history > summary {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
     .resource-filter-search {
         flex-basis: 100%;
     }
@@ -3233,6 +3516,19 @@ a.filter-chip:hover {
         gap: 0.65rem;
         padding: 0.65rem;
         background: #f7f8fb;
+    }
+
+    .driver-task-mobile-card .card-body {
+        padding: 0.65rem;
+    }
+
+    .driver-task-mobile-card .resource-mobile-card-header {
+        padding-bottom: 0.45rem;
+    }
+
+    .driver-task-mobile-card .resource-mobile-card-actions {
+        margin-top: 0.6rem;
+        padding-top: 0.6rem;
     }
 
     .resource-mobile-card-grid {
