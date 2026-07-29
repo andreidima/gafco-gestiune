@@ -183,6 +183,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Schimbare rapidă între utilizatori',
                 'Fișă completă de inventar pentru materiale',
                 'Centru de ajutor și noutăți în aplicație',
                 'Fluxuri complete pentru transferuri și sarcini',
@@ -193,5 +194,30 @@ class HelpCenterTest extends TestCase
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)->get(route('release-notes.show', $draft))->assertNotFound();
+    }
+
+    public function test_impersonation_release_updates_help_without_overwriting_history(): void
+    {
+        $article = HelpArticle::query()
+            ->with('revisions')
+            ->where('slug', 'ghiduri-dupa-rol')
+            ->sole();
+
+        $this->assertSame(3, $article->current_revision);
+        $this->assertCount(3, $article->revisions);
+        $this->assertStringContainsString('Schimbarea utilizatorului', $article->body_markdown);
+        $this->assertStringContainsString('Revino la contul meu', $article->body_markdown);
+        $this->assertTrue(
+            ReleaseNote::query()->where('slug', '2026-07-29-schimbare-utilizator')->exists()
+        );
+    }
+
+    public function test_impersonation_content_migration_supports_sql_preview(): void
+    {
+        $migration = require database_path('migrations/2026_07_29_000003_add_user_impersonation_permission_and_content.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertTrue(true);
     }
 }

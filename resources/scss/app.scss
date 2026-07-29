@@ -457,6 +457,123 @@ body {
     border-radius: 8px;
 }
 
+.impersonation-banner {
+    border-top: 1px solid rgba(86, 54, 0, 0.18);
+    border-bottom: 1px solid rgba(86, 54, 0, 0.22);
+    background: linear-gradient(90deg, #ffe9a6, #ffd978);
+    color: #493300;
+    box-shadow: 0 6px 18px rgba(86, 54, 0, 0.1);
+}
+
+.impersonation-banner-inner,
+.impersonation-banner-copy,
+.impersonation-banner-actions,
+.impersonation-user,
+.impersonation-user-identity {
+    display: flex;
+    align-items: center;
+}
+
+.impersonation-banner-inner {
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 54px;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+}
+
+.impersonation-banner-copy {
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.impersonation-banner-copy > i {
+    font-size: 1.1rem;
+}
+
+.impersonation-banner-role {
+    color: #6d520f;
+}
+
+.impersonation-banner-actions {
+    flex: 0 0 auto;
+    gap: 0.45rem;
+}
+
+.impersonation-modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(20, 24, 80, 0.24);
+}
+
+.impersonation-search-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(155px, 0.42fr);
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+}
+
+.impersonation-results {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.impersonation-loading,
+.impersonation-empty {
+    padding: 2rem 1rem;
+    color: #737b8d;
+    text-align: center;
+}
+
+.impersonation-user {
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(20, 24, 80, 0.1);
+    border-radius: 11px;
+    background: #fff;
+}
+
+.impersonation-user:hover {
+    border-color: rgba(112, 59, 59, 0.28);
+    background: #fbf9f7;
+}
+
+.impersonation-user-identity {
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.impersonation-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 50%;
+    background: rgba(112, 59, 59, 0.12);
+    color: #703b3b;
+    font-weight: 800;
+}
+
+.impersonation-user-name {
+    overflow: hidden;
+    color: #20263a;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.impersonation-user-meta {
+    overflow: hidden;
+    color: #737b8d;
+    font-size: 0.76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .dropdown-item.active,
 .dropdown-item:active {
     background-color: #703B3B;
@@ -2149,6 +2266,40 @@ a.filter-chip:hover {
 }
 
 @media (max-width: 767.98px) {
+    .impersonation-banner-inner {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 0.55rem;
+    }
+
+    .impersonation-banner-copy {
+        align-items: flex-start;
+    }
+
+    .impersonation-banner-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .impersonation-banner-actions .btn,
+    .impersonation-banner-actions form {
+        width: 100%;
+    }
+
+    .impersonation-search-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .impersonation-user {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .impersonation-user form,
+    .impersonation-user .btn {
+        width: 100%;
+    }
+
     .resource-shell,
     .resource-form-shell {
         width: min(100% - 1rem, 100%);

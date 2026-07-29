@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Controllers\System\DatabaseController;
+use App\Http\Middleware\RejectImpersonatedRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +18,7 @@ class DatabaseToolsServiceProvider extends ServiceProvider
             return Str::lower((string) $user->email) === 'andrei.dima@usm.ro';
         });
 
-        Route::middleware(['web', 'auth', 'can:access-database-tools'])
+        Route::middleware(['web', 'auth', RejectImpersonatedRequest::class, 'can:access-database-tools'])
             ->group(function (): void {
                 Route::get('/system/database', [DatabaseController::class, 'index'])->name('system.database');
                 Route::post('/system/database/backup', [DatabaseController::class, 'backup'])->name('system.database.backup');

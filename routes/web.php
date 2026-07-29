@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\FieldModeController;
 use App\Http\Controllers\HelpCenterController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
@@ -25,7 +26,10 @@ use App\Http\Controllers\TransferApprovalController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPreferenceController;
+use App\Http\Middleware\AuditImpersonatedRequest;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RejectImpersonatedRequest;
+use App\Http\Middleware\ValidateImpersonation;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -43,12 +47,25 @@ Route::get('/', function () {
         : view('welcome');
 })->name('landing');
 
-Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
+Route::middleware([
+    'auth',
+    ValidateImpersonation::class,
+    EnsureUserIsActive::class,
+    AuditImpersonatedRequest::class,
+])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/ajutor', [HelpCenterController::class, 'index'])->name('help.index');
     Route::get('/ajutor/{helpArticle}', [HelpCenterController::class, 'show'])->name('help.show');
     Route::get('/noutati', [ReleaseNoteController::class, 'index'])->name('release-notes.index');
     Route::get('/noutati/{releaseNote}', [ReleaseNoteController::class, 'show'])->name('release-notes.show');
+
+    Route::get('/impersonare/utilizatori', [ImpersonationController::class, 'users'])
+        ->name('impersonation.users');
+    Route::post('/impersonare/oprire', [ImpersonationController::class, 'stop'])
+        ->name('impersonation.stop');
+    Route::post('/impersonare/utilizatori/{user}', [ImpersonationController::class, 'take'])
+        ->middleware('throttle:30,1')
+        ->name('impersonation.take');
 
     Route::resource('locations', LocationController::class)->only(['create', 'store', 'edit', 'update'])
         ->middleware('role:super-admin|admin|dispecer');
@@ -109,5 +126,7 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index')
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
 
-    Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update'])->middleware('role:admin|super-admin');
+    Route::resource('users', UserController::class)
+        ->only(['index', 'create', 'store', 'edit', 'update'])
+        ->middleware(['role:admin|super-admin', RejectImpersonatedRequest::class]);
 });

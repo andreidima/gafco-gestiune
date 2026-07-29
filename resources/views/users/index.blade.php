@@ -8,6 +8,8 @@
     $hasFilters = request()->filled('search')
         || request()->filled('role')
         || (request()->has('active') && request('active') !== '');
+    $impersonationService = app(\App\Services\ImpersonationService::class);
+    $impersonationActor = auth()->user();
 @endphp
 <div class="resource-shell">
     <x-resource-page-header
@@ -56,7 +58,23 @@
                             </div>
                         </td>
                         <td><span class="badge text-bg-{{ $user->active ? 'success' : 'secondary' }}">{{ $user->active ? 'Activ' : 'Inactiv' }}</span></td>
-                        <td><div class="resource-row-actions"><x-resource-icon-button :href="route('users.edit', $user)" icon="fa-pen" label="Modifica utilizatorul" /></div></td>
+                        <td>
+                            <div class="resource-row-actions">
+                                @if($impersonationService->canTake($impersonationActor, $user))
+                                    <form method="post" action="{{ route('impersonation.take', $user) }}">
+                                        @csrf
+                                        <button
+                                            class="btn btn-outline-warning resource-icon-button"
+                                            title="Intră în contul utilizatorului"
+                                            aria-label="Intră în contul utilizatorului {{ $user->name }}"
+                                        >
+                                            <i class="fa-solid fa-user-secret"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                <x-resource-icon-button :href="route('users.edit', $user)" icon="fa-pen" label="Modifica utilizatorul" />
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
@@ -117,6 +135,14 @@
                         </div>
 
                         <div class="resource-mobile-card-actions">
+                            @if($impersonationService->canTake($impersonationActor, $user))
+                                <form method="post" action="{{ route('impersonation.take', $user) }}" class="d-flex flex-fill">
+                                    @csrf
+                                    <button class="btn btn-outline-warning btn-sm flex-fill">
+                                        <i class="fa-solid fa-user-secret me-1"></i>Intră în cont
+                                    </button>
+                                </form>
+                            @endif
                             <a href="{{ route('users.edit', $user) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifica</a>
                         </div>
                     </div>

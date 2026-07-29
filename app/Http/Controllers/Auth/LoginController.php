@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ImpersonationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,8 +67,12 @@ class LoginController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
-    public function destroy(Request $request): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        ImpersonationService $impersonation,
+    ): RedirectResponse {
+        $impersonation->endBeforeLogout($request);
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

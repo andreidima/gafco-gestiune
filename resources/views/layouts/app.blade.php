@@ -21,6 +21,11 @@
             $navigationAccounting = $navigationUser->hasRole('contabil');
             $navigationManagement = $navigationUser->isManagementUser();
             $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
+            $impersonationContext = app(\App\Support\ImpersonationContext::class);
+            $isImpersonating = $impersonationContext->isActive();
+            $impersonationActor = $impersonationContext->actor();
+            $impersonationAvailable = $impersonationActor?->active
+                && $impersonationActor->can(\App\Support\ImpersonationContext::PERMISSION);
         @endphp
         <header>
             <nav class="navbar navbar-lg navbar-expand-lg navbar-dark shadow culoare1">
@@ -111,11 +116,13 @@
                                             </a>
                                         </li>
                                         @can('access-database-tools')
-                                            <li>
-                                                <a class="dropdown-item {{ request()->routeIs('system.database*') ? 'active' : '' }}" href="{{ route('system.database') }}">
-                                                    Baza de date si migrari
-                                                </a>
-                                            </li>
+                                            @unless($isImpersonating)
+                                                <li>
+                                                    <a class="dropdown-item {{ request()->routeIs('system.database*') ? 'active' : '' }}" href="{{ route('system.database') }}">
+                                                        Baza de date si migrari
+                                                    </a>
+                                                </li>
+                                            @endunless
                                         @endcan
                                     </ul>
                                 </li>
@@ -123,6 +130,21 @@
                         </ul>
 
                         <ul class="navbar-nav ms-auto">
+                            @if($impersonationAvailable)
+                                <li class="nav-item me-2">
+                                    <button
+                                        type="button"
+                                        class="nav-link text-white border-0 bg-transparent"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#impersonationModal"
+                                        aria-label="Schimbă utilizatorul"
+                                        title="Schimbă utilizatorul"
+                                    >
+                                        <i class="fa-solid fa-user-secret"></i>
+                                        <span class="d-lg-none ms-1">Schimbă utilizatorul</span>
+                                    </button>
+                                </li>
+                            @endif
                             <li class="nav-item dropdown me-2">
                                 <a
                                     class="nav-link dropdown-toggle text-white {{ request()->routeIs('help.*', 'release-notes.*') ? 'active' : '' }}"
@@ -199,7 +221,48 @@
                     </div>
                 </div>
             </nav>
+            @if($isImpersonating)
+                <div class="impersonation-banner" role="status">
+                    <div class="container impersonation-banner-inner">
+                        <div class="impersonation-banner-copy">
+                            <i class="fa-solid fa-user-secret" aria-hidden="true"></i>
+                            <span>
+                                Vizualizezi aplicația ca
+                                <strong>{{ $navigationUser->name }}</strong>
+                                @if($navigationUser->roles->isNotEmpty())
+                                    <span class="impersonation-banner-role">
+                                        ({{ $navigationUser->roles->map(fn ($role) => config('roles.labels.'.$role->name, $role->name))->join(', ') }})
+                                    </span>
+                                @endif
+                                <span class="d-block d-md-inline">
+                                    Administrator: <strong>{{ $impersonationActor?->name }}</strong>.
+                                </span>
+                            </span>
+                        </div>
+                        <div class="impersonation-banner-actions">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-dark"
+                                data-bs-toggle="modal"
+                                data-bs-target="#impersonationModal"
+                            >
+                                <i class="fa-solid fa-repeat me-1"></i>Schimbă
+                            </button>
+                            <form method="post" action="{{ route('impersonation.stop') }}">
+                                @csrf
+                                <button class="btn btn-sm btn-dark">
+                                    <i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Revino la contul meu
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </header>
+
+        @if($impersonationAvailable)
+            @include('components.impersonation-selector')
+        @endif
     @endauth
 
     <main class="flex-shrink-0 py-4">
