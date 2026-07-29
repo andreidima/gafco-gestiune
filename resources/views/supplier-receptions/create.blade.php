@@ -92,6 +92,12 @@
                         @endforeach
                     </select>
                     <div class="form-text">Același material poate proveni de la furnizori diferiți.</div>
+                    @can('suppliers.manage')
+                        <div class="form-text">
+                            Nu găsești furnizorul?
+                            <a href="{{ route('suppliers.create') }}" target="_blank" rel="noopener">Adaugă-l în lista de furnizori</a>.
+                        </div>
+                    @endcan
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Tip document</label>

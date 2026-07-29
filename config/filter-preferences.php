@@ -18,6 +18,9 @@ return [
             'tracking_type' => ['type' => 'enum', 'values' => ['quantity', 'serialized']],
             'active' => ['type' => 'enum', 'values' => ['0', '1']],
         ],
+        'suppliers.index' => [
+            'active' => ['type' => 'enum', 'values' => ['0', '1']],
+        ],
         'tracked-assets.index' => [
             'location_id' => ['type' => 'visible_location'],
             'status' => ['type' => 'enum', 'values' => ['available', 'in_use', 'in_transfer', 'maintenance', 'lost']],

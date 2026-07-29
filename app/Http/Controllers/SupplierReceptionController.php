@@ -68,7 +68,7 @@ class SupplierReceptionController extends Controller
                 ->paginate(20)
                 ->withQueryString(),
             'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::orderByDesc('active')->orderBy('name')->get(),
             'items' => CatalogItem::where('active', true)->where('tracking_type', 'quantity')->orderBy('name')->get(),
             'totalReceptions' => SupplierReception::query()
                 ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('location_id', $visibleLocationIds))
@@ -186,6 +186,10 @@ class SupplierReceptionController extends Controller
                         ->findOrFail($negotiatedOrder->id);
                     abort_unless($lockedOrder->isCreated(), 409, 'Comanda este deja închisă.');
                 }
+                if (! empty($data['supplier_id'])) {
+                    $supplier = Supplier::query()->lockForUpdate()->find($data['supplier_id']);
+                    abort_unless($supplier?->active, 422, 'Furnizorul ales nu mai este activ.');
+                }
                 $receptionAttributes = [
                     'number' => 'RF-'.now()->format('Ymd-His').'-'.Str::upper(Str::random(4)),
                     'location_id' => $location->id,
@@ -285,7 +289,15 @@ class SupplierReceptionController extends Controller
 
         return view('supplier-receptions.edit', [
             'reception' => $supplierReception,
-            'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::query()
+                ->where('active', true)
+                ->when(
+                    $supplierReception->supplier_id,
+                    fn ($query, $supplierId) => $query->orWhere('id', $supplierId),
+                )
+                ->orderByDesc('active')
+                ->orderBy('name')
+                ->get(),
             'currencies' => self::CURRENCIES,
             'documentTypes' => ReceptionDocument::TYPE_LABELS,
             'canEditAll' => $canEditAll,
@@ -315,6 +327,15 @@ class SupplierReceptionController extends Controller
                 $before = $this->metadataSnapshot($supplierReception);
 
                 if ($canEditAll) {
+                    if (! empty($data['supplier_id'])) {
+                        $supplier = Supplier::query()->lockForUpdate()->find($data['supplier_id']);
+                        abort_unless(
+                            $supplier?->active
+                                || (int) $supplier?->id === (int) $supplierReception->supplier_id,
+                            422,
+                            'Furnizorul ales nu mai este activ.',
+                        );
+                    }
                     $supplierReception->update([
                         'supplier_id' => $data['supplier_id'] ?? null,
                         'document_type' => $data['document_type'],
@@ -461,7 +482,15 @@ class SupplierReceptionController extends Controller
 
         if ($canEditAll) {
             $rules += [
-                'supplier_id' => ['nullable', Rule::exists('suppliers', 'id')->where('active', true)],
+                'supplier_id' => [
+                    'nullable',
+                    Rule::exists('suppliers', 'id')->where(fn ($query) => $query
+                        ->where('active', true)
+                        ->when(
+                            $reception->supplier_id,
+                            fn ($supplierQuery, $supplierId) => $supplierQuery->orWhere('id', $supplierId),
+                        )),
+                ],
                 'document_type' => ['required', 'in:aviz,factura'],
                 'document_number' => ['nullable', 'string', 'max:255'],
                 'notes' => ['nullable', 'string', 'max:4000'],

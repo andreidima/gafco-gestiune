@@ -47,7 +47,7 @@ class HelpCenterTest extends TestCase
     {
         $articles = HelpArticle::query()->with('revisions')->get();
 
-        $this->assertCount(6, $articles);
+        $this->assertCount(7, $articles);
         $articles->each(function (HelpArticle $article): void {
             $revisions = $article->revisions->sortBy('revision')->values();
             $currentRevision = $revisions->last();
@@ -212,6 +212,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Furnizorii pot fi administrați direct din aplicație',
                 'Sarcinile șoferului, mai rapide și mai clare pe mobil',
                 'Planuri de materiale pe proiect și alerte la depășire',
                 'Mai multă claritate în activitatea zilnică',
@@ -223,13 +224,13 @@ class HelpCenterTest extends TestCase
                 'Filtre memorate și administrare standardizată',
                 'Schimbare rapidă între utilizatori',
                 'Fișă completă de inventar pentru materiale',
-                'Centru de ajutor și noutăți în aplicație',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Centru de ajutor și noutăți în aplicație')
             ->assertSee('Fluxuri complete pentru transferuri și sarcini')
             ->assertSee('Navigare mai clară în liste')
             ->assertSee('Recepții, consum și vizibilitate operațională')

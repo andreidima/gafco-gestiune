@@ -56,7 +56,7 @@
                             </li>
                             @if($navigationManagement || $navigationAccounting)
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'projects.*', 'reception-intakes.*', 'supplier-receptions.*', 'negotiated-orders.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'suppliers.*', 'inventory.*', 'tracked-assets.*', 'projects.*', 'reception-intakes.*', 'supplier-receptions.*', 'negotiated-orders.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
@@ -65,6 +65,7 @@
                                             <li><a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">Echipamente</a></li>
                                             <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
                                         @endif
+                                        <li><a class="dropdown-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" href="{{ route('suppliers.index') }}">Furnizori</a></li>
                                         @if($navigationManagement && $projectsAvailable)
                                             <li><a class="dropdown-item {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}">Proiecte materiale</a></li>
                                         @endif

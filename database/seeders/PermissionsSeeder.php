@@ -24,6 +24,7 @@ class PermissionsSeeder extends Seeder
             'accounting.edit-operations',
             'users.impersonate',
             'consumption-reports.correct',
+            'suppliers.manage',
         ] as $permission) {
             Permission::findOrCreate($permission);
         }
@@ -38,6 +39,10 @@ class PermissionsSeeder extends Seeder
 
         foreach (['super-admin', 'admin', 'dispecer'] as $role) {
             Role::findByName($role)->givePermissionTo('inventory.manage');
+        }
+
+        foreach (['super-admin', 'admin', 'dispecer', 'contabil'] as $role) {
+            Role::findByName($role)->givePermissionTo('suppliers.manage');
         }
 
         foreach (['super-admin', 'admin'] as $role) {

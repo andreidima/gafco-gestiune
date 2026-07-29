@@ -50,7 +50,7 @@
                 <select name="supplier_id" class="form-select">
                     <option value="">Toți</option>
                     @foreach($suppliers as $supplier)
-                        <option value="{{ $supplier->id }}" @selected((string) request('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}</option>
+                        <option value="{{ $supplier->id }}" @selected((string) request('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}</option>
                     @endforeach
                 </select>
             </div>

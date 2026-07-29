@@ -22,6 +22,7 @@ use App\Http\Controllers\ReceptionIntakeController;
 use App\Http\Controllers\ReleaseNoteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierReceptionController;
 use App\Http\Controllers\TaskAssignmentController;
 use App\Http\Controllers\TaskCommentController;
@@ -85,6 +86,16 @@ Route::middleware([
         ->middleware('role:super-admin|admin|dispecer|gestionar-baza');
     Route::resource('catalog-items', CatalogItemController::class)->only(['index'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+    Route::resource('suppliers', SupplierController::class)->only(['index'])
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+    Route::resource('suppliers', SupplierController::class)->only(['create', 'store', 'edit', 'update'])
+        ->middleware('permission:suppliers.manage');
+    Route::post('suppliers/{supplier}/deactivate', [SupplierController::class, 'deactivate'])
+        ->middleware('permission:suppliers.manage')
+        ->name('suppliers.deactivate');
+    Route::post('suppliers/{supplier}/activate', [SupplierController::class, 'activate'])
+        ->middleware('permission:suppliers.manage')
+        ->name('suppliers.activate');
     Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index')
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::get('inventory/{catalogItem}', [InventoryController::class, 'show'])->name('inventory.show')

@@ -42,7 +42,7 @@ class NegotiatedOrderController extends Controller
             'orders' => $orders,
             'totalOrders' => NegotiatedOrder::count(),
             'locations' => Location::where('active', true)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::orderByDesc('active')->orderBy('name')->get(),
         ]);
     }
 
@@ -56,6 +56,10 @@ class NegotiatedOrderController extends Controller
         $data = $this->validatePayload($request);
 
         $order = DB::transaction(function () use ($data, $request): NegotiatedOrder {
+            if (! empty($data['supplier_id'])) {
+                $supplier = Supplier::query()->lockForUpdate()->find($data['supplier_id']);
+                abort_unless($supplier?->active, 422, 'Furnizorul ales nu mai este activ.');
+            }
             $order = NegotiatedOrder::create([
                 'number' => 'CMD-TMP-'.Str::upper(Str::random(16)),
                 'status' => NegotiatedOrder::STATUS_CREATED,
@@ -104,18 +108,26 @@ class NegotiatedOrderController extends Controller
         $negotiatedOrder->load('lines.catalogItem');
 
         return view('negotiated-orders.edit', [
-            ...$this->formOptions(),
+            ...$this->formOptions($negotiatedOrder),
             'order' => $negotiatedOrder,
         ]);
     }
 
     public function update(Request $request, NegotiatedOrder $negotiatedOrder): RedirectResponse
     {
-        $data = $this->validatePayload($request);
+        $data = $this->validatePayload($request, $negotiatedOrder);
 
         DB::transaction(function () use ($data, $request, $negotiatedOrder): void {
             $order = NegotiatedOrder::query()->lockForUpdate()->findOrFail($negotiatedOrder->id);
             abort_unless($order->isCreated(), 409, 'O comandă închisă nu mai poate fi modificată.');
+            if (! empty($data['supplier_id'])) {
+                $supplier = Supplier::query()->lockForUpdate()->find($data['supplier_id']);
+                abort_unless(
+                    $supplier?->active || (int) $supplier?->id === (int) $order->supplier_id,
+                    422,
+                    'Furnizorul ales nu mai este activ.',
+                );
+            }
 
             $before = $this->snapshot($order->load('lines'));
             $order->update([
@@ -170,11 +182,19 @@ class NegotiatedOrderController extends Controller
             ->with('status', 'Comanda a fost închisă ca anulată. Datele rămân în istoric.');
     }
 
-    private function formOptions(): array
+    private function formOptions(?NegotiatedOrder $order = null): array
     {
         return [
             'locations' => Location::where('active', true)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::query()
+                ->where('active', true)
+                ->when(
+                    $order?->supplier_id,
+                    fn ($query, $supplierId) => $query->orWhere('id', $supplierId),
+                )
+                ->orderByDesc('active')
+                ->orderBy('name')
+                ->get(),
             'items' => CatalogItem::where('active', true)
                 ->where('tracking_type', 'quantity')
                 ->orderBy('name')
@@ -183,11 +203,19 @@ class NegotiatedOrderController extends Controller
         ];
     }
 
-    private function validatePayload(Request $request): array
+    private function validatePayload(Request $request, ?NegotiatedOrder $order = null): array
     {
         return $request->validate([
             'location_id' => ['required', Rule::exists('locations', 'id')->where('active', true)],
-            'supplier_id' => ['nullable', Rule::exists('suppliers', 'id')->where('active', true)],
+            'supplier_id' => [
+                'nullable',
+                Rule::exists('suppliers', 'id')->where(fn ($query) => $query
+                    ->where('active', true)
+                    ->when(
+                        $order?->supplier_id,
+                        fn ($supplierQuery, $supplierId) => $supplierQuery->orWhere('id', $supplierId),
+                    )),
+            ],
             'currency' => ['required', Rule::in(self::CURRENCIES)],
             'notes' => ['nullable', 'string', 'max:4000'],
             'lines' => ['required', 'array', 'min:1', 'max:50'],

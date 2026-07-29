@@ -41,10 +41,16 @@
                     <option value="">Nespecificat încă</option>
                     @foreach($suppliers as $supplier)
                         <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $currentOrder?->supplier_id) === (string) $supplier->id)>
-                            {{ $supplier->name }}
+                            {{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}
                         </option>
                     @endforeach
                 </select>
+                @can('suppliers.manage')
+                    <div class="form-text">
+                        Nu găsești furnizorul?
+                        <a href="{{ route('suppliers.create') }}" target="_blank" rel="noopener">Adaugă-l în lista de furnizori</a>.
+                    </div>
+                @endcan
                 <div class="form-text">Poți salva comanda și completa furnizorul ulterior.</div>
             </div>
             <div class="col-lg-4 col-md-6">

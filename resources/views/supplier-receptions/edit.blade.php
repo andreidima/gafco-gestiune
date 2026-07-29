@@ -31,7 +31,7 @@
                         <select name="supplier_id" class="form-select" data-tom-select>
                             <option value="">Nespecificat</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $reception->supplier_id) === (string) $supplier->id)>{{ $supplier->name }}</option>
+                                <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $reception->supplier_id) === (string) $supplier->id)>{{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}</option>
                             @endforeach
                         </select>
                     @else
