@@ -42,6 +42,11 @@ return [
             'catalog_item_id' => ['type' => 'positive_integer'],
             'document_type' => ['type' => 'enum', 'values' => ['aviz', 'factura']],
         ],
+        'negotiated-orders.index' => [
+            'status' => ['type' => 'enum', 'values' => ['created', 'closed']],
+            'location_id' => ['type' => 'visible_location'],
+            'supplier_id' => ['type' => 'positive_integer'],
+        ],
         'consumption-reports.index' => [
             'location_id' => ['type' => 'visible_location'],
             'catalog_item_id' => ['type' => 'positive_integer'],

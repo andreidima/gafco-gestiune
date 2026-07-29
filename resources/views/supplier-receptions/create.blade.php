@@ -3,8 +3,18 @@
 @section('title', 'Recepție nouă')
 
 @php
-    $selectedLocation = old('location_id', $intake?->location_id);
-    $oldLines = old('lines', [[
+    $selectedLocation = old('location_id', $intake?->location_id ?? $negotiatedOrder?->location_id);
+    $prefilledLines = $negotiatedOrder
+        ? $negotiatedOrder->lines->map(fn ($line) => [
+            'catalog_item_id' => $line->catalog_item_id,
+            'quantity' => $line->quantity,
+            'lot_code' => '',
+            'expires_at' => '',
+            'unit_price' => $line->unit_price,
+            'currency' => $negotiatedOrder->currency,
+            'notes' => $line->notes,
+        ])->all()
+        : [[
         'catalog_item_id' => '',
         'quantity' => 1,
         'lot_code' => '',
@@ -12,14 +22,20 @@
         'unit_price' => '',
         'currency' => 'RON',
         'notes' => '',
-    ]]);
+    ]];
+    $oldLines = old('lines', $prefilledLines);
+    $backRoute = $intake
+        ? route('reception-intakes.show', $intake)
+        : ($negotiatedOrder
+            ? route('negotiated-orders.show', $negotiatedOrder)
+            : route('supplier-receptions.index'));
 @endphp
 
 @section('content')
 <x-resource-form-shell
     title="Recepție nouă"
     description="Poți introduce mai multe materiale. Stocul se actualizează numai când salvezi recepția."
-    :back-route="$intake ? route('reception-intakes.show', $intake) : route('supplier-receptions.index')"
+    :back-route="$backRoute"
     icon="fa-truck-ramp-box"
 >
     <form
@@ -37,6 +53,18 @@
                 <div class="small">
                     Cele {{ $intake->documents->count() }} documente existente vor fi legate automat de recepție.
                     Verifică informațiile și completează materialele.
+                </div>
+            </div>
+        @endif
+        @if($negotiatedOrder)
+            <input type="hidden" name="negotiated_order_id" value="{{ $negotiatedOrder->id }}">
+            <div class="alert alert-info m-3 mb-0">
+                <div class="fw-semibold">
+                    <i class="fa-solid fa-file-invoice-dollar me-1"></i>Recepție pornită din {{ $negotiatedOrder->number }}
+                </div>
+                <div class="small">
+                    Locația, furnizorul, materialele, cantitățile și prețurile sunt precompletate.
+                    Le poți corecta după livrarea reală. Comanda se închide numai după salvarea recepției.
                 </div>
             </div>
         @endif
@@ -60,7 +88,7 @@
                     <select name="supplier_id" class="form-select" data-tom-select>
                         <option value="">Nespecificat</option>
                         @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}" @selected((string) old('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}</option>
+                            <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $negotiatedOrder?->supplier_id) === (string) $supplier->id)>{{ $supplier->name }}</option>
                         @endforeach
                     </select>
                     <div class="form-text">Același material poate proveni de la furnizori diferiți.</div>
@@ -83,7 +111,7 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label">Observații generale</label>
-                    <textarea name="notes" class="form-control" rows="3" maxlength="4000" placeholder="Starea livrării, diferențe sau alte mențiuni">{{ old('notes') }}</textarea>
+                    <textarea name="notes" class="form-control" rows="3" maxlength="4000" placeholder="Starea livrării, diferențe sau alte mențiuni">{{ old('notes', $negotiatedOrder?->notes) }}</textarea>
                 </div>
             </div>
         </section>
@@ -204,7 +232,7 @@
         />
 
         <div class="resource-form-actions-bar">
-            <a href="{{ $intake ? route('reception-intakes.show', $intake) : route('supplier-receptions.index') }}" class="btn btn-outline-secondary">Renunță</a>
+            <a href="{{ $backRoute }}" class="btn btn-outline-secondary">Renunță</a>
             <button class="btn btn-success">
                 <i class="fa-solid fa-check me-1"></i>Confirmă recepția și actualizează stocul
             </button>

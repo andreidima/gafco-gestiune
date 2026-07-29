@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['number', 'location_id', 'supplier_id', 'received_by', 'document_type', 'document_number', 'document_photo_path', 'status', 'received_at', 'notes'])]
+#[Fillable(['number', 'negotiated_order_id', 'location_id', 'supplier_id', 'received_by', 'document_type', 'document_number', 'document_photo_path', 'status', 'received_at', 'notes'])]
 class SupplierReception extends Model
 {
     use HasFactory;
@@ -46,5 +46,10 @@ class SupplierReception extends Model
     public function intakes(): HasMany
     {
         return $this->hasMany(ReceptionIntake::class);
+    }
+
+    public function negotiatedOrder(): BelongsTo
+    {
+        return $this->belongsTo(NegotiatedOrder::class);
     }
 }

@@ -38,6 +38,12 @@
                         <div><dt>Tip</dt><dd>{{ $reception->document_type === 'factura' ? 'Factură' : 'Aviz' }}</dd></div>
                         <div><dt>Număr</dt><dd>{{ $reception->document_number ?: '—' }}</dd></div>
                         <div><dt>Înregistrat de</dt><dd>{{ $reception->receiver?->name ?? '—' }}</dd></div>
+                        @if($reception->relationLoaded('negotiatedOrder') && $reception->negotiatedOrder)
+                            <div>
+                                <dt>Comandă negociată</dt>
+                                <dd><a href="{{ route('negotiated-orders.show', $reception->negotiatedOrder) }}">{{ $reception->negotiatedOrder->number }}</a></dd>
+                            </div>
+                        @endif
                         @if($reception->intakes->isNotEmpty())
                             <div>
                                 <dt>Sursă</dt>

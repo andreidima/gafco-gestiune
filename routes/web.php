@@ -12,6 +12,7 @@ use App\Http\Controllers\HelpCenterController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\NegotiatedOrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationalAlertController;
 use App\Http\Controllers\QrScanController;
@@ -140,6 +141,13 @@ Route::middleware([
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['index', 'show'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['edit', 'update']);
+    Route::resource('negotiated-orders', NegotiatedOrderController::class)
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+        ->parameters(['negotiated-orders' => 'negotiatedOrder'])
+        ->middleware('role:super-admin|admin');
+    Route::post('negotiated-orders/{negotiatedOrder}/cancel', [NegotiatedOrderController::class, 'cancel'])
+        ->middleware('role:super-admin|admin')
+        ->name('negotiated-orders.cancel');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['index'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
     Route::get('consumption-reports/allocation-proposal', [ConsumptionReportController::class, 'allocationProposal'])

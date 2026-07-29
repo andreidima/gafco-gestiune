@@ -8,6 +8,7 @@
         'pending_acceptance' => 'Asteapta soferul',
         'unassigned' => 'Nealocat',
         'approved' => 'Aprobat',
+        'created' => 'Creat',
         'open' => 'Deschis',
         'assigned' => 'Alocat',
         'in_progress' => 'In lucru',

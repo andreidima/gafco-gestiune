@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CatalogItem;
 use App\Models\Location;
+use App\Models\NegotiatedOrder;
 use App\Models\ReceptionDocument;
 use App\Models\ReceptionIntake;
 use App\Models\Supplier;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -83,7 +85,7 @@ class SupplierReceptionController extends Controller
     public function show(Request $request, SupplierReception $supplierReception): View
     {
         abort_unless($this->receptionAccess->canViewReception($request->user(), $supplierReception), 403);
-        $supplierReception->load([
+        $relations = [
             'location',
             'supplier',
             'receiver',
@@ -91,7 +93,11 @@ class SupplierReceptionController extends Controller
             'lines.inventoryLot',
             'documents.uploader',
             'intakes',
-        ]);
+        ];
+        if (Schema::hasColumn('supplier_receptions', 'negotiated_order_id')) {
+            $relations[] = 'negotiatedOrder';
+        }
+        $supplierReception->load($relations);
 
         return view('supplier-receptions.show', [
             'reception' => $supplierReception,
@@ -106,11 +112,20 @@ class SupplierReceptionController extends Controller
         $locations = $this->writeLocations($request->user())->orderBy('name')->get();
         abort_if($locations->isEmpty(), 403);
         $intake = null;
+        $negotiatedOrder = null;
 
         if ($request->filled('intake_id')) {
             $intake = ReceptionIntake::with(['location', 'submitter', 'documents'])
                 ->findOrFail($request->integer('intake_id'));
             abort_unless($this->receptionAccess->canProcessIntake($request->user(), $intake), 403);
+        }
+
+        if ($request->filled('negotiated_order_id')) {
+            abort_if($intake, 422);
+            abort_unless($request->user()->hasAnyRole(['super-admin', 'admin']), 403);
+            $negotiatedOrder = NegotiatedOrder::with(['location', 'supplier', 'lines.catalogItem'])
+                ->findOrFail($request->integer('negotiated_order_id'));
+            abort_unless($negotiatedOrder->isCreated(), 409, 'Comanda este deja închisă.');
         }
 
         return view('supplier-receptions.create', [
@@ -120,6 +135,7 @@ class SupplierReceptionController extends Controller
             'currencies' => self::CURRENCIES,
             'documentTypes' => ReceptionDocument::TYPE_LABELS,
             'intake' => $intake,
+            'negotiatedOrder' => $negotiatedOrder,
         ]);
     }
 
@@ -134,6 +150,12 @@ class SupplierReceptionController extends Controller
             abort_unless($this->receptionAccess->canProcessIntake($user, $intake), 403);
             abort_unless((int) $intake->location_id === (int) $data['location_id'], 422);
         }
+        $negotiatedOrder = null;
+        if (! empty($data['negotiated_order_id'])) {
+            abort_unless($user->hasAnyRole(['super-admin', 'admin']), 403);
+            $negotiatedOrder = NegotiatedOrder::findOrFail($data['negotiated_order_id']);
+            abort_unless($negotiatedOrder->isCreated(), 409, 'Comanda este deja închisă.');
+        }
 
         $storedDocuments = collect();
         try {
@@ -142,6 +164,7 @@ class SupplierReceptionController extends Controller
                 $user,
                 $ledger,
                 $intake,
+                $negotiatedOrder,
                 &$storedDocuments,
             ): SupplierReception {
                 $location = $this->writeLocations($user)
@@ -156,7 +179,14 @@ class SupplierReceptionController extends Controller
                         409,
                     );
                 }
-                $reception = SupplierReception::create([
+                $lockedOrder = null;
+                if ($negotiatedOrder) {
+                    $lockedOrder = NegotiatedOrder::query()
+                        ->lockForUpdate()
+                        ->findOrFail($negotiatedOrder->id);
+                    abort_unless($lockedOrder->isCreated(), 409, 'Comanda este deja închisă.');
+                }
+                $receptionAttributes = [
                     'number' => 'RF-'.now()->format('Ymd-His').'-'.Str::upper(Str::random(4)),
                     'location_id' => $location->id,
                     'supplier_id' => $data['supplier_id'] ?? null,
@@ -166,7 +196,11 @@ class SupplierReceptionController extends Controller
                     'status' => 'posted',
                     'received_at' => now(),
                     'notes' => $data['notes'] ?? null,
-                ]);
+                ];
+                if ($lockedOrder) {
+                    $receptionAttributes['negotiated_order_id'] = $lockedOrder->id;
+                }
+                $reception = SupplierReception::create($receptionAttributes);
 
                 foreach ($data['lines'] as $lineData) {
                     $item = CatalogItem::where('active', true)
@@ -203,6 +237,15 @@ class SupplierReceptionController extends Controller
                         'closed_at' => now(),
                     ]);
                 }
+                if ($lockedOrder) {
+                    $lockedOrder->update([
+                        'status' => NegotiatedOrder::STATUS_CLOSED,
+                        'closure_type' => NegotiatedOrder::CLOSURE_RECEPTION,
+                        'closure_reason' => null,
+                        'closed_by' => $user->id,
+                        'closed_at' => now(),
+                    ]);
+                }
 
                 activity()
                     ->performedOn($reception)
@@ -211,6 +254,7 @@ class SupplierReceptionController extends Controller
                         'line_count' => count($data['lines']),
                         'direct_document_count' => $storedDocuments->count(),
                         'intake_id' => $lockedIntake?->id,
+                        'negotiated_order_id' => $lockedOrder?->id,
                     ])
                     ->log('Recepție înregistrată');
 
@@ -357,6 +401,7 @@ class SupplierReceptionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'intake_id' => ['nullable', 'integer', 'exists:reception_intakes,id'],
+            'negotiated_order_id' => ['nullable', 'integer', 'exists:negotiated_orders,id'],
             'location_id' => ['required', 'integer', Rule::in($writeLocationIds)],
             'supplier_id' => ['nullable', Rule::exists('suppliers', 'id')->where('active', true)],
             'document_type' => ['required', 'in:aviz,factura'],

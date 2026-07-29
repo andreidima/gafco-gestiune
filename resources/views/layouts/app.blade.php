@@ -22,6 +22,7 @@
             $navigationManagement = $navigationUser->isManagementUser();
             $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
             $receptionWorkflowAvailable = \Illuminate\Support\Facades\Schema::hasTable('reception_intakes');
+            $negotiatedOrdersAvailable = \Illuminate\Support\Facades\Schema::hasTable('negotiated_orders');
             $alertsAvailable = \Illuminate\Support\Facades\Schema::hasTable('operational_alerts')
                 && \Illuminate\Support\Facades\Schema::hasTable('operational_alert_user');
             $navigationCanViewAlerts = $alertsAvailable
@@ -54,7 +55,7 @@
                             </li>
                             @if($navigationManagement || $navigationAccounting)
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'negotiated-orders.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
@@ -91,6 +92,9 @@
                                             </li>
                                         @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Recepții</a></li>
+                                        @if($navigationUser->hasAnyRole(['admin', 'super-admin']) && $negotiatedOrdersAvailable)
+                                            <li><a class="dropdown-item {{ request()->routeIs('negotiated-orders.*') ? 'active' : '' }}" href="{{ route('negotiated-orders.index') }}">Comenzi negociate</a></li>
+                                        @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>
                                         @if($navigationManagement)<li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>@endif
                                         @if($navigationManagement)<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
