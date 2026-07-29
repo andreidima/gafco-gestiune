@@ -70,14 +70,20 @@
                         @forelse($lots as $lot)
                             @php($positiveBalances = $lot->balances->where('quantity', '>', 0))
                             @forelse($positiveBalances as $balance)
-                                <tr>
+                                <tr id="lot-{{ $lot->id }}-{{ $balance->location_id }}" class="inventory-lot-anchor">
                                     <td>
                                         <strong>{{ $lot->lot_code ?: ($lot->is_opening_balance ? 'Sold inițial' : 'Fără cod lot') }}</strong>
                                         <span class="resource-secondary">{{ $lot->supplier?->name ?: $lot->document_number ?: 'Fără furnizor/document' }}</span>
                                     </td>
                                     <td>{{ $balance->location?->code }} — {{ $balance->location?->name }}</td>
                                     <td class="text-end fw-semibold">{{ $formatQuantity($balance->quantity) }} {{ $item->unit }}</td>
-                                    <td>{{ $lot->expires_at?->format('d.m.Y') ?? '—' }}</td>
+                                    <td>
+                                        @if($lot->expires_at)
+                                            <span class="{{ $lot->expires_at->isPast() ? 'text-danger fw-semibold' : '' }}">{{ $lot->expires_at->format('d.m.Y') }}</span>
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
                                     @if($canViewCommercial)
                                         <td class="text-end">{{ $lot->unit_price !== null ? number_format((float) $lot->unit_price, 4, ',', '.').' '.$lot->currency : '—' }}</td>
                                     @endif

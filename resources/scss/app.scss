@@ -2236,6 +2236,14 @@ a.filter-chip:hover {
     cursor: pointer;
 }
 
+.inventory-lot-anchor {
+    scroll-margin-top: 6rem;
+}
+
+.inventory-lot-anchor:target td {
+    background: rgba(255, 193, 7, .16);
+}
+
 .inventory-row-zero {
     background: #fafafa;
     color: #707887;

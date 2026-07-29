@@ -59,6 +59,13 @@ class User extends Authenticatable
         return $this->hasMany(UserPreference::class);
     }
 
+    public function operationalAlerts(): BelongsToMany
+    {
+        return $this->belongsToMany(OperationalAlert::class, 'operational_alert_user')
+            ->withPivot(['last_notified_severity', 'notified_at'])
+            ->withTimestamps();
+    }
+
     public function isProtectedAdministrator(): bool
     {
         $protectedEmail = Str::lower(trim((string) config('roles.protected_admin_email')));

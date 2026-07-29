@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertRuleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CatalogItemController;
 use App\Http\Controllers\ConsumptionReportController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OperationalAlertController;
 use App\Http\Controllers\QrScanController;
 use App\Http\Controllers\ReceptionDocumentController;
 use App\Http\Controllers\ReceptionIntakeController;
@@ -32,6 +34,7 @@ use App\Http\Middleware\AuditImpersonatedRequest;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RejectImpersonatedRequest;
 use App\Http\Middleware\RememberFilterPreferences;
+use App\Http\Middleware\SyncOperationalAlerts;
 use App\Http\Middleware\ValidateImpersonation;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +58,7 @@ Route::middleware([
     ValidateImpersonation::class,
     EnsureUserIsActive::class,
     AuditImpersonatedRequest::class,
+    SyncOperationalAlerts::class,
     RememberFilterPreferences::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
@@ -110,6 +114,18 @@ Route::middleware([
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::get('alerts', [OperationalAlertController::class, 'index'])
+        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil')
+        ->name('alerts.index');
+    Route::get('settings/alerts', [AlertRuleController::class, 'index'])
+        ->middleware('role:super-admin|admin')
+        ->name('alert-rules.index');
+    Route::post('settings/alerts', [AlertRuleController::class, 'store'])
+        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class])
+        ->name('alert-rules.store');
+    Route::delete('settings/alerts/{alertRule}', [AlertRuleController::class, 'destroy'])
+        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class])
+        ->name('alert-rules.destroy');
     Route::resource('reception-intakes', ReceptionIntakeController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|muncitor');
     Route::resource('reception-intakes', ReceptionIntakeController::class)->only(['index', 'show'])

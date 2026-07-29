@@ -6,7 +6,7 @@
 <div class="resource-shell">
     <x-resource-page-header
         title="Notificari"
-        description="Aprobari, alocari si schimbari care necesita atentia ta."
+        description="Aprobări, alocări, alerte și schimbări care necesită atenția ta."
         :count="$notifications->total()"
         icon="fa-bell"
     >
@@ -24,7 +24,12 @@
                 <button class="card border-0 shadow-sm w-100 text-start {{ $notification->read_at ? '' : 'border-start border-4 border-primary' }}">
                     <span class="card-body d-flex justify-content-between align-items-start gap-3">
                         <span>
-                            <strong class="d-block">{{ $notification->data['title'] ?? 'Notificare' }}</strong>
+                            <span class="d-flex flex-wrap align-items-center gap-2">
+                                <strong>{{ $notification->data['title'] ?? 'Notificare' }}</strong>
+                                @if(($notification->data['category'] ?? null) === 'operational_alert')
+                                    <span class="badge {{ ($notification->data['severity'] ?? null) === 'danger' ? 'text-bg-danger' : 'text-bg-warning' }}">Alertă</span>
+                                @endif
+                            </span>
                             <span class="text-muted">{{ $notification->data['message'] ?? '' }}</span>
                         </span>
                         <small class="text-muted text-nowrap">{{ $notification->created_at->locale('ro')->diffForHumans() }}</small>

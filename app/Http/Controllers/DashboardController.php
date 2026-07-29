@@ -13,13 +13,17 @@ use App\Models\TrackedAsset;
 use App\Models\Transfer;
 use App\Models\TransferApproval;
 use App\Models\User;
+use App\Services\OperationalAlertAccessService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly OperationalAlertAccessService $alertAccess) {}
+
     public function __invoke(Request $request): View
     {
         $user = $request->user();
@@ -96,8 +100,11 @@ class DashboardController extends Controller
                 'Asset-uri QR' => TrackedAsset::count(),
                 'In tranzit' => Transfer::where('status', 'in_transit')->count(),
                 'Cereri sofer' => Task::whereIn('status', ['unassigned', 'pending_acceptance', 'accepted', 'in_progress'])->count(),
-                'Alerte' => Task::whereNotNull('manager_deadline')->where('manager_deadline', '<', now())->whereNotIn('status', ['completed', 'cancelled', 'archived'])->count()
-                    + TrackedAsset::where('status', 'lost')->count(),
+                'Alerte' => Schema::hasTable('operational_alerts')
+                    && Schema::hasTable('operational_alert_user')
+                    && $this->alertAccess->canUse($user)
+                        ? $this->alertAccess->visibleAlerts($user)->active()->count()
+                        : 0,
                 'Receptii luna' => SupplierReception::where('received_at', '>=', now()->subDays(30))->count(),
             ],
             'assetStatusCounts' => $assetStatusCounts,

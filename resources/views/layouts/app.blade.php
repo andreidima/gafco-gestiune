@@ -22,6 +22,13 @@
             $navigationManagement = $navigationUser->isManagementUser();
             $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
             $receptionWorkflowAvailable = \Illuminate\Support\Facades\Schema::hasTable('reception_intakes');
+            $alertsAvailable = \Illuminate\Support\Facades\Schema::hasTable('operational_alerts')
+                && \Illuminate\Support\Facades\Schema::hasTable('operational_alert_user');
+            $navigationCanViewAlerts = $alertsAvailable
+                && app(\App\Services\OperationalAlertAccessService::class)->canUse($navigationUser);
+            $navigationActiveAlerts = $navigationCanViewAlerts
+                ? app(\App\Services\OperationalAlertAccessService::class)->visibleAlerts($navigationUser)->active()->count()
+                : 0;
             $impersonationContext = app(\App\Support\ImpersonationContext::class);
             $isImpersonating = $impersonationContext->isActive();
             $impersonationActor = $impersonationContext->actor();
@@ -47,7 +54,7 @@
                             </li>
                             @if($navigationManagement || $navigationAccounting)
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'inventory.*', 'tracked-assets.*', 'reception-intakes.*', 'supplier-receptions.*', 'consumption-reports.*', 'returns.*', 'alerts.*') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
@@ -57,6 +64,16 @@
                                             <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
                                         @endif
                                         <li><a class="dropdown-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Fișă inventar materiale</a></li>
+                                        @if($navigationCanViewAlerts)
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('alerts.*') ? 'active' : '' }}" href="{{ route('alerts.index') }}">
+                                                    <span>Alerte</span>
+                                                    @if($navigationActiveAlerts)
+                                                        <span class="badge rounded-pill text-bg-danger">{{ $navigationActiveAlerts }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
+                                        @endif
                                         @if($navigationManagement && $receptionWorkflowAvailable)
                                             <li>
                                                 <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('reception-intakes.*') ? 'active' : '' }}" href="{{ route('reception-intakes.index') }}">
@@ -132,7 +149,7 @@
 
                             @if($navigationUser->hasAnyRole(['admin','super-admin']))
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*', 'alert-rules.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-gear me-1"></i> Setari
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="utileDropdown">
@@ -141,6 +158,13 @@
                                                 Utilizatori
                                             </a>
                                         </li>
+                                        @if($alertsAvailable)
+                                            <li>
+                                                <a class="dropdown-item {{ request()->routeIs('alert-rules.*') ? 'active' : '' }}" href="{{ route('alert-rules.index') }}">
+                                                    Reguli de alertare
+                                                </a>
+                                            </li>
+                                        @endif
                                         @can('access-database-tools')
                                             @unless($isImpersonating)
                                                 <li>

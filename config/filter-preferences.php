@@ -30,6 +30,12 @@ return [
         'inventory.show' => [
             'location_id' => ['type' => 'visible_location'],
         ],
+        'alerts.index' => [
+            'alert_type' => ['type' => 'enum', 'values' => ['lot_expiration', 'reception_pending']],
+            'severity' => ['type' => 'enum', 'values' => ['warning', 'danger']],
+            'status' => ['type' => 'enum', 'values' => ['active', 'resolved', 'all']],
+            'location_id' => ['type' => 'visible_location'],
+        ],
         'supplier-receptions.index' => [
             'location_id' => ['type' => 'visible_location'],
             'supplier_id' => ['type' => 'positive_integer'],

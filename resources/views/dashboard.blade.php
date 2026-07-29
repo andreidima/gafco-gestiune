@@ -155,13 +155,13 @@
                 <div class="stat-card-top">
                     <div>
                         <h6 class="mb-1">Alerte</h6>
-                        <p class="stat-sub">Tranzit intarziat si pierderi.</p>
+                        <p class="stat-sub">Stoc și recepții care cer verificare.</p>
                     </div>
                     <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 </div>
                 <div class="stat-value">{{ $stats['Alerte'] ?? 0 }}</div>
                 <div class="stat-footer">
-                    <a class="btn btn-sm stat-btn" href="{{ route('reports.index') }}">Vezi rapoarte</a>
+                    <a class="btn btn-sm stat-btn" href="{{ route('alerts.index') }}">Vezi alertele</a>
                 </div>
             </div>
         </div>
@@ -417,7 +417,7 @@
     <div class="row g-3 mt-4">
         <div class="col-xl-5">
             <div class="card dashboard-chart-card shadow-sm h-100">
-                <div class="card-header bg-white"><strong><i class="fa-solid fa-bell me-1"></i> Alerte operationale</strong></div>
+                <div class="card-header bg-white"><strong><i class="fa-solid fa-binoculars me-1"></i> Monitorizare operațională</strong></div>
                 <div class="card-body">
                     <div class="alert-tile alert-tile-warning mb-3">
                         <i class="fa-solid fa-truck-ramp-box"></i>
