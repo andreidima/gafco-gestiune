@@ -14,9 +14,7 @@
                 @if($description)<p>{{ $description }}</p>@endif
             </div>
         </div>
-        <a href="{{ $backRoute }}" class="btn btn-outline-secondary btn-sm">
-            <i class="fa-solid fa-arrow-left me-1"></i>Inapoi
-        </a>
+        <x-back-link :fallback="$backRoute" class="btn-sm" />
     </div>
     {{ $slot }}
 </div>

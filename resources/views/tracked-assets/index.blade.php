@@ -52,7 +52,7 @@
                         <td><div class="resource-cell-stack"><span class="{{ $asset->currentLocation ? '' : 'text-warning' }}"><i class="fa-solid fa-location-dot me-1 text-muted"></i>{{ $asset->currentLocation?->name ?? 'Fara locatie' }}</span>@if($asset->currentCustodian)<span class="resource-secondary"><i class="fa-solid fa-user me-1"></i>{{ $asset->currentCustodian->name }}</span>@endif</div></td>
                         <td>
                             <div class="resource-cell-stack">
-                                <span><span class="resource-secondary me-1">Disponibilitate</span><span class="badge text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}</span></span>
+                                <span><span class="resource-secondary me-1">Disponibilitate</span><a href="{{ route('tracked-assets.show', $asset) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a></span>
                                 <span><span class="resource-secondary me-1">Conditie</span><span class="badge text-bg-{{ $conditionVariants[$asset->condition] ?? 'secondary' }} {{ $asset->condition === 'good' ? 'border' : '' }}">{{ $conditionLabels[$asset->condition] ?? $asset->condition }}</span></span>
                             </div>
                         </td>
@@ -105,7 +105,7 @@
                                 <div class="resource-code">{{ $asset->asset_code }}</div>
                                 @if($asset->serial_number)<div class="resource-mobile-card-subtitle">Serie {{ $asset->serial_number }}</div>@endif
                             </div>
-                            <span class="badge text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}</span>
+                            <a href="{{ route('tracked-assets.show', $asset) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a>
                         </div>
 
                         <div class="resource-mobile-card-grid">

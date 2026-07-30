@@ -22,7 +22,7 @@
         description="Definește locația și cantitățile de materiale planificate. Transferurile vor fi comparate cu acest plan."
         icon="fa-diagram-project"
     >
-        <x-slot:actions><a href="{{ $editing ? route('projects.show', $project) : route('projects.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left me-1"></i>Înapoi</a></x-slot:actions>
+        <x-slot:actions><x-back-link :fallback="$editing ? route('projects.show', $project) : route('projects.index')" class="btn-sm" /></x-slot:actions>
     </x-resource-page-header>
 
     <form method="post" action="{{ $editing ? route('projects.update', $project) : route('projects.store') }}" class="resource-form-card" data-project-form>

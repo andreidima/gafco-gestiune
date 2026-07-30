@@ -36,7 +36,7 @@
 
         return $prefix.implode(' ', $parts);
     };
-    $formatQuantity = static fn (float $quantity): string => rtrim(rtrim(number_format($quantity, 3, ',', '.'), '0'), ',');
+    $formatQuantity = static fn (float $quantity): string => \App\Support\LocalizedNumber::quantity($quantity);
 
     $activeTransferFilters = [];
     if (request()->filled('search')) {
@@ -239,7 +239,7 @@
                                 @else<span class="resource-secondary text-success">Circuit complet</span>@endif
                             </div>
                         </td>
-                        <td><x-status :status="$transfer->status" /></td>
+                        <td><x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" /></td>
                         <td>
                             <div class="resource-row-actions">
                                 <x-resource-icon-button :href="route('transfers.show', $transfer)" icon="fa-eye" label="Deschide transferul" />
@@ -296,7 +296,7 @@
                     <div class="card-body">
                         <div class="resource-mobile-card-header">
                             <div><a class="resource-primary text-decoration-none" href="{{ route('transfers.show', $transfer) }}">{{ $transfer->number }}</a><div class="resource-secondary">{{ $transfer->purpose === 'return' ? 'Retur' : 'Transfer' }} · rev. {{ $transfer->revision }}@if($transfer->document_number) · {{ $transfer->document_number }}@endif</div></div>
-                            <x-status :status="$transfer->status" />
+                            <x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" />
                         </div>
 
                         @if($needsDriverResponse || $needsApprovalAction || $needsAllocation || $transfer->task?->isOverdue() || $isDueSoon || $rejectedApproval || (! $isDriver && $projectOverruns->isNotEmpty()))

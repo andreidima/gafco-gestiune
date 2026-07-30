@@ -3,7 +3,7 @@
 @section('title', $reception->number)
 
 @php
-    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+    $formatQuantity = fn ($value) => \App\Support\LocalizedNumber::quantity($value);
 @endphp
 
 @section('content')
@@ -17,9 +17,7 @@
             </div>
         </div>
         <div class="resource-page-actions">
-            <a href="{{ route('supplier-receptions.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fa-solid fa-arrow-left me-1"></i>Înapoi
-            </a>
+            <x-back-link :fallback="route('supplier-receptions.index')" class="btn-sm" />
             @if($canEdit)
                 <a href="{{ route('supplier-receptions.edit', $reception) }}" class="btn btn-primary btn-sm">
                     <i class="fa-solid fa-pen me-1"></i>Completează detaliile

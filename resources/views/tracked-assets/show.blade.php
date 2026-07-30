@@ -32,7 +32,7 @@
             </div>
             <div class="d-flex align-items-start gap-2">
                 @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', $asset) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endif
-                <a href="{{ $backRoute }}" class="btn btn-outline-secondary btn-sm">Inapoi</a>
+                <x-back-link :fallback="$backRoute" class="btn-sm" />
                 <div class="qr-card text-center">
                     <div class="qr-box"><i class="fa-solid fa-qrcode"></i></div>
                     <div class="fw-semibold mt-2">{{ $asset->qr_code }}</div>
@@ -106,7 +106,7 @@
                         <td>{{ $visiblePerson($transfer->driver, 'Sofer alocat') }}</td>
                         <td>{{ $visiblePerson($transfer->approver, 'Aprobat') }}</td>
                         <td>{{ $visiblePerson($transfer->confirmer, 'Confirmat') }}</td>
-                        <td><x-status :status="$transfer->status" /></td>
+                        <td><x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" /></td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center text-secondary py-4">Nu exista istoric pentru acest echipament.</td></tr>

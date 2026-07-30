@@ -3,7 +3,7 @@
 @section('title', $order->number)
 
 @php
-    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+    $formatQuantity = fn ($value) => \App\Support\LocalizedNumber::quantity($value);
     $formatMoney = fn ($value) => number_format((float) $value, 2, ',', '.');
     $total = $order->lines->sum(fn ($line) => (float) $line->quantity * (float) $line->unit_price);
 @endphp
@@ -22,7 +22,7 @@
             </div>
         </div>
         <div class="resource-page-actions">
-            <a href="{{ route('negotiated-orders.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left me-1"></i>Înapoi</a>
+            <x-back-link :fallback="route('negotiated-orders.index')" class="btn-sm" />
             @if($order->isCreated())
                 <a href="{{ route('negotiated-orders.edit', $order) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifică</a>
                 <a href="{{ route('supplier-receptions.create', ['negotiated_order_id' => $order->id]) }}" class="btn btn-success btn-sm"><i class="fa-solid fa-truck-ramp-box me-1"></i>Transformă în recepție</a>

@@ -86,7 +86,7 @@
                     </div>
                     <h3>{{ $transfer->itemLabel() }}</h3>
                     @if($transfer->isMaterial())
-                        <div class="custody-quantity">{{ rtrim(rtrim(number_format((float) $transfer->quantity, 3, ',', '.'), '0'), ',') }} {{ $transfer->unit }}</div>
+                        <div class="custody-quantity">{{ \App\Support\LocalizedNumber::quantity($transfer->quantity) }} {{ $transfer->unit }}</div>
                     @endif
                     <div class="custody-route">
                         <span>{{ $transfer->fromUser ? $personLabel($transfer->fromUser) : $transfer->location?->name }}</span>
@@ -149,7 +149,7 @@
                     @if($entry['type'] === 'equipment')
                         <span class="badge text-bg-light">{{ $conditionLabels[$holding->condition] ?? $holding->condition }}</span>
                     @else
-                        <span class="custody-holding-quantity">{{ rtrim(rtrim(number_format((float) $holding->quantity, 3, ',', '.'), '0'), ',') }} {{ $holding->unit }}</span>
+                        <span class="custody-holding-quantity">{{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }}</span>
                     @endif
                 </article>
             @endforeach
@@ -172,7 +172,7 @@
                             @if($entry['type'] === 'equipment')
                                 <span class="badge text-bg-light">{{ $conditionLabels[$holding->condition] ?? $holding->condition }}</span>
                             @else
-                                <span class="custody-holding-quantity">{{ rtrim(rtrim(number_format((float) $holding->quantity, 3, ',', '.'), '0'), ',') }} {{ $holding->unit }}</span>
+                                <span class="custody-holding-quantity">{{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }}</span>
                             @endif
                         </article>
                     @endforeach
@@ -226,7 +226,7 @@
                                     <option value="">Alege materialul</option>
                                     @foreach($issuableMaterials as $stock)
                                         <option value="{{ $stock->catalog_item_id }}" data-location="{{ $stock->location_id }}">
-                                            {{ $stock->catalogItem?->name }} · {{ $stock->location?->name }} · disponibil {{ rtrim(rtrim(number_format((float) $stock->available_for_custody, 3, ',', '.'), '0'), ',') }} {{ $stock->catalogItem?->unit }}
+                                            {{ $stock->catalogItem?->name }} · {{ $stock->location?->name }} · disponibil {{ \App\Support\LocalizedNumber::quantity($stock->available_for_custody) }} {{ $stock->catalogItem?->unit }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -283,7 +283,7 @@
                                 <label class="form-label">Material din custodie</label>
                                 <select name="material_custody_id" class="form-select">
                                     <option value="">Alege materialul</option>
-                                    @foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ rtrim(rtrim(number_format((float) $holding->quantity, 3, ',', '.'), '0'), ',') }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach
+                                    @foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach
                                 </select>
                             </div>
                             <div data-material-field hidden>
@@ -342,7 +342,7 @@
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Material din custodie</label>
-                                <select name="material_custody_id" class="form-select"><option value="">Alege materialul</option>@foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ rtrim(rtrim(number_format((float) $holding->quantity, 3, ',', '.'), '0'), ',') }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach</select>
+                                <select name="material_custody_id" class="form-select"><option value="">Alege materialul</option>@foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach</select>
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Cantitate</label>
@@ -382,10 +382,10 @@
                     <div class="custody-history-main">
                         <div class="custody-card-topline">
                             <span class="custody-type">{{ $operationLabels[$transfer->operation_type] ?? 'Predare între persoane' }}</span>
-                            <x-status :status="$transfer->status" />
+                            <x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" />
                         </div>
                         <strong>{{ $transfer->itemLabel() }}</strong>
-                        <span>{{ $transfer->qr_token }} @if($transfer->isMaterial())· {{ rtrim(rtrim(number_format((float) $transfer->quantity, 3, ',', '.'), '0'), ',') }} {{ $transfer->unit }}@endif</span>
+                        <span>{{ $transfer->qr_token }} @if($transfer->isMaterial())· {{ \App\Support\LocalizedNumber::quantity($transfer->quantity) }} {{ $transfer->unit }}@endif</span>
                     </div>
                     <div class="custody-history-route">
                         <span>{{ $transfer->fromUser ? $personLabel($transfer->fromUser) : $transfer->location?->name }}</span>

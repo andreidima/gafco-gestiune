@@ -229,7 +229,7 @@
                                 @if(! $task->manager_deadline && ! $displayAssignment?->driver_estimate_at && ! ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true)))<span class="text-muted">&mdash;</span>@endif
                             </div>
                         </td>
-                        <td><x-status :status="$task->status" /></td>
+                        <td><x-status :status="$task->status" :href="route('tasks.show', $task)" /></td>
                         <td><div class="resource-row-actions"><x-resource-icon-button :href="route('tasks.show', $task)" icon="fa-eye" label="Deschide sarcina" />@can('update', $task)<x-resource-icon-button :href="route('tasks.edit', $task)" icon="fa-pen" label="Modifica sarcina" variant="outline-secondary" />@endcan</div></td>
                     </tr>
                 @empty
@@ -258,7 +258,7 @@
                     <div class="card-body">
                         <div class="resource-mobile-card-header">
                             <div class="min-w-0"><a class="resource-primary text-decoration-none" href="{{ route('tasks.show', $task) }}">{{ $task->title }}</a><div class="resource-code">{{ $task->number }}</div></div>
-                            <x-status :status="$task->status" />
+                            <x-status :status="$task->status" :href="route('tasks.show', $task)" />
                         </div>
 
                         @if($needsDriverResponse || $needsManagerAction || $task->isOverdue() || $isDueSoon || $task->priority !== 'normal')

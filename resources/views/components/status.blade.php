@@ -1,4 +1,4 @@
-@props(['status'])
+@props(['status', 'href' => null])
 
 @php
     $labels = [
@@ -27,6 +27,13 @@
     ];
 @endphp
 
-<span {{ $attributes->class(['status-badge', 'status-'.$status]) }}>
-    {{ $labels[$status] ?? ucfirst(str_replace('_', ' ', $status)) }}
-</span>
+@if($href)
+    <a href="{{ $href }}" {{ $attributes->class(['status-badge', 'status-badge-link', 'status-'.$status]) }}>
+        {{ $labels[$status] ?? ucfirst(str_replace('_', ' ', $status)) }}
+        <span class="visually-hidden"> — deschide înregistrarea</span>
+    </a>
+@else
+    <span {{ $attributes->class(['status-badge', 'status-'.$status]) }}>
+        {{ $labels[$status] ?? ucfirst(str_replace('_', ' ', $status)) }}
+    </span>
+@endif

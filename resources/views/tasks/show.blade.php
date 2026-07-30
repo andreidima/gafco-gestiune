@@ -34,7 +34,7 @@
 <div class="container-fluid px-3">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div><div class="small text-muted">{{ $task->number }}</div><h2 class="mb-1">{{ $task->title }}</h2><x-status :status="$task->status" /></div>
-        <div class="d-flex gap-2">@can('edit', $task)<a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-primary"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endcan<a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary">Inapoi</a></div>
+        <div class="d-flex gap-2">@can('edit', $task)<a href="{{ route('tasks.edit', $task) }}" class="btn btn-outline-primary"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endcan<x-back-link :fallback="route('tasks.index')" /></div>
     </div>
 
     @if($task->isOverdue())<div class="alert alert-danger"><strong>Sarcina este intarziata</strong> fata de deadline-ul original al managerului.</div>@endif
@@ -82,7 +82,7 @@
                                     <tr>
                                         <td><strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong>@if($line->notes)<span class="resource-secondary">{{ $line->notes }}</span>@endif</td>
                                         <td>{{ $line->trackedAsset?->asset_code ?? 'Material cantitativ' }}@if($line->trackedAsset?->serial_number)<span class="resource-secondary">Serie: {{ $line->trackedAsset->serial_number }}</span>@endif</td>
-                                        <td class="text-end text-nowrap">{{ number_format((float) $line->quantity, 3, ',', '.') }} {{ $line->unit }}</td>
+                                        <td class="text-end text-nowrap">{{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}</td>
                                         <td>{{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</td>
                                     </tr>
                                 @empty
@@ -96,7 +96,7 @@
                                 <div class="task-transfer-line">
                                     <div class="d-flex justify-content-between gap-2">
                                         <strong>{{ $line->catalogItem?->name ?? 'Articol indisponibil' }}</strong>
-                                        <span class="text-nowrap">{{ number_format((float) $line->quantity, 3, ',', '.') }} {{ $line->unit }}</span>
+                                        <span class="text-nowrap">{{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}</span>
                                     </div>
                                     <div class="resource-secondary">{{ $line->trackedAsset?->asset_code ?? 'Material cantitativ' }} · {{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</div>
                                     @if($line->notes)<div class="small mt-1">{{ $line->notes }}</div>@endif

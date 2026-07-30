@@ -11,7 +11,7 @@
         || request()->filled('document_type')
         || request()->filled('date_from')
         || request()->filled('date_to');
-    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+    $formatQuantity = fn ($value) => \App\Support\LocalizedNumber::quantity($value);
 @endphp
 <div class="resource-shell">
     <x-resource-page-header
@@ -89,7 +89,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td><x-status :status="$reception->status" /></td>
+                        <td><x-status :status="$reception->status" :href="route('supplier-receptions.show', $reception)" /></td>
                     </tr>
                 @empty
                     <tr>
@@ -122,7 +122,7 @@
                                 <div class="resource-mobile-card-subtitle"><i class="fa-regular fa-clock me-1"></i>{{ $reception->received_at?->format('d.m.Y H:i') ?? '-' }}</div>
                                 @if($reception->receiver)<div class="resource-mobile-card-subtitle"><i class="fa-solid fa-user-check me-1"></i>{{ $reception->receiver->name }}</div>@endif
                             </div>
-                            <x-status :status="$reception->status" />
+                            <x-status :status="$reception->status" :href="route('supplier-receptions.show', $reception)" />
                         </div>
 
                         <div class="resource-mobile-card-grid">

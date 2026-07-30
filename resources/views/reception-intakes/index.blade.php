@@ -114,9 +114,9 @@
                                 <h2 class="resource-mobile-card-title">{{ $intake->number }}</h2>
                                 <span class="resource-secondary">{{ $intake->created_at->format('d.m.Y H:i') }}</span>
                             </div>
-                            <span class="badge {{ $intake->status === 'created' ? 'text-bg-warning' : 'text-bg-secondary' }}">
-                                {{ $intake->status === 'created' ? 'Creat' : 'Închis' }}
-                            </span>
+                            <a href="{{ route('reception-intakes.show', $intake) }}" class="badge status-badge-link {{ $intake->status === 'created' ? 'text-bg-warning' : 'text-bg-secondary' }}">
+                                {{ $intake->status === 'created' ? 'Creat' : 'Închis' }}<span class="visually-hidden"> — deschide recepția</span>
+                            </a>
                         </div>
                         <div class="resource-mobile-card-grid">
                             <div>

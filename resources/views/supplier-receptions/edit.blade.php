@@ -76,7 +76,7 @@
                         <div class="row g-3">
                             <div class="col-lg-3 col-md-6">
                                 <label class="form-label">Material și cantitate</label>
-                                <input class="form-control" value="{{ $line->catalogItem?->name }} · {{ $line->quantity }} {{ $line->unit }}" readonly>
+                                <input class="form-control" value="{{ $line->catalogItem?->name }} · {{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}" readonly>
                             </div>
                             <div class="col-lg-2 col-md-6">
                                 <label class="form-label">Număr lot</label>

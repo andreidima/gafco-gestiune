@@ -401,7 +401,7 @@
                                 <td class="fw-semibold">{{ $transfer->number }}</td>
                                 <td>{{ $transfer->sourceLocation?->name }} <i class="fa-solid fa-arrow-right mx-1"></i> {{ $transfer->destinationLocation?->name }}</td>
                                 <td>{{ $transfer->driver?->name ?? 'Nealocat' }}</td>
-                                <td><x-status :status="$transfer->status" /></td>
+                                <td><x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" /></td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="text-center text-secondary py-4">Nu exista transferuri.</td></tr>
@@ -488,7 +488,7 @@
                     <div class="p-3">
                         <div class="fw-semibold">{{ $stock->catalogItem?->name }}</div>
                         <div class="small text-secondary">{{ $stock->location?->name }}</div>
-                        <div class="h4 mt-2 mb-0">{{ number_format((float) $stock->quantity, 2) }} {{ $stock->catalogItem?->unit }}</div>
+                        <div class="h4 mt-2 mb-0">{{ \App\Support\LocalizedNumber::quantity($stock->quantity) }} {{ $stock->catalogItem?->unit }}</div>
                     </div>
                 </div>
             @empty
@@ -513,7 +513,7 @@
                                 <div class="resource-primary">{{ $task->title }}</div>
                                 <div class="resource-code">{{ $task->number }}</div>
                             </div>
-                            <x-status :status="$task->status" />
+                            <x-status :status="$task->status" :href="route('tasks.show', $task)" />
                         </div>
                         <div class="row g-2 mt-1 small">
                             <div class="col-md-6"><i class="fa-solid fa-route me-1 text-muted"></i>{{ $task->sourceLocation?->code ?? 'Nespecificat' }} <span aria-hidden="true">&rarr;</span> {{ $task->destinationLocation?->code ?? 'Nespecificat' }}</div>

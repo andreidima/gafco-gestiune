@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $formatQuantity = static fn (float $quantity): string => rtrim(rtrim(number_format($quantity, 3, ',', '.'), '0'), ',');
+    $formatQuantity = static fn (float $quantity): string => \App\Support\LocalizedNumber::quantity($quantity);
     $hasFilters = request()->filled('search') || request()->filled('status') || request()->filled('location_id');
 @endphp
 <div class="resource-shell">
@@ -88,7 +88,7 @@
                                 <span class="badge text-bg-success">În limitele planului</span>
                             @endif
                         </td>
-                        <td><span class="badge text-bg-{{ $project->status === 'active' ? 'success' : ($project->status === 'draft' ? 'warning' : 'secondary') }}">{{ \App\Models\Project::STATUS_LABELS[$project->status] }}</span></td>
+                        <td><a href="{{ route('projects.show', $project) }}" class="badge status-badge-link text-bg-{{ $project->status === 'active' ? 'success' : ($project->status === 'draft' ? 'warning' : 'secondary') }}">{{ \App\Models\Project::STATUS_LABELS[$project->status] }}<span class="visually-hidden"> — deschide proiectul</span></a></td>
                         <td class="text-end">
                             <a href="{{ route('projects.show', $project) }}" class="btn btn-sm btn-outline-primary">Deschide</a>
                             @can('update', $project)<a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-outline-secondary">Modifică</a>@endcan
@@ -111,7 +111,7 @@
                     <div class="card-body">
                         <div class="resource-mobile-card-header">
                             <div><span class="resource-code">{{ $project->code }}</span><h2 class="resource-mobile-card-title">{{ $project->name }}</h2></div>
-                            <span class="badge text-bg-{{ $project->status === 'active' ? 'success' : ($project->status === 'draft' ? 'warning' : 'secondary') }}">{{ \App\Models\Project::STATUS_LABELS[$project->status] }}</span>
+                            <a href="{{ route('projects.show', $project) }}" class="badge status-badge-link text-bg-{{ $project->status === 'active' ? 'success' : ($project->status === 'draft' ? 'warning' : 'secondary') }}">{{ \App\Models\Project::STATUS_LABELS[$project->status] }}<span class="visually-hidden"> — deschide proiectul</span></a>
                         </div>
                         <div class="resource-mobile-card-grid">
                             <div><span class="resource-filter-label">Locație</span><strong>{{ $project->location?->code }}</strong><span class="resource-secondary">{{ $project->location?->name }}</span></div>

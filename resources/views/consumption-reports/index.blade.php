@@ -9,7 +9,7 @@
         || request()->filled('catalog_item_id')
         || request()->filled('date_from')
         || request()->filled('date_to');
-    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+    $formatQuantity = fn ($value) => \App\Support\LocalizedNumber::quantity($value);
 @endphp
 <div class="resource-shell">
     <x-resource-page-header

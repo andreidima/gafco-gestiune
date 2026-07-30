@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\ReceptionIntake;
 use App\Models\User;
 use App\Notifications\OperationalAlertNotification;
+use App\Support\LocalizedNumber;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -350,6 +351,6 @@ class OperationalAlertSyncService
 
     private function quantity(mixed $quantity): string
     {
-        return rtrim(rtrim(number_format((float) $quantity, 3, ',', '.'), '0'), ',');
+        return LocalizedNumber::quantity($quantity);
     }
 }

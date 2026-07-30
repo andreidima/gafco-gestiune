@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $formatQuantity = static fn (float $quantity): string => rtrim(rtrim(number_format($quantity, 3, ',', '.'), '0'), ',');
+    $formatQuantity = static fn (float $quantity): string => \App\Support\LocalizedNumber::quantity($quantity);
     $overruns = $progress->where('has_overrun', true);
     $usedMaterials = $progress->where('committed_quantity', '>', 0);
 @endphp
@@ -22,7 +22,7 @@
                 @endcan
             @endif
             @can('update', $project)<a href="{{ route('projects.edit', $project) }}" class="btn btn-outline-primary btn-sm">Modifică planul</a>@endcan
-            <a href="{{ route('projects.index') }}" class="btn btn-outline-secondary btn-sm">Înapoi</a>
+            <x-back-link :fallback="route('projects.index')" class="btn-sm" />
         </x-slot:actions>
     </x-resource-page-header>
 
@@ -89,7 +89,7 @@
                                 <td><strong>{{ $transfer->number }}</strong><span class="resource-secondary">{{ $transfer->lines->count() }} poziții</span></td>
                                 <td>{{ $transfer->sourceLocation?->code }} → {{ $transfer->destinationLocation?->code }}</td>
                                 <td>{{ $transfer->requester?->name ?? '—' }}</td>
-                                <td><x-status :status="$transfer->status" /></td>
+                                <td><x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" /></td>
                                 <td class="text-end"><a href="{{ route('transfers.show', $transfer) }}" class="btn btn-sm btn-outline-primary">Deschide</a></td>
                             </tr>
                         @empty
