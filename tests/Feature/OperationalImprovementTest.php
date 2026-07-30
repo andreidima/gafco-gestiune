@@ -147,11 +147,11 @@ class OperationalImprovementTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 15,
+            'current_revision' => 16,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
-            'current_revision' => 15,
+            'current_revision' => 16,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'statusuri-si-termeni',
