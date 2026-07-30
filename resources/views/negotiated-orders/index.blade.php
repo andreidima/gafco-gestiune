@@ -38,7 +38,7 @@
             </div>
             <div class="col-xl-2 col-md-6">
                 <label class="resource-filter-label">Locație</label>
-                <select name="location_id" class="form-select">
+                <select name="location_id" class="form-select" data-tom-select>
                     <option value="">Toate</option>
                     @foreach($locations as $location)
                         <option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->code }} — {{ $location->name }}</option>
@@ -47,10 +47,10 @@
             </div>
             <div class="col-xl-2 col-md-6">
                 <label class="resource-filter-label">Furnizor</label>
-                <select name="supplier_id" class="form-select">
+                <select name="supplier_id" class="form-select" data-tom-select>
                     <option value="">Toți</option>
                     @foreach($suppliers as $supplier)
-                        <option value="{{ $supplier->id }}" @selected((string) request('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}</option>
+                        <option value="{{ $supplier->id }}" data-search="{{ $supplier->cui }} {{ $supplier->registration_number }}" @selected((string) request('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}</option>
                     @endforeach
                 </select>
             </div>

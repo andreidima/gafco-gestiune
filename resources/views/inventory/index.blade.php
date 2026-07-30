@@ -43,7 +43,7 @@
             </div>
             <div class="col-xl-4 col-md-6">
                 <label for="inventory-location" class="resource-filter-label">Locație</label>
-                <select id="inventory-location" name="location_id" class="form-select" data-inventory-change>
+                <select id="inventory-location" name="location_id" class="form-select" data-inventory-change data-tom-select>
                     <option value="">Toate locațiile permise</option>
                     @foreach($locations as $location)
                         <option value="{{ $location->id }}" @selected((int) $filters['location_id'] === (int) $location->id)>

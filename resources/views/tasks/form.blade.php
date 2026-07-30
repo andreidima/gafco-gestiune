@@ -31,7 +31,7 @@
                 @if($editing)
                     <div class="col-md-4"><label class="form-label">Sofer curent</label><div class="form-control bg-light">{{ $task->currentAssignment?->driver?->name ?? 'Nealocat' }}</div><div class="form-text">Alocarea si realocarea se gestioneaza din pagina sarcinii.</div></div>
                 @else
-                    <div class="col-md-4"><label class="form-label">Sofer, optional</label><select name="driver_id" class="form-select" data-tom-select><option value="">Aloca ulterior</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((string) old('driver_id') === (string) $driver->id)>{{ $driver->name }}</option>@endforeach</select></div>
+                    <div class="col-md-4"><label class="form-label">Sofer, optional</label><select name="driver_id" class="form-select" data-tom-select><option value="">Aloca ulterior</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" data-search="{{ $driver->login_code }}" @selected((string) old('driver_id') === (string) $driver->id)>{{ $driver->name }}</option>@endforeach</select></div>
                 @endif
             </div>
         </div>

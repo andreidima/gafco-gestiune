@@ -49,7 +49,7 @@
                 </div>
                 <div class="col-lg-2 col-md-6 d-none" data-alert-location>
                     <label class="resource-filter-label">Locație</label>
-                    <select name="location_id" class="form-select">
+                    <select name="location_id" class="form-select" data-tom-select>
                         @foreach($locations as $location)
                             <option value="{{ $location->id }}">{{ $location->code }} — {{ $location->name }}</option>
                         @endforeach

@@ -158,6 +158,7 @@ class TransferController extends Controller
                     'id' => $stock->catalog_item_id,
                     'name' => $stock->catalogItem->name,
                     'sku' => $stock->catalogItem->sku,
+                    'barcode' => $stock->catalogItem->barcode,
                     'unit' => $stock->catalogItem->unit,
                     'available' => number_format($available, 3, '.', ''),
                 ];
@@ -185,6 +186,8 @@ class TransferController extends Controller
             ->map(fn (TrackedAsset $asset) => [
                 'id' => $asset->id,
                 'asset_code' => $asset->asset_code,
+                'qr_code' => $asset->qr_code,
+                'serial_number' => $asset->serial_number,
                 'name' => $asset->catalogItem?->name,
                 'status' => $asset->status,
             ])

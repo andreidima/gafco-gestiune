@@ -70,10 +70,10 @@
                     <div class="row g-2 align-items-end project-plan-form-line border rounded-3 p-2 mb-2">
                         <div class="col-md-8">
                             <label class="form-label small">Material</label>
-                            <select name="lines[{{ $index }}][catalog_item_id]" class="form-select project-plan-material" required>
+                            <select name="lines[{{ $index }}][catalog_item_id]" class="form-select project-plan-material" data-tom-select required>
                                 <option value="">Alege materialul</option>
                                 @foreach($materials as $material)
-                                    <option value="{{ $material->id }}" data-unit="{{ $material->unit }}" @selected((string) ($line['catalog_item_id'] ?? '') === (string) $material->id)>{{ $material->name }} · {{ $material->sku }} · {{ $material->unit }}</option>
+                                    <option value="{{ $material->id }}" data-unit="{{ $material->unit }}" data-search="{{ $material->sku }} {{ $material->barcode }}" @selected((string) ($line['catalog_item_id'] ?? '') === (string) $material->id)>{{ $material->name }} · {{ $material->sku }} · {{ $material->unit }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -98,9 +98,9 @@
     <div class="row g-2 align-items-end project-plan-form-line border rounded-3 p-2 mb-2">
         <div class="col-md-8">
             <label class="form-label small">Material</label>
-            <select data-name="catalog_item_id" class="form-select project-plan-material" required>
+            <select data-name="catalog_item_id" class="form-select project-plan-material" data-tom-select required>
                 <option value="">Alege materialul</option>
-                @foreach($materials as $material)<option value="{{ $material->id }}" data-unit="{{ $material->unit }}">{{ $material->name }} · {{ $material->sku }} · {{ $material->unit }}</option>@endforeach
+                @foreach($materials as $material)<option value="{{ $material->id }}" data-unit="{{ $material->unit }}" data-search="{{ $material->sku }} {{ $material->barcode }}">{{ $material->name }} · {{ $material->sku }} · {{ $material->unit }}</option>@endforeach
             </select>
         </div>
         <div class="col-md-3">
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lines.append(template.content.cloneNode(true));
         renumber();
         sync();
-        lines.lastElementChild?.querySelector('select')?.focus();
+        window.GafcoSearchableSelect?.focus(lines.lastElementChild?.querySelector('select'));
     });
     lines.addEventListener('change', event => {
         if (event.target.matches('.project-plan-material')) sync();
