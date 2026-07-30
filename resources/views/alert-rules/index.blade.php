@@ -78,7 +78,7 @@
 
     <div class="resource-table-card">
         <div class="table-responsive">
-            <table class="table resource-table mb-0 align-middle">
+            <table class="table resource-table alert-rules-table mb-0 align-middle">
                 <thead>
                     <tr>
                         <th>Tip alertă</th>
@@ -92,6 +92,7 @@
                 <tbody>
                 @foreach($rules as $rule)
                     @php
+                        $updateFormId = 'alert-rule-update-'.$rule->id;
                         $scopeLabel = match($rule->scope_type) {
                             'system' => 'Regulă generală',
                             'role' => 'Rol: '.($roles[$rule->role_name] ?? $rule->role_name),
@@ -105,42 +106,69 @@
                             <span class="resource-secondary d-block">{{ $definitions[$rule->alert_type]['description'] ?? '' }}</span>
                         </td>
                         <td>
-                            <span class="badge {{ $rule->scope_type === 'system' ? 'text-bg-primary' : 'text-bg-light border' }}">{{ $scopeLabel }}</span>
+                            <span class="badge alert-rule-scope-badge {{ $rule->scope_type === 'system' ? 'text-bg-primary' : 'text-bg-light border' }}">{{ $scopeLabel }}</span>
                         </td>
-                        <td colspan="2">
-                            <form method="post" action="{{ route('alert-rules.store') }}" class="d-flex gap-2 align-items-center">
-                                @csrf
-                                <input type="hidden" name="alert_type" value="{{ $rule->alert_type }}">
-                                <input type="hidden" name="scope_type" value="{{ $rule->scope_type }}">
-                                <input type="hidden" name="role_name" value="{{ $rule->role_name }}">
-                                <input type="hidden" name="location_id" value="{{ $rule->location_id }}">
-                                <select name="enabled" class="form-select form-select-sm" style="max-width: 90px">
-                                    <option value="1" @selected($rule->enabled)>Da</option>
-                                    <option value="0" @selected(! $rule->enabled)>Nu</option>
-                                </select>
-                                <div class="input-group input-group-sm" style="max-width: 120px">
-                                    <input type="number" name="threshold_days" min="0" max="365" value="{{ $rule->threshold_days }}" class="form-control" required>
-                                    <span class="input-group-text">zile</span>
-                                </div>
-                                <button class="btn btn-sm btn-outline-primary" title="Salvează regula">
-                                    <i class="fa-solid fa-check"></i>
-                                </button>
-                            </form>
+                        <td class="alert-rule-status-cell">
+                            <select
+                                name="enabled"
+                                class="form-select form-select-sm alert-rule-status-control"
+                                form="{{ $updateFormId }}"
+                                aria-label="Stare regulă pentru {{ $definitions[$rule->alert_type]['label'] ?? $rule->alert_type }}"
+                            >
+                                <option value="1" @selected($rule->enabled)>Da</option>
+                                <option value="0" @selected(! $rule->enabled)>Nu</option>
+                            </select>
+                        </td>
+                        <td class="alert-rule-threshold-cell">
+                            <div class="input-group input-group-sm alert-rule-threshold-control">
+                                <input
+                                    type="number"
+                                    name="threshold_days"
+                                    min="0"
+                                    max="365"
+                                    value="{{ $rule->threshold_days }}"
+                                    class="form-control"
+                                    form="{{ $updateFormId }}"
+                                    aria-label="Prag în zile pentru {{ $definitions[$rule->alert_type]['label'] ?? $rule->alert_type }}"
+                                    required
+                                >
+                                <span class="input-group-text">zile</span>
+                            </div>
                         </td>
                         <td>
                             <span class="d-block">{{ $rule->updated_at->format('d.m.Y H:i') }}</span>
                             <span class="resource-secondary d-block">{{ $rule->changedBy?->name ?? 'Sistem' }}</span>
                         </td>
-                        <td class="text-end">
-                            @if($rule->scope_type !== 'system')
-                                <form method="post" action="{{ route('alert-rules.destroy', $rule) }}" onsubmit="return confirm('Elimini această excepție?')">
+                        <td class="text-end alert-rule-actions-cell">
+                            <div class="resource-row-actions">
+                                <form id="{{ $updateFormId }}" method="post" action="{{ route('alert-rules.store') }}">
                                     @csrf
-                                    @method('delete')
-                                    <button class="btn btn-sm btn-outline-danger" title="Elimină excepția">
-                                        <i class="fa-solid fa-trash"></i>
+                                    <input type="hidden" name="alert_type" value="{{ $rule->alert_type }}">
+                                    <input type="hidden" name="scope_type" value="{{ $rule->scope_type }}">
+                                    <input type="hidden" name="role_name" value="{{ $rule->role_name }}">
+                                    <input type="hidden" name="location_id" value="{{ $rule->location_id }}">
+                                    <button
+                                        class="btn btn-sm btn-outline-primary"
+                                        title="Salvează regula"
+                                        aria-label="Salvează regula pentru {{ $definitions[$rule->alert_type]['label'] ?? $rule->alert_type }}"
+                                    >
+                                        <i class="fa-solid fa-check"></i>
                                     </button>
                                 </form>
-                            @endif
+                                @if($rule->scope_type !== 'system')
+                                    <form method="post" action="{{ route('alert-rules.destroy', $rule) }}" onsubmit="return confirm('Elimini această excepție?')">
+                                        @csrf
+                                        @method('delete')
+                                        <button
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Elimină excepția"
+                                            aria-label="Elimină excepția pentru {{ $definitions[$rule->alert_type]['label'] ?? $rule->alert_type }}"
+                                        >
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @endforeach

@@ -224,6 +224,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Praguri vizibile pentru regulile de alertare',
                 'Filtrare rapidă fără întreruperea tastării',
                 'Căutare rapidă în listele din aplicație',
                 'Navigare mai rapidă și cantități mai clare',
@@ -235,13 +236,13 @@ class HelpCenterTest extends TestCase
                 'Comenzi negociate transformabile în recepții',
                 'Custodie personală pentru materiale și echipamente',
                 'Alerte pentru stoc și documente de recepție',
-                'Stoc disponibil în transferuri și consumuri corectabile',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')
             ->assertSee('Documente, recepții complete și loturi la consum')
             ->assertSee('Filtre memorate și administrare standardizată')
             ->assertSee('Schimbare rapidă între utilizatori')
