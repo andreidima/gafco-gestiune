@@ -1,10 +1,11 @@
 @props([
     'viewKey',
     'interval' => 300,
+    'compact' => false,
 ])
 
 <div
-    class="live-view"
+    class="live-view {{ $compact ? 'live-view-compact' : '' }}"
     data-live-view
     data-live-view-key="{{ $viewKey }}"
     data-live-view-interval="{{ $interval }}"

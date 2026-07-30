@@ -35,7 +35,14 @@
                             <span class="driver-action-step-number">1</span>
                             <div><strong>Estimare de finalizare</strong><small>Ora este completată automat cu o oră în avans.</small></div>
                         </div>
-                        <form method="post" action="{{ route('task-assignments.estimate', $assignment) }}" class="vstack gap-2">
+                        @if($latestEstimate)
+                            <div class="driver-estimate-summary">
+                                <i class="fa-solid fa-clock" aria-hidden="true"></i>
+                                <div class="min-w-0"><strong>{{ $latestEstimate->estimated_at->format('d.m.Y H:i') }}</strong>@if($latestEstimate->note)<span title="{{ $latestEstimate->note }}">{{ $latestEstimate->note }}</span>@endif</div>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#driverEstimateForm" aria-expanded="{{ $showEstimateForm ? 'true' : 'false' }}" aria-controls="driverEstimateForm">{{ $canCorrectLatestEstimate ? 'Corectează' : 'Estimare nouă' }}</button>
+                            </div>
+                        @endif
+                        <form id="driverEstimateForm" method="post" action="{{ route('task-assignments.estimate', $assignment) }}" class="vstack gap-2 {{ $latestEstimate ? 'collapse'.($showEstimateForm ? ' show' : '') : '' }}">
                             @csrf
                             <label for="driver-estimate-at" class="form-label mb-0">Ora estimată</label>
                             <input id="driver-estimate-at" name="driver_estimate_at" type="datetime-local" value="{{ $estimateInputValue }}" class="form-control" required>
@@ -47,7 +54,7 @@
                                 <small class="text-muted">Ultima estimare rămâne în istoric. Salvarea va adăuga o estimare nouă.</small>
                             @endif
                             <button class="btn btn-outline-primary">
-                                {{ $canCorrectLatestEstimate ? 'Corectează estimarea' : 'Salvează estimarea' }}
+                                {{ $canCorrectLatestEstimate ? 'Corectează' : 'Salvează estimarea' }}
                             </button>
                         </form>
                     </div>

@@ -15,6 +15,7 @@
             : now()->addHour()->startOfMinute()->format('Y-m-d\TH:i'),
     );
     $estimateNoteValue = old('driver_estimate_note', $canCorrectLatestEstimate ? $latestEstimate->note : '');
+    $showEstimateForm = ! $latestEstimate || $errors->has('driver_estimate_at') || $errors->has('driver_estimate_note');
     $priorityLabels = ['low' => 'Scazuta', 'normal' => 'Normala', 'high' => 'Ridicata', 'urgent' => 'Urgenta'];
     $commentTypeLabels = ['observation' => 'Observatie', 'acceptance' => 'Acceptare', 'rejection' => 'Refuz', 'estimate' => 'Estimare', 'reassignment' => 'Realocare', 'status' => 'Schimbare stare'];
     $receiptStatusLabels = ['pending' => 'În așteptare', 'received' => 'Primit', 'missing' => 'Lipsă', 'damaged' => 'Deteriorat'];
