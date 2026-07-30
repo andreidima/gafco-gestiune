@@ -121,6 +121,7 @@ class ConsumptionReportController extends Controller
                     'id' => $stock->catalog_item_id,
                     'name' => $stock->catalogItem->name,
                     'sku' => $stock->catalogItem->sku,
+                    'barcode' => $stock->catalogItem->barcode,
                     'unit' => $stock->catalogItem->unit,
                     'available' => number_format($available, 3, '.', ''),
                 ];

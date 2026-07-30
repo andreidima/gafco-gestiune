@@ -38,7 +38,7 @@
             </div>
             <div class="col-xl-4 col-md-6">
                 <label class="resource-filter-label">Locație</label>
-                <select name="location_id" class="form-select">
+                <select name="location_id" class="form-select" data-tom-select>
                     <option value="">Toate locațiile</option>
                     @foreach($locations as $location)
                         <option value="{{ $location->id }}" @selected((int) request('location_id') === $location->id)>

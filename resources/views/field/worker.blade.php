@@ -215,17 +215,17 @@
                             </div>
                             <div data-equipment-field>
                                 <label class="form-label">Echipament disponibil</label>
-                                <select name="tracked_asset_id" class="form-select">
+                                <select name="tracked_asset_id" class="form-select" data-tom-select>
                                     <option value="">Alege echipamentul</option>
-                                    @foreach($availableAssets as $asset)<option value="{{ $asset->id }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} · {{ $asset->currentLocation?->name }}</option>@endforeach
+                                    @foreach($availableAssets as $asset)<option value="{{ $asset->id }}" data-search="{{ $asset->qr_code }} {{ $asset->serial_number }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} · {{ $asset->currentLocation?->name }}</option>@endforeach
                                 </select>
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Material disponibil</label>
-                                <select name="catalog_item_id" class="form-select" data-material-option>
+                                <select name="catalog_item_id" class="form-select" data-material-option data-tom-select>
                                     <option value="">Alege materialul</option>
                                     @foreach($issuableMaterials as $stock)
-                                        <option value="{{ $stock->catalog_item_id }}" data-location="{{ $stock->location_id }}">
+                                        <option value="{{ $stock->catalog_item_id }}" data-location="{{ $stock->location_id }}" data-search="{{ $stock->catalogItem?->sku }} {{ $stock->catalogItem?->barcode }}">
                                             {{ $stock->catalogItem?->name }} · {{ $stock->location?->name }} · disponibil {{ \App\Support\LocalizedNumber::quantity($stock->available_for_custody) }} {{ $stock->catalogItem?->unit }}
                                         </option>
                                     @endforeach
@@ -237,7 +237,7 @@
                             </div>
                             <div>
                                 <label class="form-label">Persoana care primește</label>
-                                <select name="to_user_id" class="form-select">
+                                <select name="to_user_id" class="form-select" data-tom-select>
                                     <option value="">Alege persoana</option>
                                     @foreach($recipients as $recipient)<option value="{{ $recipient->id }}">{{ $recipient->name }} · {{ $recipient->login_code }}</option>@endforeach
                                 </select>
@@ -274,16 +274,16 @@
                             </div>
                             <div data-equipment-field>
                                 <label class="form-label">Echipament</label>
-                                <select name="tracked_asset_id" class="form-select">
+                                <select name="tracked_asset_id" class="form-select" data-tom-select>
                                     <option value="">Alege echipamentul</option>
-                                    @foreach($assets as $asset)<option value="{{ $asset->id }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} @if($asset->currentCustodian)· {{ $personLabel($asset->currentCustodian) }}@endif</option>@endforeach
+                                    @foreach($assets as $asset)<option value="{{ $asset->id }}" data-search="{{ $asset->qr_code }} {{ $asset->serial_number }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} @if($asset->currentCustodian)· {{ $personLabel($asset->currentCustodian) }}@endif</option>@endforeach
                                 </select>
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Material din custodie</label>
-                                <select name="material_custody_id" class="form-select">
+                                <select name="material_custody_id" class="form-select" data-tom-select>
                                     <option value="">Alege materialul</option>
-                                    @foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach
+                                    @foreach($materialCustodies as $holding)<option value="{{ $holding->id }}" data-search="{{ $holding->catalogItem?->sku }} {{ $holding->catalogItem?->barcode }} {{ $holding->location?->code }} {{ $holding->user?->login_code }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach
                                 </select>
                             </div>
                             <div data-material-field hidden>
@@ -296,7 +296,7 @@
                                     <input name="to_user_code" class="form-control text-uppercase" placeholder="Cod utilizator">
                                     <div class="form-text">Introdu codul colegului; lista celorlalți șoferi nu este afișată.</div>
                                 @else
-                                    <select name="to_user_id" class="form-select"><option value="">Alege persoana</option>@foreach($recipients as $recipient)<option value="{{ $recipient->id }}">{{ $recipient->name }} · {{ $recipient->login_code }}</option>@endforeach</select>
+                                    <select name="to_user_id" class="form-select" data-tom-select><option value="">Alege persoana</option>@foreach($recipients as $recipient)<option value="{{ $recipient->id }}">{{ $recipient->name }} · {{ $recipient->login_code }}</option>@endforeach</select>
                                 @endif
                             </div>
                             <div class="custody-form-wide">
@@ -330,11 +330,11 @@
                             </div>
                             <div data-equipment-field>
                                 <label class="form-label">Echipament</label>
-                                <select name="tracked_asset_id" class="form-select"><option value="">Alege echipamentul</option>@foreach($assets as $asset)<option value="{{ $asset->id }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} @if($asset->currentCustodian)· {{ $personLabel($asset->currentCustodian) }}@endif</option>@endforeach</select>
+                                <select name="tracked_asset_id" class="form-select" data-tom-select><option value="">Alege echipamentul</option>@foreach($assets as $asset)<option value="{{ $asset->id }}" data-search="{{ $asset->qr_code }} {{ $asset->serial_number }}">{{ $asset->asset_code }} · {{ $asset->catalogItem?->name }} @if($asset->currentCustodian)· {{ $personLabel($asset->currentCustodian) }}@endif</option>@endforeach</select>
                             </div>
                             <div data-equipment-field>
                                 <label class="form-label">Locația de retur</label>
-                                <select name="location_id" class="form-select"><option value="">Alege locația</option>@foreach($returnLocations as $location)<option value="{{ $location->id }}">{{ $location->name }}</option>@endforeach</select>
+                                <select name="location_id" class="form-select" data-tom-select><option value="">Alege locația</option>@foreach($returnLocations as $location)<option value="{{ $location->id }}">{{ $location->code }} · {{ $location->name }}</option>@endforeach</select>
                             </div>
                             <div data-equipment-field>
                                 <label class="form-label">Stare declarată</label>
@@ -342,7 +342,7 @@
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Material din custodie</label>
-                                <select name="material_custody_id" class="form-select"><option value="">Alege materialul</option>@foreach($materialCustodies as $holding)<option value="{{ $holding->id }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach</select>
+                                <select name="material_custody_id" class="form-select" data-tom-select><option value="">Alege materialul</option>@foreach($materialCustodies as $holding)<option value="{{ $holding->id }}" data-search="{{ $holding->catalogItem?->sku }} {{ $holding->catalogItem?->barcode }} {{ $holding->location?->code }} {{ $holding->user?->login_code }}">{{ $holding->catalogItem?->name }} · {{ $holding->location?->name }} · {{ \App\Support\LocalizedNumber::quantity($holding->quantity) }} {{ $holding->unit }} @if((int) $holding->user_id !== (int) auth()->id())· {{ $holding->user?->name }}@endif</option>@endforeach</select>
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Cantitate</label>
@@ -417,6 +417,7 @@ document.querySelectorAll('[data-custody-form]').forEach((form) => {
         form.querySelectorAll('[data-material-field]').forEach((field) => field.hidden = !material);
         form.querySelectorAll('[data-equipment-field] select, [data-equipment-field] input').forEach((input) => input.disabled = material);
         form.querySelectorAll('[data-material-field] select, [data-material-field] input').forEach((input) => input.disabled = !material);
+        form.querySelectorAll('[data-tom-select]').forEach((select) => window.GafcoSearchableSelect?.sync(select));
     };
     type.addEventListener('change', sync);
     sync();

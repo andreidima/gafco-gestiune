@@ -2,6 +2,96 @@ import '../scss/app.scss';
 import 'bootstrap';
 import TomSelect from 'tom-select';
 
+const searchableSelectSelector = 'select[data-tom-select]';
+
+const searchableSelectSettings = (element) => {
+    const settings = {
+        allowEmptyOption: true,
+        create: false,
+        diacritics: true,
+        searchField: ['text', 'search'],
+        searchConjunction: 'and',
+        render: {
+            no_results: () => '<div class="no-results">Niciun rezultat</div>',
+        },
+    };
+
+    if (element.multiple) {
+        settings.plugins = {
+            remove_button: {
+                title: 'Elimină',
+            },
+        };
+        settings.closeAfterSelect = false;
+        settings.hideSelected = true;
+    }
+
+    return settings;
+};
+
+const initializeSearchableSelect = (element) => {
+    if (! element?.matches?.(searchableSelectSelector)) {
+        return null;
+    }
+    if (element.tomselect) {
+        return element.tomselect;
+    }
+
+    const select = new TomSelect(element, searchableSelectSettings(element));
+    if (element.matches('[data-manager-selector]')) {
+        const status = element.closest('.resource-form-section')?.querySelector('[data-manager-selection-status] span');
+        const updateManagerCount = () => {
+            const count = select.items.length;
+            if (status) {
+                status.textContent = `${count} ${count === 1 ? 'responsabil selectat' : 'responsabili selectați'}`;
+            }
+        };
+        select.on('change', updateManagerCount);
+        updateManagerCount();
+    }
+
+    return select;
+};
+
+const initializeSearchableSelects = (root = document) => {
+    if (root.matches?.(searchableSelectSelector)) {
+        initializeSearchableSelect(root);
+    }
+    root.querySelectorAll?.(searchableSelectSelector).forEach(initializeSearchableSelect);
+};
+
+const syncSearchableSelect = (element) => {
+    const select = initializeSearchableSelect(element);
+    select?.sync();
+
+    return select;
+};
+
+const setSearchableSelectValue = (element, value, silent = false) => {
+    const select = initializeSearchableSelect(element);
+    if (select) {
+        select.setValue(value == null ? '' : String(value), silent);
+    } else if (element) {
+        element.value = value == null ? '' : String(value);
+    }
+};
+
+const focusSearchableSelect = (element) => {
+    const select = initializeSearchableSelect(element);
+    if (select) {
+        select.focus();
+    } else {
+        element?.focus();
+    }
+};
+
+window.GafcoSearchableSelect = {
+    initialize: initializeSearchableSelects,
+    sync: syncSearchableSelect,
+    setValue: setSearchableSelectValue,
+    focus: focusSearchableSelect,
+};
+
 document.addEventListener('click', (event) => {
     const link = event.target.closest('[data-smart-back]');
 
@@ -32,34 +122,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }, timeout);
     });
 
-    document.querySelectorAll('[data-tom-select]').forEach((element) => {
-        const settings = {
-            allowEmptyOption: true,
-            create: false,
-        };
-        if (element.multiple) {
-            settings.plugins = {
-                remove_button: {
-                    title: 'Elimină',
-                },
-            };
-            settings.closeAfterSelect = false;
-            settings.hideSelected = true;
-        }
-
-        const select = new TomSelect(element, settings);
-        if (element.matches('[data-manager-selector]')) {
-            const status = element.closest('.resource-form-section')?.querySelector('[data-manager-selection-status] span');
-            const updateManagerCount = () => {
-                const count = select.items.length;
-                if (status) {
-                    status.textContent = `${count} ${count === 1 ? 'responsabil selectat' : 'responsabili selectați'}`;
+    initializeSearchableSelects();
+    new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    initializeSearchableSelects(node);
                 }
-            };
-            select.on('change', updateManagerCount);
-            updateManagerCount();
-        }
-    });
+            });
+        });
+    }).observe(document.body, { childList: true, subtree: true });
 
     document.querySelectorAll('[data-auto-submit-filters]').forEach((form) => {
         let searchTimer;
@@ -451,7 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 list.append(row);
                 bindRow(row);
                 renumber();
-                row.querySelector('select')?.focus();
+                initializeSearchableSelects(row);
+                focusSearchableSelect(row.querySelector('select'));
             }
         });
         renumber();

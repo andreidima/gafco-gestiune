@@ -75,7 +75,7 @@
             </div>
             <div class="col-md-4" data-transfer-project-field>
                 <label class="form-label">Proiect / plan de materiale</label>
-                <select name="project_id" class="form-select">
+                <select name="project_id" class="form-select" data-tom-select>
                     <option value="">Fără proiect asociat</option>
                     @foreach($projects as $projectOption)
                         <option
@@ -107,7 +107,7 @@
                 <select name="driver_id" class="form-select" data-tom-select>
                     <option value="">Alocă ulterior</option>
                     @foreach($drivers as $driver)
-                        <option value="{{ $driver->id }}" @selected((string) old('driver_id', $editing ? $transfer->task?->currentAssignment?->driver_id : null) === (string) $driver->id)>{{ $driver->name }}</option>
+                        <option value="{{ $driver->id }}" data-search="{{ $driver->login_code }}" @selected((string) old('driver_id', $editing ? $transfer->task?->currentAssignment?->driver_id : null) === (string) $driver->id)>{{ $driver->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -142,6 +142,7 @@
                                 name="lines[{{ $index }}][catalog_item_id]"
                                 class="form-select transfer-line-item"
                                 data-selected-value="{{ $line['catalog_item_id'] ?? '' }}"
+                                data-tom-select
                                 aria-label="Material"
                             >
                                 <option value="">Alege pentru cantități</option>
@@ -154,6 +155,7 @@
                                 name="lines[{{ $index }}][tracked_asset_id]"
                                 class="form-select transfer-line-asset"
                                 data-selected-value="{{ $line['tracked_asset_id'] ?? '' }}"
+                                data-tom-select
                                 aria-label="Echipament QR"
                             >
                                 <option value="">Fără echipament unic</option>
@@ -190,14 +192,14 @@
     <div class="row g-2 align-items-end transfer-line border rounded-3 p-2 mb-2">
         <div class="col-md-5">
             <label class="form-label small">Material</label>
-            <select data-name="catalog_item_id" class="form-select transfer-line-item" aria-label="Material">
+            <select data-name="catalog_item_id" class="form-select transfer-line-item" data-tom-select aria-label="Material">
                 <option value="">Alege pentru cantități</option>
             </select>
             <div class="form-text transfer-line-availability">Disponibilitatea apare după alegerea materialului.</div>
         </div>
         <div class="col-md-5">
             <label class="form-label small">Echipament QR</label>
-            <select data-name="tracked_asset_id" class="form-select transfer-line-asset" aria-label="Echipament QR">
+            <select data-name="tracked_asset_id" class="form-select transfer-line-asset" data-tom-select aria-label="Echipament QR">
                 <option value="">Fără echipament unic</option>
             </select>
         </div>
@@ -256,14 +258,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const populateSelect = (select, options, placeholder, label, selectedValue) => {
+    const populateSelect = (select, options, placeholder, label, searchText, selectedValue) => {
         const selected = String(selectedValue || select.value || select.dataset.selectedValue || '');
         select.replaceChildren(new Option(placeholder, ''));
-        options.forEach(option => select.add(new Option(label(option), option.id)));
+        options.forEach(option => {
+            const selectOption = new Option(label(option), option.id);
+            selectOption.dataset.search = searchText(option);
+            select.add(selectOption);
+        });
         if ([...select.options].some(option => String(option.value) === selected)) {
             select.value = selected;
         }
         select.dataset.selectedValue = '';
+        window.GafcoSearchableSelect?.sync(select);
     };
 
     const syncAvailability = () => {
@@ -281,7 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const help = row.querySelector('.transfer-line-availability');
 
             if (asset.value) {
-                item.value = '';
+                if (item.value) {
+                    window.GafcoSearchableSelect?.setValue(item, '', true);
+                }
                 quantity.value = 1;
                 quantity.readOnly = true;
                 quantity.removeAttribute('max');
@@ -318,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const selected = project.selectedOptions[0];
         if (project.value && selected?.disabled) project.value = '';
+        window.GafcoSearchableSelect?.sync(project);
         syncProjectPreview();
     };
 
@@ -374,12 +384,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 inventory.materials,
                 inventory.materials.length ? 'Alege pentru cantități' : 'Nu există materiale disponibile',
                 material => `${material.name} — disponibil ${formatQuantity(material.available)} ${material.unit}`,
+                material => [material.sku, material.barcode].filter(Boolean).join(' '),
             );
             populateSelect(
                 asset,
                 inventory.assets,
                 inventory.assets.length ? 'Fără echipament unic' : 'Nu există echipamente disponibile',
                 entry => `${entry.asset_code} — ${entry.name || 'Echipament'}`,
+                entry => [entry.asset_code, entry.qr_code, entry.serial_number].filter(Boolean).join(' '),
             );
         });
         syncAvailability();
@@ -432,17 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renumber();
         syncRemoveButtons();
         populateRows();
-        list.lastElementChild?.querySelector('select')?.focus();
+        window.GafcoSearchableSelect?.focus(list.lastElementChild?.querySelector('select'));
     });
 
     list.addEventListener('change', event => {
         const row = event.target.closest('.transfer-line');
         if (!row) return;
         if (event.target.matches('.transfer-line-item') && event.target.value) {
-            row.querySelector('.transfer-line-asset').value = '';
+            window.GafcoSearchableSelect?.setValue(row.querySelector('.transfer-line-asset'), '', true);
         }
         if (event.target.matches('.transfer-line-asset') && event.target.value) {
-            row.querySelector('.transfer-line-item').value = '';
+            window.GafcoSearchableSelect?.setValue(row.querySelector('.transfer-line-item'), '', true);
         }
         syncAvailability();
     });

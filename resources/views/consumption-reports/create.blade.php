@@ -95,6 +95,7 @@
                                     name="lines[{{ $index }}][catalog_item_id]"
                                     class="form-select consumption-line-item"
                                     data-selected-value="{{ $line['catalog_item_id'] ?? '' }}"
+                                    data-tom-select
                                     required
                                 >
                                     <option value="">Alege materialul</option>
@@ -181,7 +182,7 @@
         <div class="row g-3 align-items-end">
             <div class="col-lg-5">
                 <label class="form-label">Material</label>
-                <select data-name="catalog_item_id" class="form-select consumption-line-item" required>
+                <select data-name="catalog_item_id" class="form-select consumption-line-item" data-tom-select required>
                     <option value="">Alege materialul</option>
                 </select>
             </div>
@@ -404,10 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const selected = preserve ? String(select.value || select.dataset.selectedValue || '') : '';
         select.replaceChildren(new Option(stockItems.length ? 'Alege materialul' : 'Nu există materiale disponibile', ''));
         stockItems.forEach(item => {
-            select.add(new Option(`${item.name} — disponibil ${formatQuantity(item.available)} ${item.unit}`, item.id));
+            const option = new Option(`${item.name} — disponibil ${formatQuantity(item.available)} ${item.unit}`, item.id);
+            option.dataset.search = [item.sku, item.barcode].filter(Boolean).join(' ');
+            select.add(option);
         });
         if ([...select.options].some(option => String(option.value) === selected)) select.value = selected;
         select.dataset.selectedValue = '';
+        window.GafcoSearchableSelect?.sync(select);
         syncAvailable(row);
         if (select.value) scheduleAllocation(row);
         else showAllocationState(row, 'Alege materialul și cantitatea pentru propunerea pe loturi.');
@@ -461,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         list.append(row);
         renumberVisuals();
         populateLine(row, false);
-        row.querySelector('select')?.focus();
+        window.GafcoSearchableSelect?.focus(row.querySelector('select'));
     });
 
     list.addEventListener('click', event => {

@@ -51,7 +51,7 @@ class OperationalImprovementTest extends TestCase
             ->assertOk()
             ->assertSee('Conținutul transferului TR-CONTENT')
             ->assertSee('Plăci termoizolante')
-            ->assertSee('12,500 buc')
+            ->assertSee('12,5 buc')
             ->assertSee('AVZ-778')
             ->assertSee('A se proteja de ploaie.')
             ->assertSee('Încărcare pe paleți.');
@@ -147,11 +147,11 @@ class OperationalImprovementTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 11,
+            'current_revision' => 14,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
-            'current_revision' => 12,
+            'current_revision' => 15,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'statusuri-si-termeni',

@@ -160,10 +160,10 @@
                             <td>
                                 <form method="post" action="{{ route('tasks.assignments.store', $task) }}" class="dispatch-assignment-form">
                                     @csrf
-                                    <select name="driver_id" class="form-select form-select-sm" required aria-label="Alege sofer pentru {{ $task->number }}">
+                                    <select name="driver_id" class="form-select form-select-sm" data-tom-select required aria-label="Alege sofer pentru {{ $task->number }}">
                                         <option value="">Alege soferul</option>
                                         @foreach($driverOptions as $summary)
-                                            <option value="{{ $summary['driver']->id }}">
+                                            <option value="{{ $summary['driver']->id }}" data-search="{{ $summary['driver']->login_code }}">
                                                 {{ $summary['sameRoute'] ? 'Recomandat · ' : '' }}{{ $summary['driver']->name }} - {{ $summary['sameRoute'] ? 'aceeași rută · ' : '' }}{{ $summary['stateLabel'] }}
                                             </option>
                                         @endforeach
@@ -199,10 +199,10 @@
                     @if($task->manager_deadline)<div class="small mt-2 {{ $task->isOverdue() ? 'deadline-overdue fw-bold' : 'text-muted' }}"><i class="fa-solid fa-flag-checkered me-1"></i>{{ $task->manager_deadline->format('d.m.Y H:i') }} ({{ $task->manager_deadline->diffForHumans() }})</div>@endif
                     <form method="post" action="{{ route('tasks.assignments.store', $task) }}" class="dispatch-assignment-form mt-3">
                         @csrf
-                        <select name="driver_id" class="form-select" required aria-label="Alege sofer pentru {{ $task->number }}">
+                        <select name="driver_id" class="form-select" data-tom-select required aria-label="Alege sofer pentru {{ $task->number }}">
                             <option value="">Alege soferul</option>
                             @foreach($driverOptions as $summary)
-                                <option value="{{ $summary['driver']->id }}">
+                                <option value="{{ $summary['driver']->id }}" data-search="{{ $summary['driver']->login_code }}">
                                     {{ $summary['sameRoute'] ? 'Recomandat · ' : '' }}{{ $summary['driver']->name }} - {{ $summary['sameRoute'] ? 'aceeași rută · ' : '' }}{{ $summary['stateLabel'] }}
                                 </option>
                             @endforeach

@@ -46,7 +46,7 @@
                     <select name="manager_user_ids[]" class="form-select" multiple data-tom-select data-manager-selector>
                         @foreach($managers as $manager)
                             @php($roleNames = $manager->roles->pluck('name')->map(fn ($role) => $managerRoleLabels[$role] ?? $role)->implode(', '))
-                            <option value="{{ $manager->id }}" @selected(in_array($manager->id, $selectedManagerIds, true))>{{ $manager->name }}{{ $roleNames ? ' · '.$roleNames : '' }}</option>
+                            <option value="{{ $manager->id }}" data-search="{{ $manager->login_code }}" @selected(in_array($manager->id, $selectedManagerIds, true))>{{ $manager->name }}{{ $roleNames ? ' · '.$roleNames : '' }}</option>
                         @endforeach
                     </select>
                     <div class="manager-selection-guidance mt-2">

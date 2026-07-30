@@ -40,7 +40,7 @@
                 <select name="supplier_id" class="form-select" data-tom-select>
                     <option value="">Nespecificat încă</option>
                     @foreach($suppliers as $supplier)
-                        <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $currentOrder?->supplier_id) === (string) $supplier->id)>
+                        <option value="{{ $supplier->id }}" data-search="{{ $supplier->cui }} {{ $supplier->registration_number }}" @selected((string) old('supplier_id', $currentOrder?->supplier_id) === (string) $supplier->id)>
                             {{ $supplier->name }}{{ $supplier->active ? '' : ' (inactiv)' }}
                         </option>
                     @endforeach
@@ -89,10 +89,10 @@
                     <div class="row g-3">
                         <div class="col-lg-5">
                             <label class="form-label">Material</label>
-                            <select name="lines[{{ $index }}][catalog_item_id]" class="form-select" data-reception-item required>
+                            <select name="lines[{{ $index }}][catalog_item_id]" class="form-select" data-reception-item data-tom-select required>
                                 <option value="">Alege materialul</option>
                                 @foreach($items as $item)
-                                    <option value="{{ $item->id }}" @selected((string) ($line['catalog_item_id'] ?? '') === (string) $item->id)>
+                                    <option value="{{ $item->id }}" data-search="{{ $item->sku }} {{ $item->barcode }}" @selected((string) ($line['catalog_item_id'] ?? '') === (string) $item->id)>
                                         {{ $item->name }} ({{ $item->unit }})
                                     </option>
                                 @endforeach
@@ -124,10 +124,10 @@
                 <div class="row g-3">
                     <div class="col-lg-5">
                         <label class="form-label">Material</label>
-                        <select name="lines[__INDEX__][catalog_item_id]" class="form-select" data-reception-item required>
+                        <select name="lines[__INDEX__][catalog_item_id]" class="form-select" data-reception-item data-tom-select required>
                             <option value="">Alege materialul</option>
                             @foreach($items as $item)
-                                <option value="{{ $item->id }}">{{ $item->name }} ({{ $item->unit }})</option>
+                                <option value="{{ $item->id }}" data-search="{{ $item->sku }} {{ $item->barcode }}">{{ $item->name }} ({{ $item->unit }})</option>
                             @endforeach
                         </select>
                     </div>
