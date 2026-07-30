@@ -177,6 +177,28 @@ class OperationalAlertWorkflowTest extends TestCase
         $this->actingAs($manager)->get(route('alert-rules.index'))->assertForbidden();
     }
 
+    public function test_alert_rule_table_keeps_status_and_threshold_in_separate_readable_cells(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $response = $this->actingAs($admin)->get(route('alert-rules.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('alert-rules-table', false)
+            ->assertSee('alert-rule-status-cell', false)
+            ->assertSee('alert-rule-threshold-cell', false)
+            ->assertSee('alert-rule-threshold-control', false)
+            ->assertSee('form="alert-rule-update-', false)
+            ->assertSee('value="30"', false)
+            ->assertSee('>zile</span>', false);
+
+        $this->assertStringNotContainsString(
+            '<td colspan="2">',
+            (string) $response->getContent(),
+        );
+    }
+
     public function test_help_articles_and_release_note_explain_the_alert_workflow(): void
     {
         $this->assertDatabaseHas('help_articles', [
@@ -200,6 +222,11 @@ class OperationalAlertWorkflowTest extends TestCase
         $this->assertDatabaseHas('release_notes', [
             'slug' => '2026-07-29-alerte-stoc-si-receptii',
             'version' => '2026.07.29.5',
+            'status' => 'published',
+        ]);
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-07-30-praguri-vizibile-pentru-regulile-de-alertare',
+            'version' => '2026.07.30.5',
             'status' => 'published',
         ]);
     }

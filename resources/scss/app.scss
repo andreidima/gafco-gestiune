@@ -2499,6 +2499,65 @@ body {
     background-color: #f8f9fc;
 }
 
+.alert-rules-table {
+    min-width: 840px;
+    table-layout: fixed;
+}
+
+.alert-rules-table th:nth-child(1) {
+    width: 34%;
+}
+
+.alert-rules-table th:nth-child(2) {
+    width: 14%;
+}
+
+.alert-rules-table th:nth-child(3) {
+    width: 11%;
+}
+
+.alert-rules-table th:nth-child(4) {
+    width: 16%;
+}
+
+.alert-rules-table th:nth-child(5) {
+    width: 15%;
+}
+
+.alert-rules-table th:nth-child(6) {
+    width: 10%;
+}
+
+.alert-rule-status-cell,
+.alert-rule-threshold-cell,
+.alert-rule-actions-cell {
+    white-space: nowrap;
+}
+
+.alert-rule-scope-badge {
+    max-width: 100%;
+    text-align: left;
+    white-space: normal;
+}
+
+.alert-rule-status-control {
+    min-width: 72px;
+}
+
+.alert-rule-threshold-control {
+    flex-wrap: nowrap;
+    min-width: 112px;
+}
+
+.alert-rule-threshold-control .form-control {
+    min-width: 50px;
+}
+
+.alert-rule-actions-cell {
+    padding-right: .35rem !important;
+    padding-left: .35rem !important;
+}
+
 .resource-table-link {
     color: inherit;
     text-decoration: none;
