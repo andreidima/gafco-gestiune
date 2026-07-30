@@ -92,6 +92,174 @@ window.GafcoSearchableSelect = {
     focus: focusSearchableSelect,
 };
 
+const liveFilterSearchSelector = 'input[name="search"], input[name$="_search"]';
+const liveFilterDelay = 500;
+const liveFilterMinLength = 2;
+const liveFilterStates = new WeakMap();
+
+const liveFilterState = (form) => {
+    if (! liveFilterStates.has(form)) {
+        liveFilterStates.set(form, {
+            controller: null,
+            timer: null,
+        });
+    }
+
+    return liveFilterStates.get(form);
+};
+
+const liveFilterTarget = (form) => {
+    const selector = form.dataset.liveFilterTarget;
+
+    return selector ? document.querySelector(selector) : null;
+};
+
+const liveFilterUrl = (form) => {
+    const url = new URL(form.action || window.location.href, window.location.href);
+    url.search = new URLSearchParams(new FormData(form)).toString();
+    if (! url.hash) {
+        url.hash = window.location.hash;
+    }
+
+    return url;
+};
+
+const setLiveFilterStatus = (form, message = '') => {
+    const status = form.querySelector('[data-live-filter-status]');
+    if (status) {
+        status.textContent = message;
+    }
+};
+
+const setLiveFilterLoading = (form, loading) => {
+    form.setAttribute('aria-busy', loading ? 'true' : 'false');
+    const target = liveFilterTarget(form);
+    if (target) {
+        target.setAttribute('aria-busy', loading ? 'true' : 'false');
+    }
+};
+
+const replaceLiveFilterSummaries = (nextDocument) => {
+    const currentSummaries = document.querySelectorAll('[data-live-filter-summary]');
+    const nextSummaries = nextDocument.querySelectorAll('[data-live-filter-summary]');
+
+    currentSummaries.forEach((summary, index) => {
+        const replacement = nextSummaries[index];
+        if (replacement) {
+            summary.replaceWith(document.importNode(replacement, true));
+        }
+    });
+};
+
+const replaceLiveFilterResults = (form, nextDocument) => {
+    const selector = form.dataset.liveFilterTarget;
+    const currentTarget = selector ? document.querySelector(selector) : null;
+    const nextTarget = selector ? nextDocument.querySelector(selector) : null;
+
+    if (! currentTarget || ! nextTarget) {
+        return false;
+    }
+
+    currentTarget.querySelectorAll('select').forEach((select) => select.tomselect?.destroy());
+    const replacement = document.importNode(nextTarget, true);
+    currentTarget.replaceWith(replacement);
+    replaceLiveFilterSummaries(nextDocument);
+    initializeSearchableSelects(replacement);
+
+    return true;
+};
+
+const submitLiveFilters = async (form, requestedUrl = null, historyMode = 'replace') => {
+    const state = liveFilterState(form);
+    const url = requestedUrl ? new URL(requestedUrl, window.location.href) : liveFilterUrl(form);
+
+    state.controller?.abort();
+    state.controller = new AbortController();
+    const controller = state.controller;
+    setLiveFilterLoading(form, true);
+    setLiveFilterStatus(form, 'Se actualizează rezultatele.');
+
+    try {
+        const response = await fetch(url, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            signal: controller.signal,
+        });
+
+        if (! response.ok) {
+            throw new Error('Filtrarea nu a putut fi actualizată.');
+        }
+
+        const nextDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+        if (! replaceLiveFilterResults(form, nextDocument)) {
+            window.location.assign(response.url || url.href);
+
+            return;
+        }
+
+        document.title = nextDocument.title || document.title;
+        window.history[historyMode === 'push' ? 'pushState' : 'replaceState'](
+            { gafcoLiveFilters: true },
+            '',
+            url.href,
+        );
+        setLiveFilterStatus(form, 'Rezultatele au fost actualizate.');
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            window.location.assign(url.href);
+        }
+    } finally {
+        if (state.controller === controller) {
+            state.controller = null;
+            setLiveFilterLoading(form, false);
+        }
+    }
+};
+
+const initializeLiveFilterForm = (form) => {
+    if (! liveFilterTarget(form)) {
+        return;
+    }
+
+    const state = liveFilterState(form);
+    const status = document.createElement('span');
+    status.className = 'visually-hidden';
+    status.dataset.liveFilterStatus = '';
+    status.setAttribute('aria-live', 'polite');
+    form.append(status);
+
+    form.querySelectorAll(liveFilterSearchSelector).forEach((search) => {
+        search.title = 'Căutarea automată pornește după minimum 2 caractere.';
+        search.addEventListener('input', () => {
+            window.clearTimeout(state.timer);
+            state.controller?.abort();
+            const length = search.value.trim().length;
+
+            if (length === 1) {
+                setLiveFilterLoading(form, false);
+                setLiveFilterStatus(form, 'Mai scrie un caracter pentru a porni căutarea automată.');
+
+                return;
+            }
+
+            state.timer = window.setTimeout(() => submitLiveFilters(form), liveFilterDelay);
+        });
+    });
+
+    form.querySelectorAll('select[name], input[type="checkbox"][name], input[type="radio"][name], input[type="date"][name]').forEach((field) => {
+        field.addEventListener('change', () => form.requestSubmit());
+    });
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        window.clearTimeout(state.timer);
+        submitLiveFilters(form);
+    });
+};
+
 document.addEventListener('click', (event) => {
     const link = event.target.closest('[data-smart-back]');
 
@@ -107,6 +275,38 @@ document.addEventListener('click', (event) => {
 
     event.preventDefault();
     window.history.back();
+});
+
+document.addEventListener('click', (event) => {
+    const row = event.target.closest('[data-href]');
+    if (! row || event.target.closest('a, button, input, select, textarea, label')) {
+        return;
+    }
+
+    window.location.assign(row.dataset.href);
+});
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-live-filter-results] .pagination a');
+    if (! link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    const target = link.closest('[data-live-filter-results]');
+    const form = Array.from(document.querySelectorAll('[data-auto-submit-filters]'))
+        .find((candidate) => liveFilterTarget(candidate) === target);
+    if (! form || new URL(link.href).origin !== window.location.origin) {
+        return;
+    }
+
+    event.preventDefault();
+    submitLiveFilters(form, link.href, 'push');
+});
+
+window.addEventListener('popstate', () => {
+    if (document.querySelector('[data-auto-submit-filters][data-live-filter-target]')) {
+        window.location.reload();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -133,20 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }).observe(document.body, { childList: true, subtree: true });
 
-    document.querySelectorAll('[data-auto-submit-filters]').forEach((form) => {
-        let searchTimer;
-
-        form.querySelectorAll('input[name="search"], input[name$="_search"]').forEach((search) => {
-            search.addEventListener('input', () => {
-                window.clearTimeout(searchTimer);
-                searchTimer = window.setTimeout(() => form.requestSubmit(), 400);
-            });
-        });
-
-        form.querySelectorAll('select[name], input[type="checkbox"][name], input[type="radio"][name], input[type="date"][name]').forEach((field) => {
-            field.addEventListener('change', () => form.requestSubmit());
-        });
-    });
+    document.querySelectorAll('[data-auto-submit-filters]').forEach(initializeLiveFilterForm);
 
     document.querySelectorAll('[data-live-view]').forEach((liveView) => {
         const intervalSeconds = Math.max(60, Number(liveView.dataset.liveViewInterval) || 300);
@@ -421,15 +608,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         role?.addEventListener('change', loadUsers);
     }
-
-    document.querySelectorAll('[data-href]').forEach((row) => {
-        row.addEventListener('click', (event) => {
-            if (event.target.closest('a, button, input, select, textarea, label')) {
-                return;
-            }
-            window.location.assign(row.dataset.href);
-        });
-    });
 
     document.querySelectorAll('[data-attachment-builder]').forEach((builder) => {
         const list = builder.querySelector('[data-attachment-list]');

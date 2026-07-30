@@ -87,7 +87,7 @@
         <x-slot:actions><x-live-view view-key="transfers-index" /></x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel" method="get" action="{{ route('transfers.index') }}" data-auto-submit-filters>
+    <form class="resource-filter-panel" method="get" action="{{ route('transfers.index') }}" data-auto-submit-filters data-live-filter-target="#transfers-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">
@@ -100,7 +100,7 @@
             <div class="col-auto d-md-none">
                 <button class="btn btn-outline-secondary resource-filter-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#transferAdvancedFilters" aria-expanded="false" aria-controls="transferAdvancedFilters">
                     <i class="fa-solid fa-sliders me-1"></i>Filtre
-                    @if($advancedTransferFilterCount > 0)<span class="badge text-bg-primary ms-1">{{ $advancedTransferFilterCount }}</span>@endif
+                    <span class="badge text-bg-primary ms-1" data-live-filter-summary @if($advancedTransferFilterCount === 0) hidden @endif>{{ $advancedTransferFilterCount }}</span>
                 </button>
             </div>
         </div>
@@ -127,6 +127,7 @@
         </div>
     </form>
 
+    <div id="transfers-results" data-live-filter-results>
     <nav class="resource-filter-presets" aria-label="Vizualizari rapide transferuri">
         <span class="results-meta">Vizualizari rapide</span>
         <a class="resource-filter-preset {{ request('status') === 'pending_approval' ? 'active' : '' }}" href="{{ route('transfers.index', ['status' => 'pending_approval', 'filters_submitted' => 1]) }}"><i class="fa-solid fa-user-check"></i>Asteapta aprobari</a>
@@ -355,6 +356,7 @@
         </div>
 
         <div class="resource-table-footer">{{ $transfers->links() }}</div>
+    </div>
     </div>
 </div>
 @endsection

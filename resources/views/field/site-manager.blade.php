@@ -89,7 +89,7 @@
     </section>
 
     <section id="active-transfers" aria-labelledby="active-transfers-heading">
-        <form class="resource-filter-panel" data-auto-submit-filters>
+        <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#site-manager-transfer-results">
             <input type="hidden" name="filters_submitted" value="1">
             <div class="row g-2 align-items-end">
                 <div class="col-md-6 col-xl-4"><label class="resource-filter-label" for="transfer-search">Cautare</label><input id="transfer-search" name="transfer_search" value="{{ request('transfer_search') }}" class="form-control" placeholder="Transfer sau aviz"></div>
@@ -98,6 +98,7 @@
             </div>
         </form>
 
+        <div id="site-manager-transfer-results" data-live-filter-results>
         <div class="resource-results-meta mb-2">
             <h2 id="active-transfers-heading" class="h6 mb-0">Transferuri active</h2>
             <span>{{ $pendingTransfers->count() }} afisate</span>
@@ -144,6 +145,7 @@
             @empty
                 <div class="resource-table-card p-4 text-center text-muted">Nu exista transferuri pentru filtrele selectate.</div>
             @endforelse
+        </div>
         </div>
     </section>
 

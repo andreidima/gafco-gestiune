@@ -22,7 +22,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#reception-intakes-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-lg-5">
@@ -57,7 +57,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="reception-intakes-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table mb-0">
                 <thead>

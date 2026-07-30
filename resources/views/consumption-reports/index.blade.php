@@ -22,7 +22,7 @@
         create-label="Raporteaza consum"
     />
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#consumption-reports-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-3 col-md-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Numar raport"></div>
@@ -34,7 +34,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="consumption-reports-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead><tr><th>Raport</th><th>Locatie</th><th>Materiale consumate</th><th>Responsabil</th><th>Observatii</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>

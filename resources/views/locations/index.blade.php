@@ -19,7 +19,7 @@
         create-label="Locatie noua"
     />
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#locations-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-6">
@@ -41,7 +41,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="locations-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead><tr><th>Locatie</th><th>Tip</th><th>Responsabili</th><th>Inventar / alerte</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>

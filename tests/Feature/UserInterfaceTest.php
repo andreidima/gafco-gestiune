@@ -149,4 +149,53 @@ class UserInterfaceTest extends TestCase
 
         $this->assertSame([], $violations, 'Selectoare de entități fără căutare: '.implode(', ', $violations));
     }
+
+    public function test_every_auto_submitted_filter_form_declares_a_live_results_fragment(): void
+    {
+        $violations = [];
+
+        foreach (File::allFiles(resource_path('views')) as $file) {
+            $contents = File::get($file->getPathname());
+            preg_match_all('/<form\b[^>]*\bdata-auto-submit-filters\b[^>]*>/s', $contents, $matches, PREG_OFFSET_CAPTURE);
+
+            foreach ($matches[0] as [$tag, $offset]) {
+                $line = substr_count(substr($contents, 0, $offset), "\n") + 1;
+
+                if (! preg_match('/\bdata-live-filter-target="#([^"]+)"/', $tag, $targetMatch)) {
+                    $violations[] = $file->getRelativePathname().':'.$line.' (lipsește ținta)';
+
+                    continue;
+                }
+
+                $targetId = preg_quote($targetMatch[1], '/');
+                if (! preg_match('/<[^>]+(?=[^>]*\bid="'.$targetId.'")(?=[^>]*\bdata-live-filter-results\b)[^>]*>/s', $contents)) {
+                    $violations[] = $file->getRelativePathname().':'.$line.' (țintă inexistentă)';
+                }
+            }
+        }
+
+        $this->assertSame([], $violations, 'Formulare fără rezultate live: '.implode(', ', $violations));
+    }
+
+    public function test_locations_list_exposes_the_focus_preserving_live_filter_contract(): void
+    {
+        Role::findOrCreate('admin');
+        $admin = User::factory()->create(['login_code' => 'ADMIN-FILTRARE-LIVE']);
+        $admin->assignRole('admin');
+
+        $this->actingAs($admin)
+            ->get(route('locations.index'))
+            ->assertOk()
+            ->assertSee('data-live-filter-target="#locations-results"', false)
+            ->assertSee('id="locations-results"', false)
+            ->assertSee('data-live-filter-results', false)
+            ->assertSee('data-live-filter-summary', false);
+
+        $script = File::get(resource_path('js/app.js'));
+
+        $this->assertStringContainsString('const liveFilterMinLength = 2;', $script);
+        $this->assertStringContainsString('new AbortController()', $script);
+        $this->assertStringContainsString('new DOMParser()', $script);
+        $this->assertStringContainsString('currentTarget.replaceWith(replacement)', $script);
+    }
 }

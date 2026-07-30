@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <form class="resource-filter-panel" method="get" data-auto-submit-filters>
+    <form class="resource-filter-panel" method="get" data-auto-submit-filters data-live-filter-target="#inventory-item-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-md-6">
@@ -49,6 +49,7 @@
         </div>
     </form>
 
+    <div id="inventory-item-results" data-live-filter-results>
     <div class="row g-3 mb-3">
         <div class="col-lg-7">
             <div class="card h-100">
@@ -183,6 +184,7 @@
             </table>
         </div>
         @if($movements->hasPages())<div class="resource-pagination">{{ $movements->links() }}</div>@endif
+    </div>
     </div>
 </div>
 @endsection

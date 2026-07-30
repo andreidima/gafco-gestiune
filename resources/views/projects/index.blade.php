@@ -20,7 +20,7 @@
         <x-slot:actions><x-live-view view-key="projects-index" /></x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#projects-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-4 col-md-6">
@@ -56,7 +56,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="projects-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table mb-0 align-middle">
                 <thead><tr><th>Proiect</th><th>Locație</th><th>Plan și utilizare</th><th>Depășiri</th><th>Stare</th><th class="text-end">Acțiuni</th></tr></thead>

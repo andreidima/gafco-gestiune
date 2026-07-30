@@ -31,7 +31,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#alerts-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-3 col-lg-6">
@@ -84,7 +84,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="alerts-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table mb-0 align-middle">
                 <thead>
