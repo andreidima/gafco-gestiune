@@ -212,8 +212,8 @@ class ProjectMaterialPlanningTest extends TestCase
         $this->assertTrue(Schema::hasTable('project_material_plans'));
         $this->assertTrue(Schema::hasColumn('transfers', 'project_id'));
         $this->assertDatabaseHas('help_articles', ['slug' => 'circuitul-materialelor', 'current_revision' => 7]);
-        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 15]);
-        $this->assertDatabaseHas('help_articles', ['slug' => 'ghiduri-dupa-rol', 'current_revision' => 15]);
+        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 16]);
+        $this->assertDatabaseHas('help_articles', ['slug' => 'ghiduri-dupa-rol', 'current_revision' => 16]);
         $this->assertDatabaseHas('help_articles', ['slug' => 'statusuri-si-termeni', 'current_revision' => 5]);
         $this->assertDatabaseHas('release_notes', [
             'slug' => '2026-07-29-planuri-materiale-pe-proiect',
@@ -221,6 +221,7 @@ class ProjectMaterialPlanningTest extends TestCase
             'status' => 'published',
         ]);
 
+        $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
         $liveFilteringMigration = require database_path('migrations/2026_07_30_000026_publish_live_list_filtering.php');
         $searchableListsMigration = require database_path('migrations/2026_07_30_000025_publish_searchable_entity_lists.php');
         $navigationMigration = require database_path('migrations/2026_07_30_000024_publish_consistent_navigation_and_quantities.php');
@@ -229,6 +230,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000018_publish_project_material_planning_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000017_create_project_material_plans.php');
         DB::connection()->pretend(fn () => $contentMigration->up());
+        $driverTabsMigration->down();
         $liveFilteringMigration->down();
         $searchableListsMigration->down();
         $navigationMigration->down();
@@ -248,6 +250,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $navigationMigration->up();
         $searchableListsMigration->up();
         $liveFilteringMigration->up();
+        $driverTabsMigration->up();
 
         $this->assertTrue(Schema::hasTable('projects'));
         $this->assertDatabaseHas('release_notes', ['slug' => '2026-07-29-planuri-materiale-pe-proiect']);

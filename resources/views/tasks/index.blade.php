@@ -86,13 +86,13 @@
     @if($isDriver)
         <nav class="driver-task-tabs" aria-label="Starea sarcinilor mele" data-live-filter-summary>
             <a class="driver-task-tab {{ ! request()->filled('status') && ! request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['filters_reset' => 1]) }}">
-                <span>Toate</span><span class="driver-task-tab-count">{{ $driverTaskCounts['all'] }}</span>
+                <span>Active</span><span class="driver-task-tab-count">{{ $driverTaskCounts['active'] }}</span>
             </a>
             <a class="driver-task-tab {{ request('status') === 'pending_acceptance' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'pending_acceptance', 'filters_submitted' => 1]) }}">
                 <span>De răspuns</span><span class="driver-task-tab-count">{{ $driverTaskCounts['pending_acceptance'] }}</span>
             </a>
             <a class="driver-task-tab {{ request('status') === 'accepted' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'accepted', 'filters_submitted' => 1]) }}">
-                <span>De pornit</span><span class="driver-task-tab-count">{{ $driverTaskCounts['accepted'] }}</span>
+                <span>Acceptate</span><span class="driver-task-tab-count">{{ $driverTaskCounts['accepted'] }}</span>
             </a>
             <a class="driver-task-tab {{ request('status') === 'in_progress' ? 'active' : '' }}" href="{{ route('tasks.index', ['status' => 'in_progress', 'filters_submitted' => 1]) }}">
                 <span>În lucru</span><span class="driver-task-tab-count">{{ $driverTaskCounts['in_progress'] }}</span>

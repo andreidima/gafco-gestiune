@@ -65,15 +65,32 @@ class DriverTaskUxTest extends TestCase
         $response = $this->actingAs($driver)->get(route('tasks.index', ['filters_reset' => 1]));
 
         $response->assertOk()
-            ->assertSeeInOrder(['Toate', 'De răspuns', 'De pornit', 'În lucru', 'Finalizate'])
+            ->assertSeeInOrder(['Active', 'De răspuns', 'Acceptate', 'În lucru', 'Finalizate'])
             ->assertSee('driver-task-mobile-card', false)
             ->assertSee('Răspunde')
             ->assertSee('Estimează și pornește')
             ->assertSee('Continuă sarcina')
-            ->assertSee('Vezi sarcina');
+            ->assertDontSee('Vezi sarcina');
+        $this->assertFalse(
+            $response->viewData('tasks')->getCollection()->contains('number', 'TSK-DRIVER-COMPLETED'),
+        );
+        $response->assertSee(
+            '<span>Active</span><span class="driver-task-tab-count">3</span>',
+            false,
+        );
         $this->assertStringNotContainsString(
             '<span class="resource-filter-label">Alocare</span>',
             $response->getContent(),
+        );
+
+        $completedResponse = $this->actingAs($driver)
+            ->get(route('tasks.index', ['status' => 'completed', 'filters_submitted' => 1]));
+
+        $completedResponse->assertOk()
+            ->assertSee('Vezi sarcina');
+        $this->assertSame(
+            ['TSK-DRIVER-COMPLETED'],
+            $completedResponse->viewData('tasks')->getCollection()->pluck('number')->all(),
         );
     }
 

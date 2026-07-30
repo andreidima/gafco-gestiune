@@ -16,6 +16,12 @@ use Illuminate\View\View;
 
 class TaskController extends Controller
 {
+    private const DRIVER_ACTIVE_STATUSES = [
+        'pending_acceptance',
+        'accepted',
+        'in_progress',
+    ];
+
     public function __construct(private readonly LocationAccessService $locationAccess) {}
 
     public function index(Request $request): View
@@ -35,6 +41,10 @@ class TaskController extends Controller
                 'assignments.driver',
             ]);
 
+        if ($user->usesDriverWorkspace() && ! $request->filled('status')) {
+            $query->whereIn('status', self::DRIVER_ACTIVE_STATUSES);
+        }
+
         $this->applyFilters($query, $request);
         $this->applyUrgencyOrdering($query);
 
@@ -44,14 +54,14 @@ class TaskController extends Controller
         }
         $driverTaskCounts = $user->usesDriverWorkspace()
             ? collect([
-                'all' => null,
-                'pending_acceptance' => 'pending_acceptance',
-                'accepted' => 'accepted',
-                'in_progress' => 'in_progress',
-                'completed' => 'completed',
-            ])->map(fn (?string $status) => $this->visibleQuery($user)
+                'active' => self::DRIVER_ACTIVE_STATUSES,
+                'pending_acceptance' => ['pending_acceptance'],
+                'accepted' => ['accepted'],
+                'in_progress' => ['in_progress'],
+                'completed' => ['completed'],
+            ])->map(fn (array $statuses) => $this->visibleQuery($user)
                 ->whereNull('archived_at')
-                ->when($status, fn ($countQuery) => $countQuery->where('status', $status))
+                ->whereIn('status', $statuses)
                 ->count())
             : collect();
 
