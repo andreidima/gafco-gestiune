@@ -25,7 +25,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form method="get" class="resource-filter-panel" data-auto-submit-filters>
+    <form method="get" class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#suppliers-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-lg-7 col-md-6">
@@ -49,19 +49,17 @@
                 <button class="btn btn-primary flex-fill">
                     <i class="fa-solid fa-magnifying-glass me-1"></i>Caută
                 </button>
-                @if($hasFilters)
-                    <a
-                        href="{{ route('suppliers.index', ['filters_reset' => 1]) }}"
-                        class="btn btn-outline-secondary"
-                        title="Resetează filtrele"
-                        aria-label="Resetează filtrele"
-                    ><i class="fa-solid fa-rotate-left"></i></a>
-                @endif
+                <a
+                    href="{{ route('suppliers.index', ['filters_reset' => 1]) }}"
+                    class="btn btn-outline-secondary"
+                    title="Resetează filtrele"
+                    aria-label="Resetează filtrele"
+                ><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="suppliers-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead>

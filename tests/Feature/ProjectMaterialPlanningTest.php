@@ -212,7 +212,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $this->assertTrue(Schema::hasTable('project_material_plans'));
         $this->assertTrue(Schema::hasColumn('transfers', 'project_id'));
         $this->assertDatabaseHas('help_articles', ['slug' => 'circuitul-materialelor', 'current_revision' => 7]);
-        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 14]);
+        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 15]);
         $this->assertDatabaseHas('help_articles', ['slug' => 'ghiduri-dupa-rol', 'current_revision' => 15]);
         $this->assertDatabaseHas('help_articles', ['slug' => 'statusuri-si-termeni', 'current_revision' => 5]);
         $this->assertDatabaseHas('release_notes', [
@@ -221,6 +221,7 @@ class ProjectMaterialPlanningTest extends TestCase
             'status' => 'published',
         ]);
 
+        $liveFilteringMigration = require database_path('migrations/2026_07_30_000026_publish_live_list_filtering.php');
         $searchableListsMigration = require database_path('migrations/2026_07_30_000025_publish_searchable_entity_lists.php');
         $navigationMigration = require database_path('migrations/2026_07_30_000024_publish_consistent_navigation_and_quantities.php');
         $mobileRefinementMigration = require database_path('migrations/2026_07_30_000023_publish_mobile_interface_refinement_content.php');
@@ -228,6 +229,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000018_publish_project_material_planning_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000017_create_project_material_plans.php');
         DB::connection()->pretend(fn () => $contentMigration->up());
+        $liveFilteringMigration->down();
         $searchableListsMigration->down();
         $navigationMigration->down();
         $mobileRefinementMigration->down();
@@ -245,6 +247,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $mobileRefinementMigration->up();
         $navigationMigration->up();
         $searchableListsMigration->up();
+        $liveFilteringMigration->up();
 
         $this->assertTrue(Schema::hasTable('projects'));
         $this->assertDatabaseHas('release_notes', ['slug' => '2026-07-29-planuri-materiale-pe-proiect']);

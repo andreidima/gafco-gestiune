@@ -84,7 +84,7 @@
     @endcan
 
     @if($isDriver)
-        <nav class="driver-task-tabs" aria-label="Starea sarcinilor mele">
+        <nav class="driver-task-tabs" aria-label="Starea sarcinilor mele" data-live-filter-summary>
             <a class="driver-task-tab {{ ! request()->filled('status') && ! request()->boolean('overdue') ? 'active' : '' }}" href="{{ route('tasks.index', ['filters_reset' => 1]) }}">
                 <span>Toate</span><span class="driver-task-tab-count">{{ $driverTaskCounts['all'] }}</span>
             </a>
@@ -103,7 +103,7 @@
         </nav>
     @endif
 
-    <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}" data-auto-submit-filters>
+    <form class="resource-filter-panel" method="get" action="{{ route('tasks.index') }}" data-auto-submit-filters data-live-filter-target="#tasks-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="resource-filter-toolbar row g-2 align-items-end">
             <div class="resource-filter-search col">
@@ -116,7 +116,7 @@
             <div class="col-auto d-md-none">
                 <button class="btn btn-outline-secondary resource-filter-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#taskAdvancedFilters" aria-expanded="false" aria-controls="taskAdvancedFilters">
                     <i class="fa-solid fa-sliders me-1"></i>Filtre
-                    @if($advancedTaskFilterCount > 0)<span class="badge text-bg-primary ms-1">{{ $advancedTaskFilterCount }}</span>@endif
+                    <span class="badge text-bg-primary ms-1" data-live-filter-summary @if($advancedTaskFilterCount === 0) hidden @endif>{{ $advancedTaskFilterCount }}</span>
                 </button>
             </div>
         </div>
@@ -139,6 +139,7 @@
         </div>
     </form>
 
+    <div id="tasks-results" data-live-filter-results>
     @unless($isDriver)
         <nav class="resource-filter-presets" aria-label="Vizualizari rapide sarcini">
             <span class="results-meta">Vizualizari rapide</span>
@@ -318,6 +319,7 @@
         </div>
 
         <div class="resource-table-footer">{{ $tasks->links() }}</div>
+    </div>
     </div>
 </div>
 @endsection

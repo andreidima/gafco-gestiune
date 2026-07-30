@@ -21,7 +21,7 @@
         create-label="Comandă nouă"
     />
 
-    <form method="get" class="resource-filter-panel" data-auto-submit-filters>
+    <form method="get" class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#negotiated-orders-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-3 align-items-end">
             <div class="col-xl-3 col-md-6">
@@ -64,13 +64,12 @@
             </div>
             <div class="col-xl-1 col-md-4 d-flex gap-2">
                 <button class="btn btn-primary flex-grow-1" title="Aplică filtrele"><i class="fa-solid fa-filter"></i></button>
-                @if($hasFilters)
-                    <a href="{{ route('negotiated-orders.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Resetează filtrele"><i class="fa-solid fa-rotate-left"></i></a>
-                @endif
+                <a href="{{ route('negotiated-orders.index', ['filters_reset' => 1]) }}" class="btn btn-outline-secondary" title="Resetează filtrele"><i class="fa-solid fa-rotate-left"></i></a>
             </div>
         </div>
     </form>
 
+    <div id="negotiated-orders-results" data-live-filter-results>
     <div class="resource-table-card d-none d-lg-block">
         <div class="table-responsive">
             <table class="table resource-table align-middle mb-0">
@@ -200,5 +199,6 @@
     @if($orders->hasPages())
         <div class="resource-table-footer">{{ $orders->links() }}</div>
     @endif
+    </div>
 </div>
 @endsection

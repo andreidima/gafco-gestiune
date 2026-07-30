@@ -107,7 +107,7 @@
     </div>
 
     <section id="unassigned-tasks" aria-labelledby="unassigned-heading">
-        <form class="resource-filter-panel" data-auto-submit-filters>
+        <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#dispatch-task-results">
             <input type="hidden" name="filters_submitted" value="1">
             <div class="row g-2 align-items-end">
                 <div class="col-md-7 col-xl-5">
@@ -130,6 +130,7 @@
             </div>
         </form>
 
+        <div id="dispatch-task-results" data-live-filter-results>
         <div class="resource-results-meta mb-2">
             <h2 id="unassigned-heading" class="h6 mb-0">Sarcini nealocate</h2>
             <span>{{ $unassignedTasks->total() }} {{ $unassignedTasks->total() === 1 ? 'rezultat' : 'rezultate' }}</span>
@@ -216,6 +217,7 @@
         </div>
 
         @if($unassignedTasks->hasPages())<div class="resource-table-footer mt-2">{{ $unassignedTasks->links() }}</div>@endif
+        </div>
     </section>
 </div>
 @endsection

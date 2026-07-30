@@ -22,7 +22,7 @@
         create-label="Utilizator nou"
     />
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#users-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-6"><label class="resource-filter-label">Cautare</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Nume, cod, telefon sau email"></div>
@@ -32,7 +32,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="users-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead><tr><th>Utilizator</th><th>Contact</th><th>Roluri</th><th>Locatii gestionate</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>

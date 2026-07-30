@@ -25,6 +25,7 @@
         class="resource-filter-panel"
         data-inventory-filters
         data-auto-submit-filters
+        data-live-filter-target="#inventory-results"
         data-preferences-url="{{ route('preferences.inventory.update') }}"
     >
         <input type="hidden" name="filters_submitted" value="1">
@@ -106,7 +107,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card inventory-table-card inventory-density-{{ $density }}">
+    <div id="inventory-results" class="resource-table-card inventory-table-card inventory-density-{{ $density }}" data-live-filter-results>
         <div class="resource-results-meta">
             <span><strong>{{ $items->total() }}</strong> materiale în vizualizarea curentă</span>
             <span>Apasă pe un material pentru loturi și istoric complet.</span>

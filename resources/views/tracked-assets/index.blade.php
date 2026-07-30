@@ -26,7 +26,7 @@
         create-label="Echipament nou"
     />
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#tracked-assets-results">
         <input type="hidden" name="filters_submitted" value="1">
         @if(request()->filled('catalog_item_id'))<input type="hidden" name="catalog_item_id" value="{{ request('catalog_item_id') }}">@endif
         <div class="row g-2 align-items-end">
@@ -38,7 +38,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="tracked-assets-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead><tr><th>Echipament</th><th>Localizare</th><th>Stare</th><th>Identificare</th><th>Verificat</th><th class="text-end">Actiuni</th></tr></thead>

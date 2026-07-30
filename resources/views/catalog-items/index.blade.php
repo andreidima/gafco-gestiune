@@ -27,7 +27,7 @@
         </x-slot:actions>
     </x-resource-page-header>
 
-    <form class="resource-filter-panel" data-auto-submit-filters>
+    <form class="resource-filter-panel" data-auto-submit-filters data-live-filter-target="#catalog-items-results">
         <input type="hidden" name="filters_submitted" value="1">
         <div class="row g-2 align-items-end">
             <div class="col-xl-5">
@@ -63,7 +63,7 @@
         </div>
     </form>
 
-    <div class="resource-table-card">
+    <div id="catalog-items-results" class="resource-table-card" data-live-filter-results>
         <div class="table-responsive resource-desktop-table">
             <table class="table resource-table">
                 <thead><tr><th>Articol</th><th>Clasificare</th><th>Unitate</th><th>Disponibilitate</th><th>Status</th><th class="text-end">Actiuni</th></tr></thead>

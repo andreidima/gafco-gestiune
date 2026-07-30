@@ -15,7 +15,7 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <h1>{{ $title }}</h1>
                 @if($count !== null)
-                    <span class="resource-count" @if($filteredCount !== null && (int) $filteredCount !== (int) $count) title="Rezultate filtrate din total" @endif>
+                    <span class="resource-count" data-live-filter-summary @if($filteredCount !== null && (int) $filteredCount !== (int) $count) title="Rezultate filtrate din total" @endif>
                         @if($filteredCount !== null && (int) $filteredCount !== (int) $count)
                             {{ number_format((int) $filteredCount) }} <span>din {{ number_format((int) $count) }}</span>
                         @else

@@ -2444,6 +2444,21 @@ body {
     text-transform: uppercase;
 }
 
+[data-live-filter-results] {
+    transition: opacity 150ms ease;
+}
+
+[data-live-filter-results][aria-busy="true"] {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-live-filter-results] {
+        transition: none;
+    }
+}
+
 .resource-table-card {
     overflow: hidden;
     border: 1px solid rgba(20, 24, 80, 0.1);
