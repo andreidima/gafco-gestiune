@@ -65,7 +65,7 @@
                                 <td>{{ $asset->asset_code }}</td>
                                 <td>{{ $asset->catalogItem?->name }}</td>
                                 <td>{{ $asset->currentLocation?->name ?? '-' }}</td>
-                                <td><span class="badge text-bg-warning">{{ str_replace('_', ' ', $asset->status) }}</span></td>
+                                <td><a href="{{ route('tracked-assets.show', $asset) }}" class="badge status-badge-link text-bg-warning">{{ str_replace('_', ' ', $asset->status) }}<span class="visually-hidden"> — deschide echipamentul</span></a></td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="text-center text-secondary py-4">Nu exista echipamente lipsa sau neconfirmate.</td></tr>
@@ -158,7 +158,7 @@
                         <td>{{ $report->location?->name }}</td>
                         <td>
                             @foreach($report->lines as $line)
-                                <div>{{ $line->catalogItem?->name }} <span class="text-muted">({{ number_format((float) $line->quantity, 2) }} {{ $line->unit }})</span></div>
+                                <div>{{ $line->catalogItem?->name }} <span class="text-muted">({{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }})</span></div>
                             @endforeach
                         </td>
                         <td>{{ $report->reporter?->name ?? '-' }}</td>
@@ -191,7 +191,7 @@
                         <td>{{ $transfer->driver?->name ?? '-' }}</td>
                         <td>{{ $transfer->lines_count }}</td>
                         <td>{{ $transfer->document_number ?: '-' }}</td>
-                        <td><x-status :status="$transfer->status" /></td>
+                        <td><x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" /></td>
                     </tr>
                 @endforeach
                 </tbody>

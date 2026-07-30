@@ -14,9 +14,7 @@
             <h1>{{ $releaseNote->title }}</h1>
             <p>{{ $releaseNote->summary }}</p>
         </div>
-        <a href="{{ route('release-notes.index') }}" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-arrow-left me-1"></i>Înapoi la noutăți
-        </a>
+        <x-back-link :fallback="route('release-notes.index')" label="Înapoi la noutăți" />
     </div>
 
     <article class="help-article release-detail">

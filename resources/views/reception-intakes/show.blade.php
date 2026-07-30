@@ -13,9 +13,7 @@
             </div>
         </div>
         <div class="resource-page-actions">
-            <a href="{{ route('reception-intakes.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fa-solid fa-arrow-left me-1"></i>Înapoi
-            </a>
+            <x-back-link :fallback="route('reception-intakes.index')" class="btn-sm" />
             @if($canProcess)
                 <a href="{{ route('supplier-receptions.create', ['intake_id' => $intake->id]) }}" class="btn btn-success btn-sm">
                     <i class="fa-solid fa-check me-1"></i>Creează recepția

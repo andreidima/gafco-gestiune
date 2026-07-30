@@ -3,7 +3,7 @@
 @section('title', 'Comenzi negociate')
 
 @php
-    $formatQuantity = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, ',', '.'), '0'), ',');
+    $formatQuantity = fn ($value) => \App\Support\LocalizedNumber::quantity($value);
     $formatMoney = fn ($value) => number_format((float) $value, 2, ',', '.');
     $hasFilters = collect(['search', 'status', 'location_id', 'supplier_id', 'date_from', 'date_to'])
         ->contains(fn ($key) => request()->filled($key));
@@ -116,7 +116,7 @@
                             </td>
                             <td>
                                 <div class="resource-cell-stack">
-                                    <x-status :status="$order->status" />
+                                    <x-status :status="$order->status" :href="route('negotiated-orders.show', $order)" />
                                     @if($order->closure_type === 'cancelled')
                                         <span class="resource-secondary">Anulată</span>
                                     @elseif($order->closure_type === 'reception')
@@ -162,7 +162,7 @@
                             <h2 class="resource-mobile-card-title">{{ $order->number }}</h2>
                             <div class="resource-mobile-card-subtitle">{{ $order->created_at->format('d.m.Y H:i') }} · {{ $order->creator?->name ?? '—' }}</div>
                         </div>
-                        <x-status :status="$order->status" />
+                        <x-status :status="$order->status" :href="route('negotiated-orders.show', $order)" />
                     </div>
                     <div class="resource-mobile-card-grid">
                         <div>

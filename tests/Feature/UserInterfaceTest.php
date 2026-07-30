@@ -64,4 +64,22 @@ class UserInterfaceTest extends TestCase
             ->assertDontSeeText('Showing')
             ->assertDontSeeText('results');
     }
+    public function test_status_component_can_link_to_its_record(): void
+    {
+        $html = $this->blade('<x-status status="approved" href="/transfers/42" />');
+
+        $html->assertSee('href="/transfers/42"', false)
+            ->assertSee('status-badge-link', false)
+            ->assertSeeText('Aprobat')
+            ->assertSeeText('deschide înregistrarea');
+    }
+
+    public function test_back_link_has_a_safe_fallback_and_history_hook(): void
+    {
+        $this->blade('<x-back-link fallback="/transfers" />')
+            ->assertSee('href="/transfers"', false)
+            ->assertSee('data-smart-back', false)
+            ->assertSeeText('Înapoi');
+    }
+
 }

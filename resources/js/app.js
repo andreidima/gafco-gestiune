@@ -2,6 +2,23 @@ import '../scss/app.scss';
 import 'bootstrap';
 import TomSelect from 'tom-select';
 
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-smart-back]');
+
+    if (! link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || ! document.referrer) {
+        return;
+    }
+
+    const previous = new URL(document.referrer);
+
+    if (previous.origin !== window.location.origin || previous.href === window.location.href) {
+        return;
+    }
+
+    event.preventDefault();
+    window.history.back();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-flash-message]').forEach((message) => {
         const timeout = Math.max(1000, Number(message.dataset.flashTimeout) || 4500);

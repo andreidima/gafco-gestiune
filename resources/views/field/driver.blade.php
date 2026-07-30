@@ -19,7 +19,7 @@
                             <div class="fw-bold">{{ $transfer->number }}</div>
                             <div class="small text-muted">{{ $transfer->document_number ?: 'Fara aviz' }}</div>
                         </div>
-                        <x-status :status="$transfer->status" />
+                        <x-status :status="$transfer->status" :href="route('transfers.show', $transfer)" />
                     </div>
                     <div class="field-route mb-3">
                         <div><i class="fa-solid fa-location-dot"></i> {{ $transfer->sourceLocation?->name }}</div>
@@ -30,7 +30,7 @@
                     @foreach($transfer->lines as $line)
                         <div class="field-line">
                             <span>{{ $line->trackedAsset?->asset_code ?? $line->catalogItem?->name }}</span>
-                            <span>{{ number_format((float) $line->quantity, 2) }} {{ $line->unit }}</span>
+                            <span>{{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}</span>
                         </div>
                     @endforeach
                     <form method="post" action="{{ route('transfers.update', $transfer) }}" class="mt-3 d-flex gap-2">

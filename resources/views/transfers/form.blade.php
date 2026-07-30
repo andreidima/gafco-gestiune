@@ -26,7 +26,7 @@
             <h2 class="mb-1">{{ $editing ? 'Modifică '.$transfer->number : ($parent ? 'Retur pentru '.$parent->number : 'Transfer nou') }}</h2>
             <div class="text-muted">Materialele și echipamentele disponibile se încarcă după alegerea locației sursă.</div>
         </div>
-        <a href="{{ $editing ? route('transfers.show', $transfer) : route('transfers.index') }}" class="btn btn-outline-secondary">Înapoi</a>
+        <x-back-link :fallback="$editing ? route('transfers.show', $transfer) : route('transfers.index')" />
     </div>
 
     <form

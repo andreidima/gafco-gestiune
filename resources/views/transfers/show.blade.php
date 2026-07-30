@@ -31,7 +31,7 @@
 <div class="container-fluid px-3">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div><div class="small text-muted">{{ $transfer->purpose === 'return' ? 'Retur' : 'Transfer' }} · revizia {{ $transfer->revision }}</div><h2 class="mb-1">{{ $transfer->number }}</h2><x-status :status="$transfer->status" /> @if($transfer->archived_at)<span class="badge text-bg-secondary">Arhivat</span>@endif</div>
-        <div class="d-flex flex-wrap gap-2"><a href="{{ route('transfers.index') }}" class="btn btn-outline-secondary">Inapoi</a>@can('update',$transfer)<a href="{{ route('transfers.edit',$transfer) }}" class="btn btn-outline-primary">Modifica</a>@endcan @can('create', \App\Models\Transfer::class)@if($transfer->status === 'received' && $transfer->purpose === 'transfer')<a href="{{ route('transfers.create',['return_of'=>$transfer->id]) }}" class="btn btn-primary"><i class="fa-solid fa-rotate-left me-1"></i>Initiaza retur</a>@endif @endcan</div>
+        <div class="d-flex flex-wrap gap-2"><x-back-link :fallback="route('transfers.index')" />@can('update',$transfer)<a href="{{ route('transfers.edit',$transfer) }}" class="btn btn-outline-primary">Modifica</a>@endcan @can('create', \App\Models\Transfer::class)@if($transfer->status === 'received' && $transfer->purpose === 'transfer')<a href="{{ route('transfers.create',['return_of'=>$transfer->id]) }}" class="btn btn-primary"><i class="fa-solid fa-rotate-left me-1"></i>Initiaza retur</a>@endif @endcan</div>
     </div>
 
     @if($transfer->task?->isOverdue())<div class="alert alert-danger">Deadline-ul original a fost depasit.</div>@endif
@@ -42,7 +42,7 @@
         <div class="col-xl-8">
             <div class="card mb-3"><div class="card-header bg-white"><strong>Traseu si continut</strong></div><div class="card-body">
                 <div class="row g-3 mb-3"><div class="col-md-4"><span class="text-muted">Din</span><div class="fw-bold">{{ $transfer->sourceLocation?->name }}</div></div><div class="col-md-4"><span class="text-muted">Catre</span><div class="fw-bold">{{ $transfer->destinationLocation?->name }}</div></div><div class="col-md-4"><span class="text-muted">Aviz</span><div class="fw-bold">{{ $transfer->document_number ?: '-' }}</div></div></div>
-                <div class="table-responsive d-none d-md-block"><table class="table align-middle"><thead><tr><th>Articol</th><th>Echipament</th><th>Cantitate</th><th>Primire</th></tr></thead><tbody>@foreach($transfer->lines as $line)<tr><td>{{ $line->catalogItem?->name }}</td><td>{{ $line->trackedAsset?->asset_code ?? '-' }}</td><td>{{ number_format((float)$line->quantity,3) }} {{ $line->unit }}</td><td>{{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</td></tr>@endforeach</tbody></table></div>
+                <div class="table-responsive d-none d-md-block"><table class="table align-middle"><thead><tr><th>Articol</th><th>Echipament</th><th>Cantitate</th><th>Primire</th></tr></thead><tbody>@foreach($transfer->lines as $line)<tr><td>{{ $line->catalogItem?->name }}</td><td>{{ $line->trackedAsset?->asset_code ?? '-' }}</td><td>{{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}</td><td>{{ $receiptStatusLabels[$line->received_status] ?? $line->received_status }}</td></tr>@endforeach</tbody></table></div>
                 <div class="d-md-none d-grid gap-2 mb-3">
                     @foreach($transfer->lines as $line)
                         <div class="border rounded-3 p-3 bg-light-subtle">
@@ -55,7 +55,7 @@
                             </div>
                             <div class="row g-2 small">
                                 <div class="col-6"><span class="text-muted d-block">Echipament</span><span class="fw-medium">{{ $line->trackedAsset?->asset_code ?? '-' }}</span></div>
-                                <div class="col-6"><span class="text-muted d-block">Cantitate</span><span class="fw-medium">{{ number_format((float)$line->quantity,3) }} {{ $line->unit }}</span></div>
+                                <div class="col-6"><span class="text-muted d-block">Cantitate</span><span class="fw-medium">{{ \App\Support\LocalizedNumber::quantity($line->quantity) }} {{ $line->unit }}</span></div>
                             </div>
                         </div>
                     @endforeach
