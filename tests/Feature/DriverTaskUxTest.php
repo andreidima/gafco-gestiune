@@ -137,6 +137,42 @@ class DriverTaskUxTest extends TestCase
             ->assertSee('data-flash-timeout="4500"', false);
     }
 
+    public function test_completed_driver_task_redirects_to_the_unfiltered_task_list(): void
+    {
+        [$manager, $driver] = $this->users();
+        [$task] = $this->acceptedTask($manager, $driver, 'TSK-DRIVER-REDIRECT');
+        app(TaskWorkflowService::class)->transition($task, $driver, 'in_progress');
+
+        $this->actingAs($driver)
+            ->from(route('tasks.show', $task).'?status=in_progress')
+            ->post(route('tasks.transition', $task), ['status' => 'completed'])
+            ->assertRedirect(route('tasks.index'))
+            ->assertSessionHas('status', 'Sarcina a fost finalizată.');
+    }
+
+    public function test_existing_estimate_uses_a_compact_correction_or_new_estimate_summary(): void
+    {
+        Carbon::setTestNow('2026-07-30 08:00:00');
+        [$manager, $driver] = $this->users();
+        [$task, $assignment] = $this->acceptedTask($manager, $driver, 'TSK-DRIVER-SUMMARY');
+        app(TaskWorkflowService::class)->updateEstimate($assignment, $driver, '2026-07-30 09:00:00', 'Trafic aglomerat pe centură.');
+
+        $this->actingAs($driver)->get(route('tasks.show', $task))
+            ->assertOk()
+            ->assertSee('driver-estimate-summary', false)
+            ->assertSee('30.07.2026 09:00')
+            ->assertSee('Trafic aglomerat pe centură.')
+            ->assertSee('Corectează')
+            ->assertSee('collapse', false);
+
+        Carbon::setTestNow('2026-07-30 08:06:00');
+
+        $this->actingAs($driver)->get(route('tasks.show', $task))
+            ->assertOk()
+            ->assertSee('Estimare nouă')
+            ->assertDontSee('collapse show', false);
+    }
+
     private function users(): array
     {
         Role::findOrCreate('sef-santier');

@@ -223,7 +223,7 @@
                                 @if($displayAssignment?->driver_estimate_at)
                                     <span class="resource-secondary"><i class="fa-solid fa-user-clock me-1"></i>{{ $isDriver ? 'Estimarea mea' : 'Sofer' }}: {{ $displayAssignment->driver_estimate_at->format('d.m.Y H:i') }} @if($estimateDelta !== null)<strong class="{{ $estimateDelta > 0 ? 'resource-deadline-late text-danger' : ($estimateDelta < 0 ? 'resource-deadline-early text-success' : '') }}">({{ $formatMinuteDelta($estimateDelta) }})</strong>@endif</span>
                                 @elseif($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true))
-                                    <span class="resource-secondary text-warning"><i class="fa-solid fa-user-clock me-1"></i>Estimare necomunicata</span>
+                                    <span class="resource-secondary {{ $isDriver ? 'text-danger fw-bold' : 'text-warning' }}"><i class="fa-solid {{ $isDriver ? 'fa-triangle-exclamation' : 'fa-user-clock' }} me-1"></i>Estimare necomunicata</span>
                                 @endif
                                 @if($displayAssignment?->driver_estimate_note)<span class="resource-secondary" title="{{ $displayAssignment->driver_estimate_note }}">{{ \Illuminate\Support\Str::limit($displayAssignment->driver_estimate_note, 55) }}</span>@endif
                                 @if(! $task->manager_deadline && ! $displayAssignment?->driver_estimate_at && ! ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true)))<span class="text-muted">&mdash;</span>@endif
@@ -278,7 +278,7 @@
                             </div>
                             <div class="driver-task-card-timing">
                                 <div><span>Termen</span><strong class="{{ $task->isOverdue() ? 'deadline-overdue' : '' }}">{{ $task->manager_deadline?->format('d.m.Y H:i') ?? 'Nespecificat' }}</strong></div>
-                                <div><span>Estimarea mea</span><strong class="{{ ! $displayAssignment?->driver_estimate_at && $displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'text-warning' : '' }}">{{ $displayAssignment?->driver_estimate_at?->format('d.m.Y H:i') ?? ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'Necomunicată' : '—') }}</strong></div>
+                                <div><span>Estimarea mea</span><strong class="{{ ! $displayAssignment?->driver_estimate_at && $displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'text-danger' : '' }}">@if(! $displayAssignment?->driver_estimate_at && $displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true))<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>@endif{{ $displayAssignment?->driver_estimate_at?->format('d.m.Y H:i') ?? ($displayAssignment && in_array($displayAssignment->status, ['accepted', 'reassignment_requested'], true) ? 'Necomunicată' : '—') }}</strong></div>
                             </div>
                         @else
                             <div class="resource-mobile-card-grid">

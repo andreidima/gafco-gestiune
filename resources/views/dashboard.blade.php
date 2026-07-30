@@ -52,6 +52,12 @@
 @endphp
 
 <div class="dashboard-shell mx-3">
+    @if($dashboardMode === 'driver')
+        <div class="driver-dashboard-heading mb-3">
+            <div class="driver-dashboard-heading-title"><i class="fa-solid fa-list-check" aria-hidden="true"></i><strong>Sarcinile mele</strong></div>
+            <x-live-view view-key="dashboard" compact />
+        </div>
+    @else
     <div class="dashboard-hero mb-4">
         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
             <div>
@@ -74,6 +80,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     @if($quickActions)
         <nav class="dashboard-quick-actions mb-4" aria-label="Scurtături pentru rolul meu">

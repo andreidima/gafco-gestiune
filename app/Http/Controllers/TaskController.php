@@ -193,6 +193,10 @@ class TaskController extends Controller
         }
         $workflow->transition($task, $request->user(), $data['status'], $data['notes'] ?? null);
 
+        if ($request->user()->usesDriverWorkspace() && $data['status'] === 'completed') {
+            return redirect()->route('tasks.index')->with('status', 'Sarcina a fost finalizată.');
+        }
+
         return back()->with('status', 'Starea sarcinii a fost actualizata.');
     }
 

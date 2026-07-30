@@ -63,6 +63,28 @@
     box-shadow: none;
 }
 
+.live-view-compact .live-view-copy [data-live-view-status] {
+    display: none;
+}
+
+.driver-dashboard-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(20, 24, 80, 0.1);
+    border-radius: 12px;
+    background: #fff;
+}
+
+.driver-dashboard-heading-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #141850;
+}
+
 .dashboard-hero-tools {
     display: flex;
     align-items: center;
@@ -2626,7 +2648,7 @@ body {
     display: flex;
     gap: 0.45rem;
     margin: -0.2rem 0 0.8rem;
-    overflow-x: auto;
+    flex-wrap: wrap;
     padding: 0.15rem 0 0.35rem;
     scrollbar-width: none;
 }
@@ -2637,7 +2659,7 @@ body {
 
 .driver-task-tab {
     display: inline-flex;
-    min-width: max-content;
+    min-width: 0;
     min-height: 40px;
     align-items: center;
     gap: 0.45rem;
@@ -2649,6 +2671,27 @@ body {
     font-size: 0.78rem;
     font-weight: 800;
     text-decoration: none;
+}
+
+.driver-estimate-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.65rem;
+    padding: 0.6rem;
+    border: 1px solid rgba(20, 24, 80, 0.1);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.driver-estimate-summary span {
+    display: block;
+    overflow: hidden;
+    color: #6c757d;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .driver-task-tab:hover,
@@ -3386,6 +3429,19 @@ a.filter-chip:hover {
 }
 
 @media (max-width: 767.98px) {
+    main.flex-shrink-0 {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+
+    main > .container,
+    .dashboard-shell {
+        width: calc(100% - 0.75rem);
+        margin-right: auto !important;
+        margin-left: auto !important;
+        padding-right: 0;
+        padding-left: 0;
+    }
     .impersonation-banner-inner {
         align-items: stretch;
         flex-direction: column;
@@ -3429,6 +3485,7 @@ a.filter-chip:hover {
     .resource-form-header {
         align-items: flex-start;
         flex-direction: column;
+        padding: 0.7rem;
     }
 
     .resource-page-actions {
