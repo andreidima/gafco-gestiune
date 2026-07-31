@@ -151,6 +151,8 @@ Route::middleware([
         ->name('reception-intakes.cancel');
     Route::get('reception-documents/{receptionDocument}/download', ReceptionDocumentController::class)
         ->name('reception-documents.download');
+    Route::get('reception-documents/{receptionDocument}/preview', [ReceptionDocumentController::class, 'preview'])
+        ->name('reception-documents.preview');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['create', 'store'])
         ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['index', 'show'])

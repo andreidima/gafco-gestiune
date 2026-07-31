@@ -14,9 +14,6 @@
             <div class="resource-form-section-title mb-1">{{ $title }}</div>
             <div class="resource-secondary">PDF sau fotografie, maximum 12 MB pe fișier. Documentele sunt private.</div>
         </div>
-        <button type="button" class="btn btn-outline-primary btn-sm" data-add-attachment>
-            <i class="fa-solid fa-paperclip me-1"></i>Adaugă fișier
-        </button>
     </div>
 
     <div class="reception-attachment-list" data-attachment-list>
@@ -91,4 +88,10 @@
             </button>
         </div>
     </template>
+
+    <div class="repeatable-list-add">
+        <button type="button" class="btn btn-outline-primary btn-sm" data-add-attachment>
+            <i class="fa-solid fa-paperclip me-1"></i>Adaugă fișier
+        </button>
+    </div>
 </section>

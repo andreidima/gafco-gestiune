@@ -74,9 +74,6 @@
                 <div class="resource-form-section-title mb-1">Materiale comandate</div>
                 <div class="resource-secondary">Prețurile sunt unitare, fără TVA, în moneda aleasă pentru comandă.</div>
             </div>
-            <button type="button" class="btn btn-outline-primary btn-sm" data-add-reception-line>
-                <i class="fa-solid fa-plus me-1"></i>Adaugă material
-            </button>
         </div>
 
         <div class="reception-line-list" data-reception-line-list>
@@ -146,6 +143,12 @@
                 </div>
             </article>
         </template>
+
+        <div class="repeatable-list-add">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-add-reception-line>
+                <i class="fa-solid fa-plus me-1"></i>Adaugă material
+            </button>
+        </div>
     </section>
 
     <div class="resource-form-actions-bar">

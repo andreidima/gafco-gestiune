@@ -51,10 +51,71 @@ class ReceptionWorkflowTest extends TestCase
         $this->assertDatabaseCount('inventory_lots', 0);
         Storage::disk('local')->assertExists($document->stored_path);
 
-        $this->actingAs($worker)->get(route('reception-documents.download', $document))->assertOk();
+        $download = $this->actingAs($worker)->get(route('reception-documents.download', $document))->assertOk();
+        $this->assertStringContainsString('attachment', (string) $download->headers->get('content-disposition'));
+
+        $preview = $this->actingAs($worker)->get(route('reception-documents.preview', $document))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/jpeg')
+            ->assertHeader('x-content-type-options', 'nosniff')
+            ->assertHeader('x-frame-options', 'SAMEORIGIN');
+        $this->assertStringContainsString('inline', (string) $preview->headers->get('content-disposition'));
+
+        $this->actingAs($worker)
+            ->get(route('reception-intakes.show', $intake))
+            ->assertOk()
+            ->assertSee(route('reception-documents.preview', $document), false)
+            ->assertSee(route('reception-documents.download', $document), false)
+            ->assertSee('Deschide previzualizarea');
+
         $this->actingAs($manager)->get(route('reception-documents.download', $document))->assertOk();
+        $this->actingAs($manager)
+            ->get(route('supplier-receptions.create', ['intake_id' => $intake->id]))
+            ->assertOk()
+            ->assertSee('supplier-reception-source-document-viewer')
+            ->assertSee(route('reception-documents.preview', $document), false)
+            ->assertSeeInOrder(
+                ['data-reception-line-list', 'data-add-reception-line'],
+                false,
+            );
         $this->actingAs($otherWorker)->get(route('reception-intakes.show', $intake))->assertForbidden();
         $this->actingAs($otherWorker)->get(route('reception-documents.download', $document))->assertForbidden();
+        $this->actingAs($otherWorker)->get(route('reception-documents.preview', $document))->assertForbidden();
+    }
+
+    public function test_browser_unsupported_document_keeps_download_without_inline_preview(): void
+    {
+        Storage::fake('local');
+        $worker = $this->userWithRole('muncitor');
+        $location = $this->location('S-HEIC');
+        $intake = ReceptionIntake::create([
+            'number' => 'DR-HEIC',
+            'location_id' => $location->id,
+            'submitted_by' => $worker->id,
+            'status' => 'created',
+        ]);
+        $document = ReceptionDocument::create([
+            'reception_intake_id' => $intake->id,
+            'uploaded_by' => $worker->id,
+            'document_type' => 'goods_photo',
+            'original_name' => 'fotografie.heic',
+            'stored_path' => 'reception-documents/fotografie.heic',
+            'mime_type' => 'image/heic',
+            'size_bytes' => 12,
+            'sha256' => hash('sha256', 'heic-content'),
+        ]);
+        Storage::disk('local')->put($document->stored_path, 'heic-content');
+
+        $this->actingAs($worker)
+            ->get(route('reception-documents.preview', $document))
+            ->assertStatus(415);
+
+        $this->actingAs($worker)
+            ->get(route('reception-intakes.show', $intake))
+            ->assertOk()
+            ->assertSee('Previzualizare indisponibilă')
+            ->assertSee(route('reception-documents.download', $document), false)
+            ->assertDontSee(route('reception-documents.preview', $document), false);
     }
 
     public function test_process_document_list_shows_completed_observations_and_stacks_the_desktop_date(): void

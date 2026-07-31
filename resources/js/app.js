@@ -131,6 +131,208 @@ const setLiveFilterStatus = (form, message = '') => {
     }
 };
 
+const revealAddedRow = (row, focusElement = null) => {
+    if (! row) {
+        return;
+    }
+
+    row.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+    });
+    window.requestAnimationFrame(() => {
+        if (focusElement?.matches?.(searchableSelectSelector)) {
+            focusSearchableSelect(focusElement);
+        } else {
+            focusElement?.focus?.();
+        }
+    });
+};
+
+window.GafcoRepeatableList = {
+    reveal: revealAddedRow,
+};
+
+const documentViewerStates = new WeakMap();
+const documentViewerMobile = window.matchMedia('(max-width: 991.98px)');
+
+const documentViewerState = (viewer) => {
+    if (! documentViewerStates.has(viewer)) {
+        documentViewerStates.set(viewer, {
+            documentId: null,
+            lastTrigger: null,
+            rotation: 0,
+            zoom: 1,
+        });
+    }
+
+    return documentViewerStates.get(viewer);
+};
+
+const setDocumentViewerStatus = (viewer, status) => {
+    const loading = viewer.querySelector('[data-document-viewer-loading]');
+    const empty = viewer.querySelector('[data-document-viewer-empty]');
+    const error = viewer.querySelector('[data-document-viewer-error]');
+    const canvas = viewer.querySelector('[data-document-image-canvas]');
+    const frame = viewer.querySelector('[data-document-viewer-frame]');
+    const tools = viewer.querySelector('[data-document-image-tools]');
+
+    loading?.classList.toggle('d-none', status !== 'loading');
+    empty?.classList.toggle('d-none', status !== 'empty');
+    error?.classList.toggle('d-none', status !== 'error');
+    canvas?.classList.toggle('d-none', status !== 'image');
+    frame?.classList.toggle('d-none', status !== 'pdf');
+    tools?.classList.toggle('d-none', status !== 'image');
+};
+
+const updateDocumentImageTransform = (viewer) => {
+    const state = documentViewerState(viewer);
+    const image = viewer.querySelector('[data-document-viewer-image]');
+    const label = viewer.querySelector('[data-document-zoom-label]');
+    if (image) {
+        image.style.transform = `scale(${state.zoom}) rotate(${state.rotation}deg)`;
+    }
+    if (label) {
+        label.textContent = `${Math.round(state.zoom * 100)}%`;
+    }
+};
+
+const resetDocumentImageTransform = (viewer) => {
+    const state = documentViewerState(viewer);
+    state.rotation = 0;
+    state.zoom = 1;
+    updateDocumentImageTransform(viewer);
+};
+
+const selectDocumentInViewer = (viewer, trigger) => {
+    if (! trigger?.dataset.documentPreviewUrl) {
+        setDocumentViewerStatus(viewer, 'empty');
+        return;
+    }
+
+    const state = documentViewerState(viewer);
+    const title = viewer.querySelector('[data-document-viewer-title]');
+    const filename = viewer.querySelector('[data-document-viewer-filename]');
+    const download = viewer.querySelector('[data-document-viewer-download]');
+    const image = viewer.querySelector('[data-document-viewer-image]');
+    const frame = viewer.querySelector('[data-document-viewer-frame]');
+    const mimeType = (trigger.dataset.documentMime ?? '').toLowerCase();
+    const previewUrl = trigger.dataset.documentPreviewUrl;
+
+    state.documentId = trigger.dataset.documentId ?? null;
+    if (title) {
+        title.textContent = trigger.dataset.documentTitle ?? 'Document';
+    }
+    if (filename) {
+        filename.textContent = trigger.dataset.documentFilename ?? '';
+    }
+    if (download) {
+        download.href = trigger.dataset.documentDownloadUrl ?? '#';
+    }
+
+    viewer.querySelectorAll('[data-document-preview-trigger]').forEach((tab) => {
+        const selected = tab.dataset.documentId === state.documentId;
+        tab.classList.toggle('is-active', selected);
+        tab.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+
+    resetDocumentImageTransform(viewer);
+    setDocumentViewerStatus(viewer, 'loading');
+    if (image) {
+        image.onload = null;
+        image.onerror = null;
+        image.removeAttribute('src');
+        image.alt = trigger.dataset.documentTitle ?? 'Document';
+    }
+    if (frame) {
+        frame.onload = null;
+        frame.removeAttribute('src');
+    }
+
+    if (mimeType === 'application/pdf') {
+        if (! frame) {
+            setDocumentViewerStatus(viewer, 'error');
+            return;
+        }
+        frame.onload = () => setDocumentViewerStatus(viewer, 'pdf');
+        frame.src = `${previewUrl}#view=FitH&navpanes=0`;
+        return;
+    }
+
+    if (! image) {
+        setDocumentViewerStatus(viewer, 'error');
+        return;
+    }
+    image.onload = () => setDocumentViewerStatus(viewer, 'image');
+    image.onerror = () => setDocumentViewerStatus(viewer, 'error');
+    image.src = previewUrl;
+};
+
+const documentViewerIsOverlay = (viewer) => viewer.classList.contains('reception-document-viewer--modal')
+    || documentViewerMobile.matches
+    || viewer.classList.contains('is-expanded');
+
+const syncDocumentViewerBodyLock = () => {
+    const overlayOpen = Array.from(document.querySelectorAll('[data-document-viewer]')).some((viewer) => (
+        viewer.classList.contains('is-expanded')
+        || (viewer.classList.contains('is-open') && documentViewerIsOverlay(viewer))
+    ));
+    document.body.classList.toggle('document-viewer-open', overlayOpen);
+};
+
+const openDocumentViewer = (viewer, trigger, focusViewer = true) => {
+    const state = documentViewerState(viewer);
+    const workspace = viewer.closest('[data-document-viewer-workspace]');
+    workspace?.classList.remove('is-viewer-collapsed');
+    if (trigger && ! trigger.closest('[data-document-viewer]')) {
+        state.lastTrigger = trigger;
+    }
+
+    if (viewer.classList.contains('reception-document-viewer--workspace') && ! documentViewerMobile.matches) {
+        viewer.setAttribute('aria-hidden', 'false');
+    } else {
+        viewer.classList.add('is-open');
+        viewer.setAttribute('aria-hidden', 'false');
+    }
+
+    selectDocumentInViewer(viewer, trigger);
+    syncDocumentViewerBodyLock();
+    if (focusViewer && documentViewerIsOverlay(viewer)) {
+        window.requestAnimationFrame(() => viewer.querySelector('[data-document-viewer-close]')?.focus());
+    }
+};
+
+const setDocumentViewerExpanded = (viewer, expanded) => {
+    viewer.classList.toggle('is-expanded', expanded);
+    const button = viewer.querySelector('[data-document-viewer-expand]');
+    const icon = viewer.querySelector('[data-document-viewer-expand-icon]');
+    button?.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+    button?.setAttribute('aria-label', expanded ? 'Revino la vizualizarea restrânsă' : 'Extinde vizualizarea');
+    if (button) {
+        button.title = expanded ? 'Restrânge vizualizarea' : 'Extinde vizualizarea';
+    }
+    icon?.classList.toggle('fa-expand', ! expanded);
+    icon?.classList.toggle('fa-compress', expanded);
+    syncDocumentViewerBodyLock();
+};
+
+const closeDocumentViewer = (viewer) => {
+    const state = documentViewerState(viewer);
+    const workspace = viewer.closest('[data-document-viewer-workspace]');
+    setDocumentViewerExpanded(viewer, false);
+
+    if (viewer.classList.contains('reception-document-viewer--workspace') && ! documentViewerMobile.matches) {
+        workspace?.classList.add('is-viewer-collapsed');
+    } else {
+        viewer.classList.remove('is-open');
+    }
+    viewer.setAttribute('aria-hidden', 'true');
+    syncDocumentViewerBodyLock();
+
+    const fallback = workspace?.querySelector('.reception-document-viewer-launcher');
+    window.requestAnimationFrame(() => (state.lastTrigger ?? fallback)?.focus?.());
+};
+
 const setLiveFilterLoading = (form, loading) => {
     form.setAttribute('aria-busy', loading ? 'true' : 'false');
     const target = liveFilterTarget(form);
@@ -320,6 +522,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 message.remove();
             }
         }, timeout);
+    });
+
+    const documentViewers = Array.from(document.querySelectorAll('[data-document-viewer]'));
+    documentViewers.forEach((viewer) => {
+        const initialId = viewer.dataset.documentInitialId;
+        const initialTrigger = Array.from(viewer.querySelectorAll('[data-document-preview-trigger]'))
+            .find((trigger) => trigger.dataset.documentId === initialId);
+
+        if (viewer.classList.contains('reception-document-viewer--workspace') && ! documentViewerMobile.matches) {
+            openDocumentViewer(viewer, initialTrigger, false);
+        } else {
+            viewer.setAttribute('aria-hidden', 'true');
+            setDocumentViewerStatus(viewer, initialTrigger ? 'loading' : 'empty');
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const previewTrigger = event.target.closest('[data-document-preview-trigger]');
+        if (previewTrigger) {
+            const viewer = document.getElementById(previewTrigger.dataset.documentViewerTarget);
+            if (viewer) {
+                openDocumentViewer(viewer, previewTrigger);
+            }
+            return;
+        }
+
+        const closeButton = event.target.closest('[data-document-viewer-close]');
+        if (closeButton) {
+            const viewer = closeButton.closest('[data-document-viewer]');
+            if (viewer) {
+                closeDocumentViewer(viewer);
+            }
+            return;
+        }
+
+        const expandButton = event.target.closest('[data-document-viewer-expand]');
+        if (expandButton) {
+            const viewer = expandButton.closest('[data-document-viewer]');
+            if (viewer) {
+                setDocumentViewerExpanded(viewer, ! viewer.classList.contains('is-expanded'));
+            }
+            return;
+        }
+
+        const imageAction = event.target.closest('[data-document-image-action]');
+        if (! imageAction) {
+            return;
+        }
+        const viewer = imageAction.closest('[data-document-viewer]');
+        if (! viewer) {
+            return;
+        }
+        const state = documentViewerState(viewer);
+        if (imageAction.dataset.documentImageAction === 'zoom-in') {
+            state.zoom = Math.min(3, Number((state.zoom + 0.25).toFixed(2)));
+        } else if (imageAction.dataset.documentImageAction === 'zoom-out') {
+            state.zoom = Math.max(0.5, Number((state.zoom - 0.25).toFixed(2)));
+        } else if (imageAction.dataset.documentImageAction === 'rotate') {
+            state.rotation = (state.rotation + 90) % 360;
+        } else {
+            state.zoom = 1;
+            state.rotation = 0;
+        }
+        updateDocumentImageTransform(viewer);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        const viewer = document.querySelector('[data-document-viewer].is-expanded')
+            ?? document.querySelector('[data-document-viewer].is-open');
+        if (! viewer) {
+            return;
+        }
+        if (viewer.classList.contains('is-expanded')) {
+            setDocumentViewerExpanded(viewer, false);
+        } else {
+            closeDocumentViewer(viewer);
+        }
+    });
+
+    documentViewerMobile.addEventListener('change', (event) => {
+        document.querySelectorAll('.reception-document-viewer--workspace').forEach((viewer) => {
+            setDocumentViewerExpanded(viewer, false);
+            viewer.classList.remove('is-open');
+            const workspace = viewer.closest('[data-document-viewer-workspace]');
+            viewer.setAttribute(
+                'aria-hidden',
+                event.matches || workspace?.classList.contains('is-viewer-collapsed') ? 'true' : 'false',
+            );
+            if (! event.matches && ! documentViewerState(viewer).documentId) {
+                const initialId = viewer.dataset.documentInitialId;
+                const initialTrigger = Array.from(viewer.querySelectorAll('[data-document-preview-trigger]'))
+                    .find((trigger) => trigger.dataset.documentId === initialId);
+                selectDocumentInViewer(viewer, initialTrigger);
+            }
+        });
+        syncDocumentViewerBodyLock();
     });
 
     initializeSearchableSelects();
@@ -657,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row) {
                 list.append(row);
                 bindRow(row);
-                row.querySelector('input[type="file"]')?.focus();
+                revealAddedRow(row, row.querySelector('input[type="file"]'));
             }
         });
     });
@@ -702,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 bindRow(row);
                 renumber();
                 initializeSearchableSelects(row);
-                focusSearchableSelect(row.querySelector('select'));
+                revealAddedRow(row, row.querySelector('select'));
             }
         });
         renumber();

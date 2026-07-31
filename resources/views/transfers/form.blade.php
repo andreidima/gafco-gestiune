@@ -126,9 +126,6 @@
                         <h5 class="mb-1">Conținut</h5>
                         <div class="small text-muted">Lista exclude materialele fără stoc și echipamentele rezervate în alte transferuri active.</div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-add-transfer-line>
-                        <i class="fa-solid fa-plus me-1"></i>Adaugă poziție
-                    </button>
                 </div>
                 <div class="small mt-2 text-muted" data-source-inventory-state>Alege locația sursă pentru a încărca stocul disponibil.</div>
             </div>
@@ -172,6 +169,11 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
+            <div class="col-12 repeatable-list-add">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-add-transfer-line>
+                    <i class="fa-solid fa-plus me-1"></i>Adaugă poziție
+                </button>
             </div>
             <div class="col-12 d-none" data-transfer-project-preview>
                 <div class="transfer-project-plan-preview">
@@ -444,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renumber();
         syncRemoveButtons();
         populateRows();
-        window.GafcoSearchableSelect?.focus(list.lastElementChild?.querySelector('select'));
+        window.GafcoRepeatableList?.reveal(list.lastElementChild, list.lastElementChild?.querySelector('select'));
     });
 
     list.addEventListener('change', event => {

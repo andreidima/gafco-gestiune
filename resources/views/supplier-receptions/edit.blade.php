@@ -132,15 +132,14 @@
                 @if($reception->documents->isEmpty())
                     <p class="text-secondary mb-0">Nu există fișiere atașate.</p>
                 @else
-                    <div class="reception-document-grid">
-                        @foreach($reception->documents as $document)
-                            <a href="{{ route('reception-documents.download', $document) }}" class="reception-document-card">
-                                <span class="reception-document-icon"><i class="fa-solid fa-paperclip"></i></span>
-                                <span class="min-w-0"><strong>{{ $document->label() }}</strong><span>{{ $document->original_name }}</span></span>
-                                <i class="fa-solid fa-download"></i>
-                            </a>
-                        @endforeach
-                    </div>
+                    <x-reception-document-cards
+                        :documents="$reception->documents"
+                        viewer-id="supplier-reception-edit-document-viewer"
+                    />
+                    <x-reception-document-viewer
+                        :documents="$reception->documents"
+                        id="supplier-reception-edit-document-viewer"
+                    />
                 @endif
             </section>
             <x-reception-attachment-fields :document-types="$documentTypes" title="Adaugă alte documente" />

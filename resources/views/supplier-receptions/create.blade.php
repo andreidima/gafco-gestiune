@@ -37,7 +37,9 @@
     description="Poți introduce mai multe materiale. Stocul se actualizează numai când salvezi recepția."
     :back-route="$backRoute"
     icon="fa-truck-ramp-box"
+    class="{{ $intake ? 'resource-form-shell--document-workspace' : '' }}"
 >
+    <div @class(['reception-document-workspace', 'has-document-viewer' => $intake]) data-document-viewer-workspace>
     <form
         method="post"
         action="{{ route('supplier-receptions.store') }}"
@@ -128,9 +130,6 @@
                     <div class="resource-form-section-title mb-1">Materiale primite</div>
                     <div class="resource-secondary">Prețul este unitar, fără TVA. Lotul și expirarea sunt opționale.</div>
                 </div>
-                <button type="button" class="btn btn-outline-primary btn-sm" data-add-reception-line>
-                    <i class="fa-solid fa-plus me-1"></i>Adaugă material
-                </button>
             </div>
 
             <div class="reception-line-list" data-reception-line-list>
@@ -230,6 +229,12 @@
                     </div>
                 </article>
             </template>
+
+            <div class="repeatable-list-add">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-add-reception-line>
+                    <i class="fa-solid fa-plus me-1"></i>Adaugă material
+                </button>
+            </div>
         </section>
 
         <x-reception-attachment-fields
@@ -244,5 +249,15 @@
             </button>
         </div>
     </form>
+
+    @if($intake)
+        <x-reception-document-viewer
+            :documents="$intake->documents"
+            id="supplier-reception-source-document-viewer"
+            variant="workspace"
+            :launcher="true"
+        />
+    @endif
+    </div>
 </x-resource-form-shell>
 @endsection
