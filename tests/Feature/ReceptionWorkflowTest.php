@@ -57,6 +57,39 @@ class ReceptionWorkflowTest extends TestCase
         $this->actingAs($otherWorker)->get(route('reception-documents.download', $document))->assertForbidden();
     }
 
+    public function test_process_document_list_shows_completed_observations_and_stacks_the_desktop_date(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $location = $this->location('B-LISTA', 'base');
+
+        ReceptionIntake::create([
+            'number' => 'DR-FARA-OBS',
+            'location_id' => $location->id,
+            'submitted_by' => $admin->id,
+            'status' => 'created',
+            'notes' => null,
+        ]);
+        $withNotes = ReceptionIntake::create([
+            'number' => 'DR-CU-OBS',
+            'location_id' => $location->id,
+            'submitted_by' => $admin->id,
+            'status' => 'created',
+            'notes' => 'Descărcare prin poarta laterală.',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('reception-intakes.index'))
+            ->assertOk()
+            ->assertSeeInOrder(
+                ['<th>Locație</th>', '<th>Observații</th>', '<th>Trimis de</th>'],
+                false,
+            )
+            ->assertSee('class="resource-cell-stack"', false)
+            ->assertSeeText($withNotes->notes);
+
+        $this->assertSame(2, substr_count($response->getContent(), '>Observații<'));
+    }
+
     public function test_custom_document_type_requires_a_label(): void
     {
         Storage::fake('local');

@@ -23,7 +23,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 16,
+            'current_revision' => 17,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
@@ -46,6 +46,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
 
     public function test_order_schema_and_content_migrations_are_reversible_together(): void
     {
+        $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
         $liveFilteringMigration = require database_path('migrations/2026_07_30_000026_publish_live_list_filtering.php');
         $searchableListsMigration = require database_path('migrations/2026_07_30_000025_publish_searchable_entity_lists.php');
@@ -57,6 +58,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000014_create_negotiated_orders.php');
 
+        $observationVisibilityMigration->down();
         $driverTabsMigration->down();
         $liveFilteringMigration->down();
         $searchableListsMigration->down();
@@ -82,6 +84,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $searchableListsMigration->up();
         $liveFilteringMigration->up();
         $driverTabsMigration->up();
+        $observationVisibilityMigration->up();
 
         $this->assertTrue(Schema::hasTable('negotiated_orders'));
         $this->assertTrue(Schema::hasColumn('supplier_receptions', 'negotiated_order_id'));
