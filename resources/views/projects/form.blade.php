@@ -63,7 +63,6 @@
         <div class="resource-form-section">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div><div class="resource-form-section-title mb-1">Plan de materiale</div><div class="small text-muted">Fiecare material poate apărea o singură dată. Cantitățile pot fi modificate ulterior, iar istoricul transferurilor rămâne păstrat.</div></div>
-                <button type="button" class="btn btn-sm btn-outline-primary" data-add-project-line><i class="fa-solid fa-plus me-1"></i>Adaugă material</button>
             </div>
             <div data-project-lines>
                 @foreach($initialLines as $index => $line)
@@ -84,6 +83,9 @@
                         <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100" data-remove-project-line aria-label="Șterge materialul"><i class="fa-solid fa-trash"></i></button></div>
                     </div>
                 @endforeach
+            </div>
+            <div class="repeatable-list-add">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-add-project-line><i class="fa-solid fa-plus me-1"></i>Adaugă material</button>
             </div>
         </div>
 
@@ -141,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lines.append(template.content.cloneNode(true));
         renumber();
         sync();
-        window.GafcoSearchableSelect?.focus(lines.lastElementChild?.querySelector('select'));
+        window.GafcoRepeatableList?.reveal(lines.lastElementChild, lines.lastElementChild?.querySelector('select'));
     });
     lines.addEventListener('change', event => {
         if (event.target.matches('.project-plan-material')) sync();

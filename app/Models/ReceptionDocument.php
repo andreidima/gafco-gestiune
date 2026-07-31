@@ -23,6 +23,13 @@ class ReceptionDocument extends Model
 {
     use HasFactory;
 
+    public const PREVIEWABLE_MIME_TYPES = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+    ];
+
     public const TYPE_LABELS = [
         'invoice' => 'Factură',
         'delivery_note' => 'Aviz',
@@ -51,5 +58,12 @@ class ReceptionDocument extends Model
         return $this->document_type === 'custom' && filled($this->custom_label)
             ? $this->custom_label
             : (self::TYPE_LABELS[$this->document_type] ?? $this->document_type);
+    }
+
+    public function isPreviewable(): bool
+    {
+        $mimeType = strtolower(trim(strtok((string) $this->mime_type, ';') ?: ''));
+
+        return in_array($mimeType, self::PREVIEWABLE_MIME_TYPES, true);
     }
 }

@@ -203,11 +203,11 @@ class OperationalAlertWorkflowTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'circuitul-materialelor',
-            'current_revision' => 7,
+            'current_revision' => 8,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 17,
+            'current_revision' => 18,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',

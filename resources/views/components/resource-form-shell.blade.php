@@ -5,7 +5,7 @@
     'icon' => 'fa-pen-to-square',
 ])
 
-<div class="resource-form-shell">
+<div {{ $attributes->class('resource-form-shell') }}>
     <div class="resource-form-header">
         <div class="resource-page-heading">
             <span class="resource-page-icon"><i class="fa-solid {{ $icon }}"></i></span>

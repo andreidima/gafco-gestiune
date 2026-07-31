@@ -73,9 +73,6 @@
                     <div class="resource-form-section-title mb-1">Materiale consumate</div>
                     <div class="resource-secondary">Sunt afișate numai materialele cu stoc disponibil în locația aleasă. Loturile sunt propuse FEFO, apoi FIFO.</div>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-primary" data-add-consumption-line>
-                    <i class="fa-solid fa-plus me-1"></i>Adaugă material
-                </button>
             </div>
 
             <div class="small text-muted mt-2" data-consumption-stock-state>Alege locația pentru a încărca materialele disponibile.</div>
@@ -140,6 +137,11 @@
                         <script type="application/json" data-old-line-allocations>@json($line['allocations'] ?? [])</script>
                     </article>
                 @endforeach
+            </div>
+            <div class="repeatable-list-add">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-add-consumption-line>
+                    <i class="fa-solid fa-plus me-1"></i>Adaugă material
+                </button>
             </div>
         </section>
 
@@ -465,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         list.append(row);
         renumberVisuals();
         populateLine(row, false);
-        window.GafcoSearchableSelect?.focus(row.querySelector('select'));
+        window.GafcoRepeatableList?.reveal(row, row.querySelector('select'));
     });
 
     list.addEventListener('click', event => {

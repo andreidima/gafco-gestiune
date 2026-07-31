@@ -27,21 +27,10 @@
             <div class="resource-form-card h-100">
                 <section class="resource-form-section">
                     <div class="resource-form-section-title">Documente trimise</div>
-                    <div class="reception-document-grid">
-                        @foreach($intake->documents as $document)
-                            <a href="{{ route('reception-documents.download', $document) }}" class="reception-document-card">
-                                <span class="reception-document-icon">
-                                    <i class="fa-solid {{ str_contains($document->mime_type ?? '', 'pdf') ? 'fa-file-pdf' : 'fa-file-image' }}"></i>
-                                </span>
-                                <span class="min-w-0">
-                                    <strong>{{ $document->label() }}</strong>
-                                    <span>{{ $document->original_name }}</span>
-                                    <small>{{ number_format($document->size_bytes / 1024, 0, ',', '.') }} KB</small>
-                                </span>
-                                <i class="fa-solid fa-download"></i>
-                            </a>
-                        @endforeach
-                    </div>
+                    <x-reception-document-cards
+                        :documents="$intake->documents"
+                        viewer-id="reception-intake-document-viewer"
+                    />
                 </section>
                 @if($intake->notes)
                     <section class="resource-form-section">
@@ -82,5 +71,10 @@
             </div>
         </div>
     </div>
+
+    <x-reception-document-viewer
+        :documents="$intake->documents"
+        id="reception-intake-document-viewer"
+    />
 </div>
 @endsection
