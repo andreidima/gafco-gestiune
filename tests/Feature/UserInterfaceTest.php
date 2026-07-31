@@ -198,4 +198,22 @@ class UserInterfaceTest extends TestCase
         $this->assertStringContainsString('new DOMParser()', $script);
         $this->assertStringContainsString('currentTarget.replaceWith(replacement)', $script);
     }
+
+    public function test_transfer_source_refresh_replaces_searchable_inventory_options(): void
+    {
+        $script = File::get(resource_path('js/app.js'));
+        $view = File::get(resource_path('views/transfers/form.blade.php'));
+
+        $this->assertStringContainsString('const replaceSearchableSelectOptions = (element) => {', $script);
+        $this->assertStringContainsString('select.clear(true);', $script);
+        $this->assertStringContainsString('select.clearOptions();', $script);
+        $this->assertStringContainsString('element.value = selectedValue;', $script);
+        $this->assertStringContainsString('replaceOptions: replaceSearchableSelectOptions,', $script);
+
+        $this->assertStringContainsString('GafcoSearchableSelect?.replaceOptions(select)', $view);
+        $this->assertStringContainsString("source.addEventListener('change', () => loadInventory({ resetRows: true }))", $view);
+        $this->assertStringContainsString('const controlsDisabled = inventoryLoading || !source.value;', $view);
+        $this->assertStringContainsString('Se încarcă materialele…', $view);
+        $this->assertStringContainsString('Alege echipamentul, dacă este cazul', $view);
+    }
 }

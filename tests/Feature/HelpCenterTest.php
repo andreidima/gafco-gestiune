@@ -97,6 +97,7 @@ class HelpCenterTest extends TestCase
 
     public function test_minor_corrections_removal_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -115,6 +116,7 @@ class HelpCenterTest extends TestCase
         $currentMigration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
         $migration = require database_path('migrations/2026_07_29_000002_remove_minor_corrections_help_and_release_note.php');
 
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -165,6 +167,7 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_drafts_are_not_exposed_and_markdown_strips_unsafe_html(): void
@@ -233,6 +236,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Liste corecte la schimbarea sursei transferului',
                 'Documentele rămân la vedere în timpul recepției',
                 'Observații vizibile în lista documentelor de procesat',
                 'Sarcinile active, separate de cele finalizate',
@@ -244,13 +248,13 @@ class HelpCenterTest extends TestCase
                 'Furnizorii pot fi administrați direct din aplicație',
                 'Sarcinile șoferului, mai rapide și mai clare pe mobil',
                 'Planuri de materiale pe proiect și alerte la depășire',
-                'Mai multă claritate în activitatea zilnică',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Mai multă claritate în activitatea zilnică')
             ->assertSee('Comenzi negociate transformabile în recepții')
             ->assertSee('Alerte pentru stoc și documente de recepție')
             ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')
@@ -262,7 +266,6 @@ class HelpCenterTest extends TestCase
             ->assertSee('Centru de ajutor și noutăți în aplicație')
             ->assertSee('Fluxuri complete pentru transferuri și sarcini')
             ->assertSee('Navigare mai clară în liste')
-            ->assertSee('Recepții, consum și vizibilitate operațională')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)->get(route('release-notes.show', $draft))->assertNotFound();
     }
@@ -295,6 +298,7 @@ class HelpCenterTest extends TestCase
 
     public function test_searchable_lists_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -302,6 +306,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_30_000025_publish_searchable_entity_lists.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -342,16 +347,19 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_live_list_filtering_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
         $migration = require database_path('migrations/2026_07_30_000026_publish_live_list_filtering.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -382,10 +390,12 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_reception_intake_observation_visibility_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $migration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
 
@@ -405,6 +415,7 @@ class HelpCenterTest extends TestCase
             'status' => 'published',
         ]);
 
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $migration->down();
 
@@ -422,13 +433,16 @@ class HelpCenterTest extends TestCase
 
         $migration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_reception_document_preview_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $migration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $migration->down();
 
         $this->assertSame(17, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
@@ -450,15 +464,61 @@ class HelpCenterTest extends TestCase
         $this->assertTrue(
             ReleaseNote::query()->where('slug', '2026-07-31-previzualizare-documente-receptie')->exists(),
         );
+        $transferSourceRefreshMigration->up();
+    }
+
+    public function test_transfer_source_inventory_refresh_content_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertSame(
+            9,
+            HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'),
+        );
+        $this->assertStringContainsString(
+            'ambele liste se refac integral',
+            HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('body_markdown'),
+        );
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-01-liste-transfer-actualizate-dupa-sursa',
+            'version' => '2026.08.01.1',
+            'status' => 'published',
+        ]);
+
+        $migration->down();
+
+        $this->assertSame(
+            8,
+            HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'),
+        );
+        $this->assertDatabaseMissing('release_notes', [
+            'slug' => '2026-08-01-liste-transfer-actualizate-dupa-sursa',
+        ]);
+
+        $migration->up();
+
+        $this->assertSame(
+            9,
+            HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'),
+        );
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-01-liste-transfer-actualizate-dupa-sursa',
+            'version' => '2026.08.01.1',
+            'status' => 'published',
+        ]);
     }
 
     public function test_driver_active_task_tabs_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $migration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
 
@@ -497,10 +557,12 @@ class HelpCenterTest extends TestCase
         $migration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_saved_filters_content_migration_supports_sql_preview_and_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -519,6 +581,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000005_publish_saved_filters_and_account_protection_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -568,10 +631,12 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_reception_content_migration_preserves_revisions_and_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -589,6 +654,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000007_publish_reception_workflow_help_and_release_note.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -639,10 +705,12 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_transfer_and_consumption_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -659,6 +727,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000009_publish_transfer_consumption_correction_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -703,10 +772,12 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_personal_custody_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -721,6 +792,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000013_publish_personal_custody_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -766,10 +838,12 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 
     public function test_negotiated_orders_content_migration_is_reversible(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -783,6 +857,7 @@ class HelpCenterTest extends TestCase
         $migration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -821,5 +896,6 @@ class HelpCenterTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
     }
 }

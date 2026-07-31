@@ -46,6 +46,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
 
     public function test_order_schema_and_content_migrations_are_reversible_together(): void
     {
+        $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
         $documentPreviewMigration = require database_path('migrations/2026_07_31_000030_publish_reception_document_preview_content.php');
         $observationVisibilityMigration = require database_path('migrations/2026_07_31_000029_publish_reception_intake_observation_visibility.php');
         $driverTabsMigration = require database_path('migrations/2026_07_31_000028_publish_driver_active_task_tabs.php');
@@ -59,6 +60,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000014_create_negotiated_orders.php');
 
+        $transferSourceRefreshMigration->down();
         $documentPreviewMigration->down();
         $observationVisibilityMigration->down();
         $driverTabsMigration->down();
@@ -88,6 +90,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $driverTabsMigration->up();
         $observationVisibilityMigration->up();
         $documentPreviewMigration->up();
+        $transferSourceRefreshMigration->up();
 
         $this->assertTrue(Schema::hasTable('negotiated_orders'));
         $this->assertTrue(Schema::hasColumn('supplier_receptions', 'negotiated_order_id'));

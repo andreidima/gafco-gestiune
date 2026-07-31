@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const template = document.querySelector('[data-transfer-line-template]');
     const state = form.querySelector('[data-source-inventory-state]');
     let inventory = { materials: [], assets: [] };
+    let inventoryLoading = false;
     let request;
 
     const formatQuantity = value => Number(value).toLocaleString('ro-RO', {
@@ -272,7 +273,25 @@ document.addEventListener('DOMContentLoaded', () => {
             select.value = selected;
         }
         select.dataset.selectedValue = '';
-        window.GafcoSearchableSelect?.sync(select);
+        window.GafcoSearchableSelect?.replaceOptions(select);
+    };
+
+    const countLabel = (count, singular, plural) => `${count} ${count === 1 ? singular : plural}`;
+
+    const clearRowsForSourceChange = () => {
+        list.querySelectorAll('.transfer-line').forEach(row => {
+            const item = row.querySelector('.transfer-line-item');
+            const asset = row.querySelector('.transfer-line-asset');
+            const quantity = row.querySelector('.transfer-line-quantity');
+
+            window.GafcoSearchableSelect?.setValue(item, '', true);
+            window.GafcoSearchableSelect?.setValue(asset, '', true);
+            item.dataset.selectedValue = '';
+            asset.dataset.selectedValue = '';
+            quantity.value = 1;
+            quantity.readOnly = false;
+            quantity.removeAttribute('max');
+        });
     };
 
     const syncAvailability = () => {
@@ -381,17 +400,24 @@ document.addEventListener('DOMContentLoaded', () => {
         list.querySelectorAll('.transfer-line').forEach(row => {
             const item = row.querySelector('.transfer-line-item');
             const asset = row.querySelector('.transfer-line-asset');
+            const controlsDisabled = inventoryLoading || !source.value;
+            item.disabled = controlsDisabled;
+            asset.disabled = controlsDisabled;
             populateSelect(
                 item,
                 inventory.materials,
-                inventory.materials.length ? 'Alege pentru cantități' : 'Nu există materiale disponibile',
+                inventoryLoading
+                    ? 'Se încarcă materialele…'
+                    : (inventory.materials.length ? 'Alege pentru cantități' : 'Nu există materiale disponibile'),
                 material => `${material.name} — disponibil ${formatQuantity(material.available)} ${material.unit}`,
                 material => [material.sku, material.barcode].filter(Boolean).join(' '),
             );
             populateSelect(
                 asset,
                 inventory.assets,
-                inventory.assets.length ? 'Fără echipament unic' : 'Nu există echipamente disponibile',
+                inventoryLoading
+                    ? 'Se încarcă echipamentele…'
+                    : (inventory.assets.length ? 'Alege echipamentul, dacă este cazul' : 'Nu există echipamente disponibile'),
                 entry => `${entry.asset_code} — ${entry.name || 'Echipament'}`,
                 entry => [entry.asset_code, entry.qr_code, entry.serial_number].filter(Boolean).join(' '),
             );
@@ -399,18 +425,24 @@ document.addEventListener('DOMContentLoaded', () => {
         syncAvailability();
     };
 
-    const loadInventory = async () => {
+    const loadInventory = async ({ resetRows = false } = {}) => {
         request?.abort();
+        request = undefined;
+        if (resetRows) clearRowsForSourceChange();
         inventory = { materials: [], assets: [] };
         if (!source.value) {
+            inventoryLoading = false;
             state.textContent = 'Alege locația sursă pentru a încărca stocul disponibil.';
             populateRows();
             return;
         }
 
-        request = new AbortController();
+        const controller = new AbortController();
+        request = controller;
+        inventoryLoading = true;
         state.classList.remove('text-danger');
         state.textContent = 'Se încarcă stocul disponibil…';
+        populateRows();
         const url = new URL(form.dataset.sourceOptionsUrl, window.location.origin);
         url.searchParams.set('source_location_id', source.value);
         if (form.dataset.transferId) url.searchParams.set('transfer_id', form.dataset.transferId);
@@ -419,9 +451,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(url, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
-                signal: request.signal,
+                signal: controller.signal,
             });
             const payload = await response.json();
+            if (controller !== request) return;
             if (!response.ok) {
                 throw new Error(Object.values(payload.errors ?? {}).flat()[0] || 'Stocul nu a putut fi încărcat.');
             }
@@ -429,11 +462,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 materials: payload.materials || [],
                 assets: payload.assets || [],
             };
+            inventoryLoading = false;
             state.classList.remove('text-danger');
-            state.textContent = `${inventory.materials.length} materiale și ${inventory.assets.length} echipamente pot fi transferate din ${payload.location.code}.`;
+            state.textContent = `${countLabel(inventory.materials.length, 'material', 'materiale')} și ${countLabel(inventory.assets.length, 'echipament', 'echipamente')} pot fi transferate din ${payload.location.code}.`;
             populateRows();
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' && controller === request) {
+                inventoryLoading = false;
                 state.textContent = error.message;
                 state.classList.add('text-danger');
                 populateRows();
@@ -473,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    source.addEventListener('change', loadInventory);
+    source.addEventListener('change', () => loadInventory({ resetRows: true }));
     destination.addEventListener('change', syncProjectOptions);
     purpose.addEventListener('change', syncProjectOptions);
     project.addEventListener('change', syncProjectPreview);
