@@ -64,6 +64,7 @@
                     <tr>
                         <th>Înregistrare</th>
                         <th>Locație</th>
+                        <th>Observații</th>
                         <th>Trimis de</th>
                         <th>Fișiere</th>
                         <th>Stare</th>
@@ -74,12 +75,19 @@
                 @forelse($intakes as $intake)
                     <tr data-href="{{ route('reception-intakes.show', $intake) }}">
                         <td>
-                            <a href="{{ route('reception-intakes.show', $intake) }}" class="resource-primary text-decoration-none">{{ $intake->number }}</a>
-                            <span class="resource-secondary">{{ $intake->created_at->format('d.m.Y H:i') }}</span>
+                            <div class="resource-cell-stack">
+                                <a href="{{ route('reception-intakes.show', $intake) }}" class="resource-primary text-decoration-none">{{ $intake->number }}</a>
+                                <span class="resource-secondary">{{ $intake->created_at->format('d.m.Y H:i') }}</span>
+                            </div>
                         </td>
                         <td>
                             <strong>{{ $intake->location?->code ?? '—' }}</strong>
                             <span class="resource-secondary">{{ $intake->location?->name }}</span>
+                        </td>
+                        <td>
+                            @if(filled($intake->notes))
+                                <span class="resource-secondary text-break" title="{{ $intake->notes }}">{{ Illuminate\Support\Str::limit($intake->notes, 120) }}</span>
+                            @endif
                         </td>
                         <td>{{ $intake->submitter?->name ?? 'Utilizator indisponibil' }}</td>
                         <td><i class="fa-solid fa-paperclip me-1"></i>{{ $intake->documents_count }}</td>
@@ -96,7 +104,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-secondary">
+                        <td colspan="7" class="text-center py-4 text-secondary">
                             {{ $hasFilters ? 'Nu există înregistrări pentru filtrele selectate.' : 'Nu există documente trimise.' }}
                         </td>
                     </tr>
@@ -129,6 +137,12 @@
                                 <strong>{{ $intake->documents_count }}</strong>
                                 <span class="resource-secondary">{{ $intake->submitter?->name }}</span>
                             </div>
+                            @if(filled($intake->notes))
+                                <div class="resource-mobile-card-wide">
+                                    <span class="resource-filter-label">Observații</span>
+                                    <span class="resource-secondary text-break" title="{{ $intake->notes }}">{{ Illuminate\Support\Str::limit($intake->notes, 160) }}</span>
+                                </div>
+                            @endif
                         </div>
                         <div class="resource-mobile-card-actions">
                             <a href="{{ route('reception-intakes.show', $intake) }}" class="btn btn-outline-primary btn-sm">Deschide</a>

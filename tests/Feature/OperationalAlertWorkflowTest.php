@@ -207,7 +207,7 @@ class OperationalAlertWorkflowTest extends TestCase
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 16,
+            'current_revision' => 17,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
