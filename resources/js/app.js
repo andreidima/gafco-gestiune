@@ -67,6 +67,19 @@ const syncSearchableSelect = (element) => {
     return select;
 };
 
+const replaceSearchableSelectOptions = (element) => {
+    const selectedValue = element?.value ?? '';
+    const select = initializeSearchableSelect(element);
+    if (select) {
+        select.clear(true);
+        select.clearOptions();
+        element.value = selectedValue;
+        select.sync();
+    }
+
+    return select;
+};
+
 const setSearchableSelectValue = (element, value, silent = false) => {
     const select = initializeSearchableSelect(element);
     if (select) {
@@ -88,6 +101,7 @@ const focusSearchableSelect = (element) => {
 window.GafcoSearchableSelect = {
     initialize: initializeSearchableSelects,
     sync: syncSearchableSelect,
+    replaceOptions: replaceSearchableSelectOptions,
     setValue: setSearchableSelectValue,
     focus: focusSearchableSelect,
 };
