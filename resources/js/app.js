@@ -948,20 +948,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        const syncRemoveButtons = () => {
+            const rows = list.querySelectorAll('[data-attachment-row]');
+            const removalUnavailable = required && rows.length === 1;
+
+            rows.forEach((row) => {
+                const removeButton = row.querySelector('[data-remove-attachment]');
+                if (removeButton) {
+                    removeButton.hidden = removalUnavailable;
+                    removeButton.disabled = removalUnavailable;
+                }
+            });
+        };
+
         const bindRow = (row) => {
             row.querySelector('[data-attachment-type]')?.addEventListener('change', () => syncCustomLabel(row));
             row.querySelector('[data-remove-attachment]')?.addEventListener('click', () => {
                 const rows = list.querySelectorAll('[data-attachment-row]');
                 if (required && rows.length === 1) {
-                    row.querySelector('input[type="file"]')?.click();
                     return;
                 }
                 row.remove();
+                syncRemoveButtons();
             });
             syncCustomLabel(row);
         };
 
         list.querySelectorAll('[data-attachment-row]').forEach(bindRow);
+        syncRemoveButtons();
         addButton?.addEventListener('click', () => {
             if (list.querySelectorAll('[data-attachment-row]').length >= 10) {
                 return;
@@ -972,6 +986,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row) {
                 list.append(row);
                 bindRow(row);
+                syncRemoveButtons();
                 revealAddedRow(row, row.querySelector('input[type="file"]'));
             }
         });

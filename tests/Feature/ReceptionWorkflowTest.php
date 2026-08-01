@@ -24,6 +24,31 @@ class ReceptionWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_attachment_builder_uses_compact_accessible_removal_controls(): void
+    {
+        $worker = $this->userWithRole('muncitor');
+        $this->location('S-FORM');
+
+        $response = $this->actingAs($worker)
+            ->get(route('reception-intakes.create'))
+            ->assertOk()
+            ->assertSeeInOrder(
+                ['data-attachment-list', 'data-add-attachment'],
+                false,
+            )
+            ->assertSee('reception-attachment-file', false)
+            ->assertSee('reception-attachment-type', false)
+            ->assertSee('btn btn-danger reception-attachment-remove', false)
+            ->assertSee('aria-label="Elimină fișierul"', false)
+            ->assertSee('fa-solid fa-trash', false)
+            ->assertDontSee('btn-outline-danger reception-attachment-remove', false);
+
+        $this->assertMatchesRegularExpression(
+            '/data-remove-attachment[^>]*hidden/s',
+            $response->getContent(),
+        );
+    }
+
     public function test_worker_can_upload_private_documents_without_changing_stock(): void
     {
         Storage::fake('local');
