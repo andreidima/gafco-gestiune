@@ -19,7 +19,7 @@
     <div class="reception-attachment-list" data-attachment-list>
         @foreach($oldAttachments as $index => $attachment)
             <div class="reception-attachment-row" data-attachment-row>
-                <div>
+                <div class="reception-attachment-file">
                     <label class="form-label">Fișier</label>
                     <input
                         type="file"
@@ -29,7 +29,7 @@
                         @required($required)
                     >
                 </div>
-                <div>
+                <div class="reception-attachment-type">
                     <label class="form-label">Tip</label>
                     <select name="attachments[{{ $index }}][type]" class="form-select" data-attachment-type required>
                         @foreach($documentTypes as $value => $label)
@@ -37,7 +37,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div data-custom-label-wrap @class(['d-none' => ($attachment['type'] ?? null) !== 'custom'])>
+                <div class="reception-attachment-custom-label" data-custom-label-wrap @class(['d-none' => ($attachment['type'] ?? null) !== 'custom'])>
                     <label class="form-label">Denumire</label>
                     <input
                         name="attachments[{{ $index }}][custom_label]"
@@ -47,8 +47,15 @@
                         placeholder="Ex.: certificat de calitate"
                     >
                 </div>
-                <button type="button" class="btn btn-outline-danger reception-attachment-remove" data-remove-attachment title="Elimină fișierul">
-                    <i class="fa-solid fa-xmark"></i>
+                <button
+                    type="button"
+                    class="btn btn-danger reception-attachment-remove"
+                    data-remove-attachment
+                    title="Elimină fișierul"
+                    aria-label="Elimină fișierul"
+                    @if($required && count($oldAttachments) === 1) hidden @endif
+                >
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
                 </button>
             </div>
         @endforeach
@@ -56,7 +63,7 @@
 
     <template data-attachment-template>
         <div class="reception-attachment-row" data-attachment-row>
-            <div>
+            <div class="reception-attachment-file">
                 <label class="form-label">Fișier</label>
                 <input
                     type="file"
@@ -66,7 +73,7 @@
                     @required($required)
                 >
             </div>
-            <div>
+            <div class="reception-attachment-type">
                 <label class="form-label">Tip</label>
                 <select name="attachments[__INDEX__][type]" class="form-select" data-attachment-type required>
                     @foreach($documentTypes as $value => $label)
@@ -74,7 +81,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="d-none" data-custom-label-wrap>
+            <div class="reception-attachment-custom-label d-none" data-custom-label-wrap>
                 <label class="form-label">Denumire</label>
                 <input
                     name="attachments[__INDEX__][custom_label]"
@@ -83,8 +90,14 @@
                     placeholder="Ex.: certificat de calitate"
                 >
             </div>
-            <button type="button" class="btn btn-outline-danger reception-attachment-remove" data-remove-attachment title="Elimină fișierul">
-                <i class="fa-solid fa-xmark"></i>
+            <button
+                type="button"
+                class="btn btn-danger reception-attachment-remove"
+                data-remove-attachment
+                title="Elimină fișierul"
+                aria-label="Elimină fișierul"
+            >
+                <i class="fa-solid fa-trash" aria-hidden="true"></i>
             </button>
         </div>
     </template>

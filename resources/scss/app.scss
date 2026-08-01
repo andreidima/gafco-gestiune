@@ -3411,9 +3411,19 @@ a.filter-chip:hover {
     background: #fbfbfd;
 }
 
+.reception-attachment-file,
+.reception-attachment-type,
+.reception-attachment-custom-label {
+    min-width: 0;
+}
+
 .reception-attachment-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 38px;
     height: 38px;
+    padding: 0;
 }
 
 .reception-line-card {
@@ -4032,11 +4042,24 @@ body.document-viewer-open {
     }
 
     .reception-attachment-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) 44px;
+        align-items: end;
+    }
+
+    .reception-attachment-file,
+    .reception-attachment-custom-label {
+        grid-column: 1 / -1;
+    }
+
+    .reception-attachment-type {
+        grid-column: 1;
     }
 
     .reception-attachment-remove {
-        width: 100%;
+        grid-column: 2;
+        grid-row: 2;
+        width: 44px;
+        height: 44px;
     }
 
     .reception-detail-list > div {
