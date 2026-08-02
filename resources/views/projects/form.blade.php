@@ -32,7 +32,7 @@
         <div class="resource-form-section">
             <div class="resource-form-section-title">Identificare și perioadă</div>
             <div class="row g-3">
-                <div class="col-md-3"><label class="form-label">Cod proiect</label><input name="code" value="{{ old('code', $project?->code) }}" class="form-control text-uppercase" maxlength="40" required></div>
+                <div class="col-md-3"><label class="form-label">Cod proiect</label><input name="code" data-internal-code autocapitalize="characters" spellcheck="false" value="{{ old('code', $project?->code) }}" class="form-control text-uppercase" maxlength="40" required></div>
                 <div class="col-md-5"><label class="form-label">Denumire</label><input name="name" value="{{ old('name', $project?->name) }}" class="form-control" required></div>
                 <div class="col-md-4">
                     <label class="form-label">Locație</label>
@@ -78,7 +78,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small">Cantitate planificată</label>
-                            <div class="input-group"><input name="lines[{{ $index }}][planned_quantity]" type="number" min="0.001" step="0.001" value="{{ $line['planned_quantity'] ?? 1 }}" class="form-control" required><span class="input-group-text" data-project-line-unit>—</span></div>
+                            <div class="input-group"><input name="lines[{{ $index }}][planned_quantity]" type="number" data-quantity-stepper min="0.001" step="0.001" value="{{ $line['planned_quantity'] ?? 1 }}" class="form-control" required><span class="input-group-text" data-project-line-unit>—</span></div>
                         </div>
                         <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100" data-remove-project-line aria-label="Șterge materialul"><i class="fa-solid fa-trash"></i></button></div>
                     </div>
@@ -107,7 +107,7 @@
         </div>
         <div class="col-md-3">
             <label class="form-label small">Cantitate planificată</label>
-            <div class="input-group"><input data-name="planned_quantity" type="number" min="0.001" step="0.001" value="1" class="form-control" required><span class="input-group-text" data-project-line-unit>—</span></div>
+            <div class="input-group"><input data-name="planned_quantity" type="number" data-quantity-stepper min="0.001" step="0.001" value="1" class="form-control" required><span class="input-group-text" data-project-line-unit>—</span></div>
         </div>
         <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100" data-remove-project-line aria-label="Șterge materialul"><i class="fa-solid fa-trash"></i></button></div>
     </div>

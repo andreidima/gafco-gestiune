@@ -6,6 +6,7 @@ use App\Models\CatalogItem;
 use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -38,7 +39,7 @@ class CatalogItemController extends Controller
                 ->when($request->search, fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
                         ->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhereRaw('UPPER(sku) LIKE ?', ['%'.Str::upper($search).'%'])
                         ->orWhere('barcode', 'like', "%{$search}%");
                 }))
                 ->orderBy('category')
@@ -75,6 +76,10 @@ class CatalogItemController extends Controller
 
     private function validatedData(Request $request, ?CatalogItem $item = null): array
     {
+        $request->merge([
+            'sku' => $request->filled('sku') ? Str::upper(trim((string) $request->input('sku'))) : null,
+        ]);
+
         return $request->validate([
             'category' => ['required', 'in:material,equipment,tool'],
             'tracking_type' => ['required', 'in:quantity,serialized'],

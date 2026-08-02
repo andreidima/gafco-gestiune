@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NormalizesInternalCodes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['category', 'tracking_type', 'sku', 'barcode', 'name', 'unit', 'description', 'active'])]
 class CatalogItem extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesInternalCodes;
+
+    protected function internalCodeAttributes(): array
+    {
+        return ['sku'];
+    }
+
+    protected function nullableInternalCodeAttributes(): array
+    {
+        return ['sku'];
+    }
 
     protected function casts(): array
     {

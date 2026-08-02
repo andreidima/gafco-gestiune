@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NormalizesInternalCodes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['catalog_item_id', 'asset_code', 'qr_code', 'serial_number', 'status', 'condition', 'current_location_id', 'current_custodian_id', 'photo_path', 'last_verified_at', 'notes'])]
 class TrackedAsset extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesInternalCodes;
+
+    protected function internalCodeAttributes(): array
+    {
+        return ['asset_code'];
+    }
 
     protected function casts(): array
     {

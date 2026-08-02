@@ -17,7 +17,7 @@
             <div class="resource-form-section-title">Identificare</div>
             <div class="row g-3">
                 <div class="col-md-6"><label class="form-label">Denumire</label><input name="name" value="{{ old('name', $item?->name) }}" class="form-control" required autofocus></div>
-                <div class="col-md-3"><label class="form-label">SKU</label><input name="sku" value="{{ old('sku', $item?->sku) }}" class="form-control"></div>
+                <div class="col-md-3"><label class="form-label">SKU</label><input name="sku" data-internal-code autocapitalize="characters" spellcheck="false" value="{{ old('sku', $item?->sku) }}" class="form-control"></div>
                 <div class="col-md-3"><label class="form-label">Cod de bare</label><input name="barcode" value="{{ old('barcode', $item?->barcode) }}" class="form-control"></div>
             </div>
         </div>

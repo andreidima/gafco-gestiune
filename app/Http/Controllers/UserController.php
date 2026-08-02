@@ -32,7 +32,7 @@ class UserController extends Controller
             'users' => $users
                 ->when($request->search, fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
                     $searchQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('login_code', 'like', "%{$search}%")
+                        ->orWhereRaw('UPPER(login_code) LIKE ?', ['%'.Str::upper($search).'%'])
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%");
                 }))

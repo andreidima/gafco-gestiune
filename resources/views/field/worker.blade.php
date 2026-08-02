@@ -233,7 +233,7 @@
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Cantitate</label>
-                                <input name="quantity" type="number" min="0.001" step="0.001" class="form-control" inputmode="decimal">
+                                <input name="quantity" type="number" data-quantity-stepper min="0.001" step="0.001" class="form-control" inputmode="decimal">
                             </div>
                             <div>
                                 <label class="form-label">Persoana care primește</label>
@@ -288,12 +288,12 @@
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Cantitate</label>
-                                <input name="quantity" type="number" min="0.001" step="0.001" class="form-control" inputmode="decimal">
+                                <input name="quantity" type="number" data-quantity-stepper min="0.001" step="0.001" class="form-control" inputmode="decimal">
                             </div>
                             <div>
                                 <label class="form-label">Persoana care primește</label>
                                 @if($showRecipientCodes)
-                                    <input name="to_user_code" class="form-control text-uppercase" placeholder="Cod utilizator">
+                                    <input name="to_user_code" data-internal-code autocapitalize="characters" spellcheck="false" class="form-control text-uppercase" placeholder="Cod utilizator">
                                     <div class="form-text">Introdu codul colegului; lista celorlalți șoferi nu este afișată.</div>
                                 @else
                                     <select name="to_user_id" class="form-select" data-tom-select><option value="">Alege persoana</option>@foreach($recipients as $recipient)<option value="{{ $recipient->id }}">{{ $recipient->name }} · {{ $recipient->login_code }}</option>@endforeach</select>
@@ -346,7 +346,7 @@
                             </div>
                             <div data-material-field hidden>
                                 <label class="form-label">Cantitate</label>
-                                <input name="quantity" type="number" min="0.001" step="0.001" class="form-control" inputmode="decimal">
+                                <input name="quantity" type="number" data-quantity-stepper min="0.001" step="0.001" class="form-control" inputmode="decimal">
                             </div>
                             <div class="custody-form-wide">
                                 <label class="form-label">Observații</label>

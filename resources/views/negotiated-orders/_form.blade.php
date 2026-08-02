@@ -97,7 +97,7 @@
                         </div>
                         <div class="col-lg-2 col-md-4">
                             <label class="form-label">Cantitate</label>
-                            <input name="lines[{{ $index }}][quantity]" type="number" step="0.001" min="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control" required>
+                            <input name="lines[{{ $index }}][quantity]" type="number" data-quantity-stepper step="0.001" min="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control" required>
                         </div>
                         <div class="col-lg-2 col-md-4">
                             <label class="form-label">Preț unitar</label>
@@ -130,7 +130,7 @@
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label">Cantitate</label>
-                        <input name="lines[__INDEX__][quantity]" type="number" step="0.001" min="0.001" value="1" class="form-control" required>
+                        <input name="lines[__INDEX__][quantity]" type="number" data-quantity-stepper step="0.001" min="0.001" value="1" class="form-control" required>
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label">Preț unitar</label>

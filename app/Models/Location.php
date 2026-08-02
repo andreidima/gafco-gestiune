@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NormalizesInternalCodes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['type', 'code', 'name', 'address', 'manager_user_id', 'active', 'notes'])]
 class Location extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesInternalCodes;
+
+    protected function internalCodeAttributes(): array
+    {
+        return ['code'];
+    }
 
     protected function casts(): array
     {

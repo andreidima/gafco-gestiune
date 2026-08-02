@@ -17,7 +17,7 @@
             <div class="resource-form-section-title">Identificare</div>
             <div class="row g-3">
                 <div class="col-md-6"><label class="form-label">Articol serializat</label><select name="catalog_item_id" class="form-select" data-tom-select required><option value="">Alege tipul echipamentului</option>@foreach($items as $item)<option value="{{ $item->id }}" data-search="{{ $item->sku }} {{ $item->barcode }}" @selected((string)old('catalog_item_id', $asset?->catalog_item_id) === (string)$item->id)>{{ $item->name }}{{ $item->sku ? ' - '.$item->sku : '' }}</option>@endforeach</select></div>
-                <div class="col-md-3"><label class="form-label">Cod intern</label><input name="asset_code" value="{{ old('asset_code', $asset?->asset_code) }}" class="form-control text-uppercase" required></div>
+                <div class="col-md-3"><label class="form-label">Cod intern</label><input name="asset_code" data-internal-code autocapitalize="characters" spellcheck="false" value="{{ old('asset_code', $asset?->asset_code) }}" class="form-control text-uppercase" required></div>
                 <div class="col-md-3"><label class="form-label">Numar de serie</label><input name="serial_number" value="{{ old('serial_number', $asset?->serial_number) }}" class="form-control"></div>
             </div>
         </div>

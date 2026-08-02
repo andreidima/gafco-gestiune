@@ -22,6 +22,8 @@ class LocalizedNumberTest extends TestCase
             'one decimal' => ['5.100', '5,1'],
             'two decimals' => ['5.120', '5,12'],
             'three decimals' => ['5.125', '5,125'],
+            'zero' => ['0.000', '0'],
+            'negative decimal' => ['-2.500', '-2,5'],
             'thousands' => ['12345.125', '12.345,125'],
         ];
     }

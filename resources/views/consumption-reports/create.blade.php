@@ -107,7 +107,7 @@
                             </div>
                             <div class="col-lg-2 col-md-4">
                                 <label class="form-label">Cantitate</label>
-                                <input name="lines[{{ $index }}][quantity]" type="number" step="0.001" min="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control consumption-line-quantity" required>
+                                <input name="lines[{{ $index }}][quantity]" type="number" data-quantity-stepper step="0.001" min="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control consumption-line-quantity" required>
                             </div>
                             <div class="col-lg-3 col-md-4">
                                 <label class="form-label">Observații material</label>
@@ -197,7 +197,7 @@
             </div>
             <div class="col-lg-2 col-md-4">
                 <label class="form-label">Cantitate</label>
-                <input data-name="quantity" type="number" step="0.001" min="0.001" value="1" class="form-control consumption-line-quantity" required>
+                <input data-name="quantity" type="number" data-quantity-stepper step="0.001" min="0.001" value="1" class="form-control consumption-line-quantity" required>
             </div>
             <div class="col-lg-3 col-md-4">
                 <label class="form-label">Observații material</label>
