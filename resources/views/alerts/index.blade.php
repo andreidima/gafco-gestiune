@@ -130,7 +130,7 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            <a href="{{ $alert->url }}" class="btn btn-sm btn-outline-primary text-nowrap">
+                            <a href="{{ $alert->localizedUrl() }}" class="btn btn-sm btn-outline-primary text-nowrap">
                                 Verifică <i class="fa-solid fa-arrow-right ms-1"></i>
                             </a>
                         </td>
@@ -174,7 +174,7 @@
                             </div>
                         </div>
                         <div class="resource-mobile-card-actions">
-                            <a href="{{ $alert->url }}" class="btn btn-outline-primary btn-sm">Verifică situația</a>
+                            <a href="{{ $alert->localizedUrl() }}" class="btn btn-outline-primary btn-sm">Verifică situația</a>
                         </div>
                     </div>
                 </article>

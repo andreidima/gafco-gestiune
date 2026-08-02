@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\RomanianUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,7 +17,7 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function read(Request $request, string $notification): RedirectResponse
+    public function read(Request $request, string $notification, RomanianUrl $romanianUrl): RedirectResponse
     {
         $item = $request->user()->notifications()->findOrFail($notification);
         $item->markAsRead();
@@ -25,7 +26,7 @@ class NotificationController extends Controller
             && ((str_starts_with($url, '/') && ! str_starts_with($url, '//'))
                 || str_starts_with($url, rtrim(url('/'), '/').'/'));
 
-        return redirect($isLocalUrl ? $url : route('dashboard'));
+        return redirect($isLocalUrl ? $romanianUrl->translate($url) : route('dashboard'));
     }
 
     public function readAll(Request $request): RedirectResponse

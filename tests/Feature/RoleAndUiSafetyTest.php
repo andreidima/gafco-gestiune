@@ -110,7 +110,7 @@ class RoleAndUiSafetyTest extends TestCase
         $this->actingAs($user)->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Rol operational neatribuit')
-            ->assertDontSee('Snapshot stocuri')
+            ->assertDontSee('Situatie stocuri')
             ->assertDontSee('Situatie soferi');
         $this->actingAs($user)->get(route('tasks.index'))->assertForbidden();
         $this->actingAs($user)->get(route('transfers.index'))->assertForbidden();

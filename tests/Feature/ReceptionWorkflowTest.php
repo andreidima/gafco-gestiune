@@ -37,6 +37,9 @@ class ReceptionWorkflowTest extends TestCase
                 false,
             )
             ->assertSee('reception-attachment-file', false)
+            ->assertSee('Alege fișierul')
+            ->assertSee('Niciun fișier selectat')
+            ->assertSee('data-attachment-file', false)
             ->assertSee('reception-attachment-type', false)
             ->assertSee('btn btn-danger reception-attachment-remove', false)
             ->assertSee('aria-label="Elimină fișierul"', false)

@@ -266,7 +266,7 @@
                             <h5 class="mb-1">Grafic comparativ</h5>
                             <p class="mb-0 text-muted">Indicatori principali pentru fluxul operational.</p>
                         </div>
-                        <span class="dashboard-badge">KPI live</span>
+                        <span class="dashboard-badge">Indicatori actualizați</span>
                     </div>
                     <div class="chart-rows">
                         <div class="chart-row accent-rose">
@@ -360,7 +360,7 @@
         <div class="col-xl-4">
             <div class="card dashboard-chart-card shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <strong><i class="fa-solid fa-location-dot me-1"></i> Top locatii dupa echipamente</strong>
+                    <strong><i class="fa-solid fa-location-dot me-1"></i> Locatii cu cele mai multe echipamente</strong>
                     <a href="{{ route('locations.index') }}" class="btn btn-sm stat-btn accent-rose">Locatii</a>
                 </div>
                 <div class="card-body">
@@ -481,7 +481,7 @@
     </div>
 
     <div class="card dashboard-chart-card shadow-sm mt-4">
-        <div class="card-header bg-white"><strong><i class="fa-solid fa-boxes-stacked me-1"></i> Snapshot stocuri</strong></div>
+        <div class="card-header bg-white"><strong><i class="fa-solid fa-boxes-stacked me-1"></i> Situatie stocuri</strong></div>
         <div class="row g-0">
             @forelse($stockSnapshot as $stock)
                 <div class="col-md-6 col-xl-3 border-end border-bottom">
