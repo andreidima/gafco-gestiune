@@ -12,6 +12,7 @@ use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class TrackedAssetController extends Controller
@@ -30,7 +31,7 @@ class TrackedAssetController extends Controller
                 ->when($request->status, fn ($query, $status) => $query->where('status', $status))
                 ->when($request->condition, fn ($query, $condition) => $query->where('condition', $condition))
                 ->when($request->search, fn ($query, $search) => $query->where(function ($query) use ($search) {
-                    $query->where('asset_code', 'like', "%{$search}%")
+                    $query->whereRaw('UPPER(asset_code) LIKE ?', ['%'.Str::upper($search).'%'])
                         ->orWhere('qr_code', 'like', "%{$search}%")
                         ->orWhere('serial_number', 'like', "%{$search}%")
                         ->orWhereHas('catalogItem', fn ($itemQuery) => $itemQuery->where('name', 'like', "%{$search}%"));
@@ -119,6 +120,8 @@ class TrackedAssetController extends Controller
 
     private function validatedData(Request $request, ?TrackedAsset $asset = null): array
     {
+        $request->merge(['asset_code' => Str::upper(trim((string) $request->input('asset_code')))]);
+
         return $request->validate([
             'catalog_item_id' => [
                 'required',

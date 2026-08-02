@@ -160,7 +160,7 @@
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small">Cant.</label>
-                            <input name="lines[{{ $index }}][quantity]" type="number" min="0.001" step="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
+                            <input name="lines[{{ $index }}][quantity]" type="number" data-quantity-stepper min="0.001" step="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
                         </div>
                         <div class="col-md-1">
                             <button type="button" class="btn btn-outline-danger w-100 remove-transfer-line" aria-label="Șterge poziția">
@@ -207,7 +207,7 @@
         </div>
         <div class="col-md-1">
             <label class="form-label small">Cant.</label>
-            <input data-name="quantity" type="number" min="0.001" step="0.001" value="1" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
+            <input data-name="quantity" type="number" data-quantity-stepper min="0.001" step="0.001" value="1" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
         </div>
         <div class="col-md-1">
             <button type="button" class="btn btn-outline-danger w-100 remove-transfer-line" aria-label="Șterge poziția">

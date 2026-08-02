@@ -17,7 +17,7 @@
             <div class="resource-form-section-title">Identitate si conectare</div>
             <div class="row g-3">
                 <div class="col-md-6"><label class="form-label">Nume complet</label><input name="name" value="{{ old('name', $user?->name) }}" class="form-control" required autofocus></div>
-                <div class="col-md-3"><label class="form-label">Cod conectare</label><input name="login_code" value="{{ old('login_code', $user?->login_code) }}" class="form-control text-uppercase" required></div>
+                <div class="col-md-3"><label class="form-label">Cod conectare</label><input name="login_code" data-internal-code autocapitalize="characters" spellcheck="false" value="{{ old('login_code', $user?->login_code) }}" class="form-control text-uppercase" required></div>
                 <div class="col-md-3"><label class="form-label">Parola {{ $editing ? 'noua, optional' : '' }}</label><input name="password" type="password" class="form-control" @required(!$editing)><div class="form-text">{{ $editing ? 'Lasa gol pentru a pastra parola curenta.' : 'Minimum 6 caractere.' }}</div></div>
             </div>
         </div>

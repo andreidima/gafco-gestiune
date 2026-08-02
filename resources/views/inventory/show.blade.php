@@ -3,7 +3,7 @@
 @section('title', $item->name)
 
 @php
-    $formatQuantity = static fn ($value) => number_format((float) $value, 3, ',', '.');
+    $formatQuantity = static fn ($value) => \App\Support\LocalizedNumber::quantity($value);
     $movementLabels = [
         'opening_balance' => 'Sold inițial',
         'reception' => 'Recepție',

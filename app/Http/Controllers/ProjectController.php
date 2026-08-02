@@ -39,7 +39,7 @@ class ProjectController extends Controller
             ])
             ->when($request->search, fn (Builder $projects, string $search) => $projects
                 ->where(function (Builder $matching) use ($search): void {
-                    $matching->where('code', 'like', "%{$search}%")
+                    $matching->whereRaw('UPPER(code) LIKE ?', ['%'.Str::upper($search).'%'])
                         ->orWhere('name', 'like', "%{$search}%");
                 }))
             ->when($request->status, fn (Builder $projects, string $status) => $projects->where('status', $status))

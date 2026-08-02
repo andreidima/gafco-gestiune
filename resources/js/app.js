@@ -2,6 +2,77 @@ import '../scss/app.scss';
 import 'bootstrap';
 import TomSelect from 'tom-select';
 
+const normalizeInternalCodeInput = (input) => {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.toLocaleUpperCase('ro-RO');
+    if (start !== null && end !== null) {
+        input.setSelectionRange(start, end);
+    }
+};
+
+document.addEventListener('input', (event) => {
+    if (event.target.matches?.('[data-internal-code]')) {
+        normalizeInternalCodeInput(event.target);
+    }
+});
+
+const initializeQuantityStepper = (input) => {
+    if (input.dataset.quantityStepperReady) return;
+    input.dataset.quantityStepperReady = 'true';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'quantity-stepper';
+    const decrement = document.createElement('button');
+    const increment = document.createElement('button');
+    decrement.type = increment.type = 'button';
+    decrement.className = increment.className = 'btn btn-outline-secondary quantity-stepper-button';
+    decrement.textContent = '−1';
+    increment.textContent = '+1';
+    decrement.setAttribute('aria-label', 'Scade cantitatea cu 1');
+    increment.setAttribute('aria-label', 'Crește cantitatea cu 1');
+    input.before(wrapper);
+    wrapper.append(decrement, input, increment);
+
+    const bounds = () => ({
+        min: input.min === '' ? null : Number(input.min),
+        max: input.max === '' ? null : Number(input.max),
+    });
+    const sync = () => {
+        const value = Number(input.value);
+        const { min, max } = bounds();
+        const unavailable = input.disabled || input.readOnly || !Number.isFinite(value);
+        decrement.disabled = unavailable || (min !== null && value - 1 < min);
+        increment.disabled = unavailable || (max !== null && value + 1 > max);
+    };
+    const adjust = (amount) => {
+        const value = input.value === '' ? 0 : Number(input.value);
+        if (!Number.isFinite(value)) return;
+        const next = Number((value + amount).toFixed(3));
+        const { min, max } = bounds();
+        if ((min !== null && next < min) || (max !== null && next > max)) return;
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        sync();
+    };
+    decrement.addEventListener('click', () => adjust(-1));
+    increment.addEventListener('click', () => adjust(1));
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    sync();
+};
+
+const initializeQuantitySteppers = (root = document) => {
+    if (root.matches?.('[data-quantity-stepper]')) initializeQuantityStepper(root);
+    root.querySelectorAll?.('[data-quantity-stepper]').forEach(initializeQuantityStepper);
+};
+
+document.addEventListener('DOMContentLoaded', () => initializeQuantitySteppers());
+new MutationObserver((mutations) => mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) initializeQuantitySteppers(node);
+}))).observe(document.documentElement, { childList: true, subtree: true });
+
 const searchableSelectSelector = 'select[data-tom-select]';
 
 const searchableSelectSettings = (element) => {

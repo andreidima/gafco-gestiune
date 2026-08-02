@@ -3,7 +3,7 @@
 @section('title', 'Fișă inventar materiale')
 
 @php
-    $formatQuantity = static fn ($value) => number_format((float) $value, 3, ',', '.');
+    $formatQuantity = static fn ($value) => \App\Support\LocalizedNumber::quantity($value);
     $columnVisible = static fn (string $column) => in_array($column, $columns, true);
 @endphp
 

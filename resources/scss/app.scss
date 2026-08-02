@@ -2,6 +2,32 @@
 @import "bootstrap-icons/font/bootstrap-icons.css";
 @import "tom-select/dist/css/tom-select.bootstrap5.css";
 
+.quantity-stepper {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.quantity-stepper > .form-control {
+    min-width: 5.5rem;
+    border-radius: 0;
+    text-align: center;
+}
+
+.quantity-stepper-button {
+    min-width: 48px;
+    padding-inline: .55rem;
+    white-space: nowrap;
+}
+
+.quantity-stepper-button:first-child {
+    border-radius: var(--bs-border-radius) 0 0 var(--bs-border-radius);
+}
+
+.quantity-stepper-button:last-child {
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+}
+
 * {
     font-size: 16px;
 }

@@ -46,7 +46,7 @@ class LocationController extends Controller
                 ->when($request->search, fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
                         ->where('name', 'like', "%{$search}%")
-                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhereRaw('UPPER(code) LIKE ?', ['%'.Str::upper($search).'%'])
                         ->orWhere('address', 'like', "%{$search}%");
                 }))
                 ->orderBy('type')
