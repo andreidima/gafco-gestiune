@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\RomanianUrl;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -82,5 +83,10 @@ class OperationalAlert extends Model
     public function isActive(): bool
     {
         return $this->resolved_at === null;
+    }
+
+    public function localizedUrl(): string
+    {
+        return app(RomanianUrl::class)->translate($this->url) ?? $this->url;
     }
 }

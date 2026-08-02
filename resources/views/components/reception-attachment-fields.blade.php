@@ -20,14 +20,20 @@
         @foreach($oldAttachments as $index => $attachment)
             <div class="reception-attachment-row" data-attachment-row>
                 <div class="reception-attachment-file">
-                    <label class="form-label">Fișier</label>
-                    <input
-                        type="file"
-                        name="attachments[{{ $index }}][file]"
-                        class="form-control"
-                        accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
-                        @required($required)
-                    >
+                    <label class="form-label" for="attachment-{{ $index }}-file">Fișier</label>
+                    <div class="reception-file-picker">
+                        <span class="reception-file-picker-action" aria-hidden="true">Alege fișierul</span>
+                        <span class="reception-file-picker-name" data-attachment-file-name>Niciun fișier selectat</span>
+                        <input
+                            id="attachment-{{ $index }}-file"
+                            type="file"
+                            name="attachments[{{ $index }}][file]"
+                            accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
+                            aria-label="Alege fișierul"
+                            data-attachment-file
+                            @required($required)
+                        >
+                    </div>
                 </div>
                 <div class="reception-attachment-type">
                     <label class="form-label">Tip</label>
@@ -64,14 +70,20 @@
     <template data-attachment-template>
         <div class="reception-attachment-row" data-attachment-row>
             <div class="reception-attachment-file">
-                <label class="form-label">Fișier</label>
-                <input
-                    type="file"
-                    name="attachments[__INDEX__][file]"
-                    class="form-control"
-                    accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
-                    @required($required)
-                >
+                <label class="form-label" for="attachment-__INDEX__-file">Fișier</label>
+                <div class="reception-file-picker">
+                    <span class="reception-file-picker-action" aria-hidden="true">Alege fișierul</span>
+                    <span class="reception-file-picker-name" data-attachment-file-name>Niciun fișier selectat</span>
+                    <input
+                        id="attachment-__INDEX__-file"
+                        type="file"
+                        name="attachments[__INDEX__][file]"
+                        accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf"
+                        aria-label="Alege fișierul"
+                        data-attachment-file
+                        @required($required)
+                    >
+                </div>
             </div>
             <div class="reception-attachment-type">
                 <label class="form-label">Tip</label>

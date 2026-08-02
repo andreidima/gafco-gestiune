@@ -948,6 +948,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        const syncFileName = (row) => {
+            const input = row.querySelector('[data-attachment-file]');
+            const label = row.querySelector('[data-attachment-file-name]');
+            if (label) {
+                label.textContent = input?.files?.[0]?.name || 'Niciun fișier selectat';
+            }
+        };
+
         const syncRemoveButtons = () => {
             const rows = list.querySelectorAll('[data-attachment-row]');
             const removalUnavailable = required && rows.length === 1;
@@ -963,6 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const bindRow = (row) => {
             row.querySelector('[data-attachment-type]')?.addEventListener('change', () => syncCustomLabel(row));
+            row.querySelector('[data-attachment-file]')?.addEventListener('change', () => syncFileName(row));
             row.querySelector('[data-remove-attachment]')?.addEventListener('click', () => {
                 const rows = list.querySelectorAll('[data-attachment-row]');
                 if (required && rows.length === 1) {
@@ -972,6 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 syncRemoveButtons();
             });
             syncCustomLabel(row);
+            syncFileName(row);
         };
 
         list.querySelectorAll('[data-attachment-row]').forEach(bindRow);

@@ -12,7 +12,7 @@
 >
     <span class="live-view-indicator" aria-hidden="true"></span>
     <span class="live-view-copy">
-        <strong>Live</strong>
+        <strong>Automat</strong>
         <span data-live-view-status>Actualizare în 5:00</span>
     </span>
     <button

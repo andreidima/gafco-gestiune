@@ -60,8 +60,8 @@
 
                     <div class="login-cta mt-4">
                         <div class="login-check"><i class="fa-solid fa-check"></i><span>Roluri pentru administrator, dispecer, sofer si sef santier</span></div>
-                        <div class="login-check"><i class="fa-solid fa-check"></i><span>Dashboard rapid pentru operatiuni zilnice</span></div>
-                        <div class="login-check"><i class="fa-solid fa-check"></i><span>Interfata simpla, apropiata de Blueprint</span></div>
+                        <div class="login-check"><i class="fa-solid fa-check"></i><span>Panou rapid pentru operatiuni zilnice</span></div>
+                        <div class="login-check"><i class="fa-solid fa-check"></i><span>Interfata simpla si usor de folosit</span></div>
                     </div>
                 </div>
             </div>
