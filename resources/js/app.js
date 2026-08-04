@@ -1,6 +1,18 @@
 import '../scss/app.scss';
 import 'bootstrap';
 import TomSelect from 'tom-select';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+let pdfLibraryPromise;
+const loadPdfLibrary = () => {
+    pdfLibraryPromise ??= import('pdfjs-dist').then((pdfLibrary) => {
+        pdfLibrary.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+        return pdfLibrary;
+    });
+
+    return pdfLibraryPromise;
+};
 
 const normalizeInternalCodeInput = (input) => {
     const start = input.selectionStart;
@@ -246,6 +258,9 @@ const documentViewerState = (viewer) => {
         documentViewerStates.set(viewer, {
             documentId: null,
             lastTrigger: null,
+            pdfGeneration: 0,
+            pdfLoadingTask: null,
+            pdfRenderTask: null,
             rotation: 0,
             zoom: 1,
         });
@@ -259,15 +274,121 @@ const setDocumentViewerStatus = (viewer, status) => {
     const empty = viewer.querySelector('[data-document-viewer-empty]');
     const error = viewer.querySelector('[data-document-viewer-error]');
     const canvas = viewer.querySelector('[data-document-image-canvas]');
-    const frame = viewer.querySelector('[data-document-viewer-frame]');
+    const pdfPages = viewer.querySelector('[data-document-pdf-pages]');
     const tools = viewer.querySelector('[data-document-image-tools]');
 
     loading?.classList.toggle('d-none', status !== 'loading');
     empty?.classList.toggle('d-none', status !== 'empty');
     error?.classList.toggle('d-none', status !== 'error');
     canvas?.classList.toggle('d-none', status !== 'image');
-    frame?.classList.toggle('d-none', status !== 'pdf');
+    pdfPages?.classList.toggle('d-none', status !== 'pdf');
     tools?.classList.toggle('d-none', status !== 'image');
+};
+
+const cancelDocumentPdf = (viewer) => {
+    const state = documentViewerState(viewer);
+    state.pdfGeneration += 1;
+    state.pdfRenderTask?.cancel();
+    state.pdfRenderTask = null;
+
+    const loadingTask = state.pdfLoadingTask;
+    state.pdfLoadingTask = null;
+    if (loadingTask) {
+        void loadingTask.destroy().catch(() => {});
+    }
+
+    viewer.querySelector('[data-document-pdf-pages]')?.replaceChildren();
+};
+
+const renderDocumentPdf = async (viewer, previewUrl, generation) => {
+    const state = documentViewerState(viewer);
+    const pages = viewer.querySelector('[data-document-pdf-pages]');
+    const stage = viewer.querySelector('[data-document-viewer-stage]');
+    if (! pages) {
+        setDocumentViewerStatus(viewer, 'error');
+        return;
+    }
+
+    let loadingTask = null;
+
+    try {
+        const { getDocument } = await loadPdfLibrary();
+        if (generation !== state.pdfGeneration) {
+            return;
+        }
+
+        loadingTask = getDocument({
+            url: previewUrl,
+            withCredentials: true,
+        });
+        state.pdfLoadingTask = loadingTask;
+        const pdf = await loadingTask.promise;
+        if (generation !== state.pdfGeneration) {
+            return;
+        }
+
+        pages.replaceChildren();
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            if (generation !== state.pdfGeneration) {
+                return;
+            }
+
+            const page = await pdf.getPage(pageNumber);
+            const baseViewport = page.getViewport({ scale: 1 });
+            const availableWidth = Math.max(
+                240,
+                (stage?.clientWidth || viewer.clientWidth || baseViewport.width) - 32,
+            );
+            const viewport = page.getViewport({
+                scale: Math.min(2.5, availableWidth / baseViewport.width),
+            });
+            const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+            canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
+            canvas.style.width = `${Math.floor(viewport.width)}px`;
+            canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+            const pageContainer = document.createElement('section');
+            pageContainer.className = 'reception-document-pdf-page';
+            pageContainer.setAttribute('aria-label', `Pagina ${pageNumber} din ${pdf.numPages}`);
+            pageContainer.appendChild(canvas);
+
+            const pageLabel = document.createElement('span');
+            pageLabel.className = 'reception-document-pdf-page-number';
+            pageLabel.textContent = `Pagina ${pageNumber} din ${pdf.numPages}`;
+            pageContainer.appendChild(pageLabel);
+            pages.appendChild(pageContainer);
+
+            if (pageNumber === 1) {
+                setDocumentViewerStatus(viewer, 'pdf');
+            }
+
+            const renderTask = page.render({
+                canvas,
+                viewport,
+                transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
+            });
+            state.pdfRenderTask = renderTask;
+            await renderTask.promise;
+            state.pdfRenderTask = null;
+            page.cleanup();
+        }
+    } catch (error) {
+        if (generation !== state.pdfGeneration || error?.name === 'RenderingCancelledException') {
+            return;
+        }
+
+        pages.replaceChildren();
+        setDocumentViewerStatus(viewer, 'error');
+    } finally {
+        if (loadingTask && state.pdfLoadingTask === loadingTask) {
+            state.pdfLoadingTask = null;
+            state.pdfRenderTask = null;
+            await loadingTask.destroy().catch(() => {});
+        }
+    }
 };
 
 const updateDocumentImageTransform = (viewer) => {
@@ -300,10 +421,10 @@ const selectDocumentInViewer = (viewer, trigger) => {
     const filename = viewer.querySelector('[data-document-viewer-filename]');
     const download = viewer.querySelector('[data-document-viewer-download]');
     const image = viewer.querySelector('[data-document-viewer-image]');
-    const frame = viewer.querySelector('[data-document-viewer-frame]');
     const mimeType = (trigger.dataset.documentMime ?? '').toLowerCase();
     const previewUrl = trigger.dataset.documentPreviewUrl;
 
+    cancelDocumentPdf(viewer);
     state.documentId = trigger.dataset.documentId ?? null;
     if (title) {
         title.textContent = trigger.dataset.documentTitle ?? 'Document';
@@ -329,18 +450,8 @@ const selectDocumentInViewer = (viewer, trigger) => {
         image.removeAttribute('src');
         image.alt = trigger.dataset.documentTitle ?? 'Document';
     }
-    if (frame) {
-        frame.onload = null;
-        frame.removeAttribute('src');
-    }
-
     if (mimeType === 'application/pdf') {
-        if (! frame) {
-            setDocumentViewerStatus(viewer, 'error');
-            return;
-        }
-        frame.onload = () => setDocumentViewerStatus(viewer, 'pdf');
-        frame.src = `${previewUrl}#view=FitH&navpanes=0`;
+        void renderDocumentPdf(viewer, previewUrl, state.pdfGeneration);
         return;
     }
 
@@ -404,6 +515,7 @@ const setDocumentViewerExpanded = (viewer, expanded) => {
 const closeDocumentViewer = (viewer) => {
     const state = documentViewerState(viewer);
     const workspace = viewer.closest('[data-document-viewer-workspace]');
+    cancelDocumentPdf(viewer);
     setDocumentViewerExpanded(viewer, false);
 
     if (viewer.classList.contains('reception-document-viewer--workspace') && ! documentViewerMobile.matches) {

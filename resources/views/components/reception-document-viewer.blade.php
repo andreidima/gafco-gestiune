@@ -158,11 +158,12 @@
             <div class="reception-document-image-canvas d-none" data-document-image-canvas>
                 <img alt="" data-document-viewer-image>
             </div>
-            <iframe
-                class="reception-document-viewer-frame d-none"
-                data-document-viewer-frame
-                title="Conținutul documentului"
-            ></iframe>
+            <div
+                class="reception-document-pdf-pages d-none"
+                data-document-pdf-pages
+                role="document"
+                aria-label="Conținutul documentului PDF"
+            ></div>
         </div>
     </aside>
 </div>

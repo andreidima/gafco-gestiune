@@ -13,6 +13,7 @@ use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\SupplierReception;
 use App\Models\User;
+use Dompdf\Dompdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -109,6 +110,50 @@ class ReceptionWorkflowTest extends TestCase
         $this->actingAs($otherWorker)->get(route('reception-intakes.show', $intake))->assertForbidden();
         $this->actingAs($otherWorker)->get(route('reception-documents.download', $document))->assertForbidden();
         $this->actingAs($otherWorker)->get(route('reception-documents.preview', $document))->assertForbidden();
+    }
+
+    public function test_pdf_document_uses_the_application_preview_renderer_and_keeps_download_available(): void
+    {
+        Storage::fake('local');
+        $worker = $this->userWithRole('muncitor');
+        $location = $this->location('S-PDF');
+        $intake = ReceptionIntake::create([
+            'number' => 'DR-PDF',
+            'location_id' => $location->id,
+            'submitted_by' => $worker->id,
+            'status' => 'created',
+        ]);
+
+        $pdf = new Dompdf;
+        $pdf->loadHtml('<h1>Declarație de conformitate</h1><p>Document de verificare.</p>');
+        $pdf->render();
+        $contents = $pdf->output();
+
+        $document = ReceptionDocument::create([
+            'reception_intake_id' => $intake->id,
+            'uploaded_by' => $worker->id,
+            'document_type' => 'conformity',
+            'original_name' => 'declaratie-conformitate.pdf',
+            'stored_path' => 'reception-documents/declaratie-conformitate.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => strlen($contents),
+            'sha256' => hash('sha256', $contents),
+        ]);
+        Storage::disk('local')->put($document->stored_path, $contents);
+
+        $preview = $this->actingAs($worker)
+            ->get(route('reception-documents.preview', $document))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('x-content-type-options', 'nosniff');
+        $this->assertStringStartsWith('%PDF-', $preview->streamedContent());
+
+        $this->actingAs($worker)
+            ->get(route('reception-intakes.show', $intake))
+            ->assertOk()
+            ->assertSee('data-document-pdf-pages', false)
+            ->assertSee(route('reception-documents.download', $document), false)
+            ->assertDontSee('data-document-viewer-frame', false);
     }
 
     public function test_browser_unsupported_document_keeps_download_without_inline_preview(): void
