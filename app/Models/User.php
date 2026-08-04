@@ -15,6 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'login_code', 'email', 'phone', 'password', 'active'])]
@@ -22,7 +23,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, NormalizesInternalCodes, Notifiable;
+    use HasApiTokens, HasFactory, HasPushSubscriptions, HasRoles, NormalizesInternalCodes, Notifiable;
 
     protected function internalCodeAttributes(): array
     {

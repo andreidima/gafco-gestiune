@@ -29,6 +29,206 @@ document.addEventListener('input', (event) => {
     }
 });
 
+let deferredDriverInstallPrompt = null;
+
+const driverAppIsInstalled = () => window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+const driverInstallWasDismissed = () => {
+    const dismissedAt = Number(window.localStorage.getItem('gafco-driver-install-dismissed-at') || 0);
+
+    return dismissedAt > 0 && Date.now() - dismissedAt < 14 * 24 * 60 * 60 * 1000;
+};
+
+const updateDriverInstallControls = () => {
+    const controls = document.querySelector('[data-driver-app-controls]');
+    if (!controls) return;
+
+    const nativeInstall = controls.querySelector('[data-install-control]');
+    const iosInstall = controls.querySelector('[data-ios-install-control]');
+    if (nativeInstall) nativeInstall.hidden = true;
+    if (iosInstall) iosInstall.hidden = true;
+    if (driverAppIsInstalled() || driverInstallWasDismissed()) return;
+
+    const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+    if (deferredDriverInstallPrompt && nativeInstall) {
+        nativeInstall.hidden = false;
+    } else if (ios && iosInstall) {
+        iosInstall.hidden = false;
+    }
+};
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredDriverInstallPrompt = event;
+    updateDriverInstallControls();
+});
+
+window.addEventListener('appinstalled', () => {
+    deferredDriverInstallPrompt = null;
+    document.querySelectorAll('[data-install-control], [data-ios-install-control]').forEach((control) => {
+        control.hidden = true;
+    });
+});
+
+const urlBase64ToUint8Array = (value) => {
+    const padding = '='.repeat((4 - (value.length % 4)) % 4);
+    const base64 = (value + padding).replaceAll('-', '+').replaceAll('_', '/');
+    const raw = window.atob(base64);
+
+    return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
+};
+
+const requestWithCsrf = async (url, method, payload) => {
+    const response = await fetch(url, {
+        method,
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Operațiunea nu a putut fi salvată.');
+    }
+
+    return response.json();
+};
+
+const initializeDriverPush = async (controls, registration) => {
+    const toggle = controls.querySelector('[data-toggle-push]');
+    const title = controls.querySelector('[data-push-title]');
+    const message = controls.querySelector('[data-push-message]');
+    if (!toggle || controls.dataset.pushAvailable !== '1') return;
+
+    const unsupported = !('PushManager' in window) || !('Notification' in window);
+    if (unsupported) {
+        toggle.disabled = true;
+        title.textContent = 'Notificări indisponibile';
+        message.textContent = 'Telefonul sau browserul nu acceptă notificări push.';
+        return;
+    }
+
+    const render = async (statusMessage = null) => {
+        const subscription = await registration.pushManager.getSubscription();
+        const denied = Notification.permission === 'denied';
+        toggle.disabled = denied;
+        toggle.textContent = subscription ? 'Dezactivează' : 'Activează';
+        toggle.classList.toggle('btn-outline-danger', Boolean(subscription));
+        toggle.classList.toggle('btn-outline-primary', !subscription);
+        title.textContent = subscription ? 'Notificări active' : (denied ? 'Notificări blocate' : 'Notificări pentru sarcini');
+        message.textContent = statusMessage || (subscription
+            ? 'Acest telefon primește alocările și schimbările importante.'
+            : (denied ? 'Permisiunea trebuie reactivată din setările browserului.' : 'Primești pe telefon alocările și schimbările importante.'));
+
+        return subscription;
+    };
+
+    await render();
+    toggle.addEventListener('click', async () => {
+        toggle.disabled = true;
+        try {
+            const existing = await registration.pushManager.getSubscription();
+            if (existing) {
+                await requestWithCsrf(controls.dataset.pushDeleteUrl, 'DELETE', { endpoint: existing.endpoint });
+                await existing.unsubscribe();
+                await render('Notificările au fost dezactivate pe acest telefon.');
+                return;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                await render('Permisiunea pentru notificări nu a fost acordată.');
+                return;
+            }
+
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(controls.dataset.pushPublicKey),
+            });
+            const payload = subscription.toJSON();
+            try {
+                await requestWithCsrf(controls.dataset.pushStoreUrl, 'PUT', {
+                    endpoint: payload.endpoint,
+                    keys: payload.keys,
+                    content_encoding: 'aes128gcm',
+                });
+            } catch (error) {
+                await subscription.unsubscribe();
+                throw error;
+            }
+            await render('Notificările au fost activate pe acest telefon.');
+        } catch (error) {
+            message.textContent = error.message || 'Notificările nu au putut fi configurate.';
+            await render(message.textContent);
+        }
+    });
+};
+
+const updateDriverNetworkState = () => {
+    if (!document.body.classList.contains('driver-workspace')) return;
+
+    const online = window.navigator.onLine;
+    const banner = document.querySelector('[data-offline-banner]');
+    const state = document.querySelector('[data-network-state]');
+    document.body.classList.toggle('is-offline', !online);
+    if (banner) banner.hidden = online;
+    if (state) {
+        state.classList.toggle('is-offline', !online);
+        state.querySelector('span').textContent = online ? 'Online' : 'Offline';
+    }
+
+    document.querySelectorAll('form').forEach((form) => {
+        if ((form.getAttribute('method') || 'get').toLowerCase() === 'get') return;
+        form.querySelectorAll('button[type="submit"], button:not([type])').forEach((button) => {
+            if (!online && !button.disabled) {
+                button.disabled = true;
+                button.dataset.offlineDisabled = '1';
+            } else if (online && button.dataset.offlineDisabled === '1') {
+                button.disabled = false;
+                delete button.dataset.offlineDisabled;
+            }
+        });
+    });
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!document.body.classList.contains('driver-workspace')) return;
+
+    updateDriverInstallControls();
+    document.querySelectorAll('[data-dismiss-install]').forEach((button) => button.addEventListener('click', () => {
+        window.localStorage.setItem('gafco-driver-install-dismissed-at', String(Date.now()));
+        button.closest('[data-install-control], [data-ios-install-control]').hidden = true;
+    }));
+    document.querySelector('[data-install-app]')?.addEventListener('click', async () => {
+        if (!deferredDriverInstallPrompt) return;
+        await deferredDriverInstallPrompt.prompt();
+        await deferredDriverInstallPrompt.userChoice;
+        deferredDriverInstallPrompt = null;
+        updateDriverInstallControls();
+    });
+
+    updateDriverNetworkState();
+    window.addEventListener('online', updateDriverNetworkState);
+    window.addEventListener('offline', updateDriverNetworkState);
+
+    if ('serviceWorker' in window.navigator) {
+        try {
+            const registration = await window.navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            const controls = document.querySelector('[data-driver-app-controls]');
+            if (controls) await initializeDriverPush(controls, registration);
+        } catch (error) {
+            const message = document.querySelector('[data-push-message]');
+            if (message) message.textContent = 'Serviciul de notificări nu a putut fi pornit.';
+        }
+    }
+});
+
 const initializeQuantityStepper = (input) => {
     if (input.dataset.quantityStepperReady) return;
     input.dataset.quantityStepperReady = 'true';

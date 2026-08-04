@@ -329,7 +329,9 @@
                 <div class="card-body">
                     <div class="chart-rows">
                         @foreach($assetLabels as $status => $label)
-                            @php($value = (int) ($assetStatusCounts[$status] ?? 0))
+                            @php
+                                $value = (int) ($assetStatusCounts[$status] ?? 0);
+                            @endphp
                             <div class="chart-row compact-row">
                                 <div class="chart-label">{{ $label }}</div>
                                 <div class="chart-bar"><span class="chart-bar-fill" style="width: {{ round(($value / $maxAssetStatus) * 100) }}%;"></span></div>
@@ -346,7 +348,9 @@
                 <div class="card-body">
                     <div class="transfer-funnel">
                         @foreach($transferLabels as $status => $label)
-                            @php($value = (int) ($transferStatusCounts[$status] ?? 0))
+                            @php
+                                $value = (int) ($transferStatusCounts[$status] ?? 0);
+                            @endphp
                             <div class="funnel-step">
                                 <span>{{ $label }}</span>
                                 <strong>{{ $value }}</strong>
@@ -497,6 +501,13 @@
         </div>
     </div>
     @elseif($dashboardMode === 'driver')
+        <x-driver-app-controls />
+
+        <div class="driver-home-quick-actions mb-3">
+            <a href="{{ route('qr-scan.index') }}"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span><strong>Scanează QR</strong><small>Identifică rapid un echipament</small></span></a>
+            <a href="{{ route('field.worker') }}"><i class="fa-solid fa-hand-holding-hand" aria-hidden="true"></i><span><strong>Custodia mea</strong><small>Bunuri de confirmat sau predat</small></span></a>
+        </div>
+
         <div class="card dashboard-chart-card shadow-sm">
             <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
@@ -507,7 +518,18 @@
             </div>
             <div class="list-group list-group-flush driver-dashboard-task-list">
                 @forelse($ownTasks as $task)
-                    <a href="{{ route('tasks.show', $task) }}" class="list-group-item list-group-item-action py-3">
+                    @php
+                        $dashboardAction = match (true) {
+                            $task->currentAssignment?->status === 'pending' => 'Răspunde la alocare',
+                            $task->status === 'accepted' => 'Estimează și pornește',
+                            $task->status === 'in_progress' => 'Continuă sarcina',
+                            default => 'Deschide sarcina',
+                        };
+                    @endphp
+                    <a href="{{ route('tasks.show', $task) }}" class="list-group-item list-group-item-action py-3 {{ $loop->first ? 'driver-dashboard-next-task' : '' }}">
+                        @if($loop->first)
+                            <span class="driver-next-action-label"><i class="fa-solid fa-bolt" aria-hidden="true"></i>Următoarea acțiune: {{ $dashboardAction }}</span>
+                        @endif
                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                             <div class="min-w-0">
                                 <div class="resource-primary">{{ $task->title }}</div>

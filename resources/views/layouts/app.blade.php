@@ -4,13 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#703b3b">
     <title>@yield('title', config('app.name')) - {{ config('app.name') }}</title>
+    @if(auth()->check() && auth()->user()->usesDriverWorkspace())
+        <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+        <link rel="apple-touch-icon" href="{{ asset('icons/gafco-driver-192.png') }}">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="GAFCO Șofer">
+    @endif
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     @vite('resources/js/app.js')
 </head>
-<body class="d-flex flex-column h-100">
+<body @class(['d-flex', 'flex-column', 'h-100', 'driver-workspace' => auth()->check() && auth()->user()->usesDriverWorkspace()])>
     @auth
         @php
             $navigationUser = auth()->user();
@@ -38,7 +46,28 @@
                 && $impersonationActor->can(\App\Support\ImpersonationContext::PERMISSION);
         @endphp
         <header>
-            <nav class="navbar navbar-lg navbar-expand-lg navbar-dark shadow culoare1">
+            @if($navigationDriver)
+                <div class="driver-mobile-topbar">
+                    <a href="{{ route('dashboard') }}" class="driver-mobile-brand" aria-label="Acasă">
+                        <img src="{{ asset('icons/gafco-driver-192.png') }}" alt="" width="36" height="36">
+                        <span><strong>GAFCO</strong><small>Șofer</small></span>
+                    </a>
+                    <div class="driver-mobile-topbar-actions">
+                        <span class="driver-network-state" data-network-state><i class="fa-solid fa-signal" aria-hidden="true"></i><span>Online</span></span>
+                        <a href="{{ route('notifications.index') }}" class="driver-mobile-icon-button" aria-label="Notificări">
+                            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                            @if($notificationsAvailable && auth()->user()->unreadNotifications()->count())
+                                <span class="driver-mobile-badge">{{ auth()->user()->unreadNotifications()->count() }}</span>
+                            @endif
+                        </a>
+                        <form method="post" action="{{ route('logout') }}">
+                            @csrf
+                            <button class="driver-mobile-icon-button" aria-label="Deconectare"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i></button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+            <nav class="navbar navbar-lg navbar-expand-lg navbar-dark shadow culoare1 driver-desktop-navbar">
                 <div class="container">
                     <a class="navbar-brand me-4 fw-bold" href="{{ route('dashboard') }}">
                         {{ config('app.name') }}
@@ -320,6 +349,20 @@
                 </div>
             @endif
         </header>
+
+        @if($navigationDriver)
+            <div class="driver-offline-banner" data-offline-banner hidden>
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>Ești offline. Acțiunile sunt blocate până revine conexiunea.</span>
+            </div>
+            <nav class="driver-bottom-nav" aria-label="Navigare șofer">
+                <a href="{{ route('tasks.index') }}" class="{{ request()->routeIs('tasks.*') ? 'active' : '' }}"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>Sarcini</span></a>
+                <a href="{{ route('transfers.index') }}" class="{{ request()->routeIs('transfers.*') ? 'active' : '' }}"><i class="fa-solid fa-right-left" aria-hidden="true"></i><span>Transferuri</span></a>
+                <a href="{{ route('qr-scan.index') }}" class="driver-bottom-nav-primary {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span>QR</span></a>
+                <a href="{{ route('field.worker') }}" class="{{ request()->routeIs('field.worker') ? 'active' : '' }}"><i class="fa-solid fa-hand-holding-hand" aria-hidden="true"></i><span>Custodie</span></a>
+                <a href="{{ route('notifications.index') }}" class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}"><i class="fa-solid fa-bell" aria-hidden="true"></i><span>Notificări</span></a>
+            </nav>
+        @endif
 
         @if($impersonationAvailable)
             @include('components.impersonation-selector')

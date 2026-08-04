@@ -57,6 +57,7 @@
                     <div class="col-md-3"><span class="text-muted">{{ $isDriverViewer ? 'Estimarea mea' : 'Estimare sofer' }}</span><div class="fw-semibold">{{ $assignment?->driver_estimate_at?->format('d.m.Y H:i') ?? '-' }}</div></div>
                     @unless($isDriverViewer)<div class="col-md-6"><span class="text-muted">Sofer</span><div class="fw-semibold">{{ $visibleDriverName($assignment?->driver) }}</div></div>@endunless
                     <div class="col-md-6"><span class="text-muted">Prioritate</span><div class="fw-semibold">{{ $priorityLabels[$task->priority] ?? $task->priority }}</div></div>
+                    @if($isDriverViewer)<div class="col-12"><x-route-navigation :source="$task->sourceLocation" :destination="$task->destinationLocation" /></div>@endif
                     @if($task->notes)<div class="col-12"><span class="text-muted">Observatii initiale</span><div>{{ $task->notes }}</div></div>@endif
                 </div>
             </div>

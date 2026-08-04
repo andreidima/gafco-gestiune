@@ -300,6 +300,10 @@
                             </div>
                         @endif
 
+                        @if($isDriver)
+                            <x-route-navigation :source="$task->sourceLocation" :destination="$task->destinationLocation" compact class="mt-2" />
+                        @endif
+
                         <div class="resource-mobile-card-actions">
                             <a href="{{ route('tasks.show', $task) }}" class="btn btn-primary btn-sm flex-grow-1">
                                 @if($isDriver)

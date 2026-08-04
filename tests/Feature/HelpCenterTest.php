@@ -89,7 +89,7 @@ class HelpCenterTest extends TestCase
     {
         $articles = HelpArticle::query()->with('revisions')->get();
 
-        $this->assertCount(7, $articles);
+        $this->assertCount(8, $articles);
         $articles->each(function (HelpArticle $article): void {
             $revisions = $article->revisions->sortBy('revision')->values();
             $currentRevision = $revisions->last();
@@ -411,6 +411,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Aplicație instalabilă pentru șoferi',
                 'Documentele PDF pot fi derulate complet în previzualizare',
                 'Documentele PDF se afișează corect în recepții',
                 'Controale de cantitate clare în transferuri',
@@ -422,13 +423,13 @@ class HelpCenterTest extends TestCase
                 'Documentele rămân la vedere în timpul recepției',
                 'Observații vizibile în lista documentelor de procesat',
                 'Sarcinile active, separate de cele finalizate',
-                'Praguri vizibile pentru regulile de alertare',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Praguri vizibile pentru regulile de alertare')
             ->assertSee('Filtrare rapidă fără întreruperea tastării')
             ->assertSee('Căutare rapidă în listele din aplicație')
             ->assertSee('Navigare mai rapidă și cantități mai clare')
@@ -437,12 +438,12 @@ class HelpCenterTest extends TestCase
             ->assertSee('Mai multă claritate în activitatea zilnică')
             ->assertSee('Comenzi negociate transformabile în recepții')
             ->assertSee('Alerte pentru stoc și documente de recepție')
-            ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')
             ->assertSee('Custodie personală pentru materiale și echipamente')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 3]))
             ->assertOk()
+            ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')
             ->assertSee('Documente, recepții complete și loturi la consum')
             ->assertSee('Filtre memorate și administrare standardizată')
             ->assertSee('Schimbare rapidă între utilizatori')
