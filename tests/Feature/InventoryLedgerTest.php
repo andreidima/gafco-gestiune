@@ -72,7 +72,7 @@ class InventoryLedgerTest extends TestCase
             ->assertOk()
             ->assertSee('Fișă inventar materiale')
             ->assertSee('Material ledger')
-            ->assertSee('7,000');
+            ->assertSee('>7</strong>', false);
 
         $this->actingAs($keeper)->get(route('inventory.show', $item))
             ->assertOk()
@@ -164,8 +164,8 @@ class InventoryLedgerTest extends TestCase
             ->assertOk()
             ->assertSee('S-ASSIGNED')
             ->assertDontSee('S-HIDDEN')
-            ->assertSee('2,000')
-            ->assertDontSee('10,000');
+            ->assertSee('>2</strong>', false)
+            ->assertDontSee('>10</strong>', false);
 
         $this->actingAs($siteManager)->get(route('transfers.create'))
             ->assertOk()
@@ -186,7 +186,7 @@ class InventoryLedgerTest extends TestCase
             ->assertOk()
             ->assertSee('B-GLOBAL')
             ->assertSee('S-GLOBAL')
-            ->assertSee('10,000');
+            ->assertSee('>10</strong>', false);
         $this->actingAs($manager)->get(route('supplier-receptions.index'))->assertOk();
         $this->actingAs($manager)->get(route('locations.create'))->assertForbidden();
         $this->actingAs($manager)->get(route('supplier-receptions.create'))->assertForbidden();

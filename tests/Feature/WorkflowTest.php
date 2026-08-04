@@ -349,7 +349,7 @@ class WorkflowTest extends TestCase
         $this->put(route('tracked-assets.update', $asset), [
             'catalog_item_id' => $item->id, 'asset_code' => 'CRUD-ASSET', 'status' => 'maintenance',
             'condition' => 'needs_service', 'current_location_id' => $location->id,
-        ])->assertRedirect(route('tracked-assets.show', $asset));
+        ])->assertRedirect(route('tracked-assets.index'));
 
         $this->post(route('users.store'), [
             'name' => 'Sofer CRUD', 'login_code' => 'DRIVER-CRUD', 'password' => 'secret123',

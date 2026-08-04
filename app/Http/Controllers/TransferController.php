@@ -336,6 +336,8 @@ class TransferController extends Controller
             'lines.*.catalog_item_id' => ['nullable', 'required_without:lines.*.tracked_asset_id', 'exists:catalog_items,id'],
             'lines.*.tracked_asset_id' => ['nullable', 'required_without:lines.*.catalog_item_id', 'exists:tracked_assets,id'],
             'lines.*.quantity' => ['required', 'numeric', 'min:0.001'],
+        ], [
+            'destination_location_id.different' => 'Locația de destinație trebuie să fie diferită de locația sursă.',
         ]);
 
         if ($data['purpose'] !== 'return') {

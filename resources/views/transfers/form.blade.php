@@ -56,7 +56,7 @@
                 <select name="source_location_id" class="form-select" data-tom-select required>
                     <option value="">Alege locația sursă</option>
                     @foreach($locations as $location)
-                        <option value="{{ $location->id }}" @selected((string) $sourceId === (string) $location->id)>
+                        <option value="{{ $location->id }}" @selected((string) $sourceId === (string) $location->id) @disabled((string) $destinationId === (string) $location->id && (string) $sourceId !== (string) $location->id)>
                             {{ $location->code }} - {{ $location->name }} ({{ $location->type === 'base' ? 'Bază' : 'Șantier' }})
                         </option>
                     @endforeach
@@ -64,14 +64,16 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Către</label>
-                <select name="destination_location_id" class="form-select" data-tom-select required>
+                <select name="destination_location_id" class="form-select @error('destination_location_id') is-invalid @enderror" data-tom-select required>
                     <option value="">Alege destinația</option>
                     @foreach($locations as $location)
-                        <option value="{{ $location->id }}" @selected((string) $destinationId === (string) $location->id)>
+                        <option value="{{ $location->id }}" @selected((string) $destinationId === (string) $location->id) @disabled((string) $sourceId === (string) $location->id)>
                             {{ $location->code }} - {{ $location->name }} ({{ $location->type === 'base' ? 'Bază' : 'Șantier' }})
                         </option>
                     @endforeach
                 </select>
+                @error('destination_location_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                <div class="form-text">Destinația trebuie să fie diferită de locația sursă.</div>
             </div>
             <div class="col-md-4" data-transfer-project-field>
                 <label class="form-label">Proiect / plan de materiale</label>
@@ -244,6 +246,21 @@ document.addEventListener('DOMContentLoaded', () => {
         minimumFractionDigits: 0,
         maximumFractionDigits: 3,
     });
+
+    const syncLocationOptions = () => {
+        if (source.value && destination.value && source.value === destination.value) {
+            window.GafcoSearchableSelect?.setValue(destination, '', true);
+        }
+
+        [...source.options].forEach(option => {
+            option.disabled = Boolean(option.value && destination.value && option.value === destination.value);
+        });
+        [...destination.options].forEach(option => {
+            option.disabled = Boolean(option.value && source.value && option.value === source.value);
+        });
+        window.GafcoSearchableSelect?.replaceOptions(source);
+        window.GafcoSearchableSelect?.replaceOptions(destination);
+    };
 
     const renumber = () => {
         list.querySelectorAll('.transfer-line').forEach((row, index) => {
@@ -508,11 +525,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    source.addEventListener('change', () => loadInventory({ resetRows: true }));
-    destination.addEventListener('change', syncProjectOptions);
+    source.addEventListener('change', () => {
+        syncLocationOptions();
+        syncProjectOptions();
+        loadInventory({ resetRows: true });
+    });
+    destination.addEventListener('change', () => {
+        syncLocationOptions();
+        syncProjectOptions();
+    });
     purpose.addEventListener('change', syncProjectOptions);
     project.addEventListener('change', syncProjectPreview);
     syncRemoveButtons();
+    syncLocationOptions();
     syncProjectOptions();
     loadInventory();
 });

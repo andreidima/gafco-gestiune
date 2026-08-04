@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\LocationAccessService;
+use App\Services\LocationDeactivationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,10 @@ use Illuminate\View\View;
 
 class LocationController extends Controller
 {
-    public function __construct(private readonly LocationAccessService $locationAccess) {}
+    public function __construct(
+        private readonly LocationAccessService $locationAccess,
+        private readonly LocationDeactivationService $locationDeactivation,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -95,9 +99,17 @@ class LocationController extends Controller
         unset($data['manager_user_ids']);
 
         DB::transaction(function () use ($location, $managerIds, $data): void {
-            $location->managers()->sync($this->managerSyncData($managerIds));
-            $location->update($data + ['manager_user_id' => $managerIds[0] ?? null]);
-        });
+            $lockedLocation = Location::query()->lockForUpdate()->findOrFail($location->id);
+
+            if ($lockedLocation->active
+                && array_key_exists('active', $data)
+                && ! (bool) $data['active']) {
+                $this->locationDeactivation->ensureCanDeactivate($lockedLocation);
+            }
+
+            $lockedLocation->managers()->sync($this->managerSyncData($managerIds));
+            $lockedLocation->update($data + ['manager_user_id' => $managerIds[0] ?? null]);
+        }, 3);
 
         return redirect()->route('locations.index')->with('status', 'Locatia a fost actualizata.');
     }
