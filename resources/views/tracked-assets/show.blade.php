@@ -7,9 +7,9 @@
     $statusLabels = ['available' => 'Disponibil', 'in_use' => 'In folosinta', 'in_transfer' => 'In transfer', 'maintenance' => 'In service', 'lost' => 'Lipsa'];
     $conditionLabels = ['good' => 'Bun', 'used' => 'Uzura normala', 'damaged' => 'Deteriorat', 'needs_service' => 'Necesita service'];
     $limitedViewer = ! auth()->user()->isManagementUser();
-    $backRoute = auth()->user()->isManagementUser()
+    $backRoute = $returnTo ?? (auth()->user()->isManagementUser()
         ? route('tracked-assets.index')
-        : (auth()->user()->hasRole('contabil') ? route('reports.index') : route('qr-scan.index'));
+        : (auth()->user()->hasRole('contabil') ? route('reports.index') : route('qr-scan.index')));
     $visiblePerson = static function ($person, string $genericLabel) use ($limitedViewer): string {
         if (! $person) {
             return '-';
@@ -31,8 +31,8 @@
                 <p class="mb-0 text-muted">Locatie curenta, responsabil, stare si istoric transferuri.</p>
             </div>
             <div class="d-flex align-items-start gap-2">
-                @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', $asset) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endif
-                <x-back-link :fallback="$backRoute" class="btn-sm" />
+                @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', ['tracked_asset' => $asset, 'return_to' => $backRoute]) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>Modifica</a>@endif
+                <x-back-link :fallback="$backRoute" :smart="$returnTo === null" class="btn-sm" />
                 <div class="qr-card text-center">
                     <div class="qr-box"><i class="fa-solid fa-qrcode"></i></div>
                     <div class="fw-semibold mt-2">{{ $asset->qr_code }}</div>

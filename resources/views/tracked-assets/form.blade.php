@@ -7,12 +7,14 @@
 <x-resource-form-shell
     :title="$editing ? 'Modifica echipamentul' : 'Echipament nou'"
     description="Identificare QR, stare, localizare si responsabil curent."
-    :back-route="$editing ? route('tracked-assets.show', $asset) : route('tracked-assets.index')"
+    :back-route="$editing ? $returnTo : route('tracked-assets.index')"
+    :smart-back="! $editing"
     icon="fa-screwdriver-wrench"
 >
     <form method="post" action="{{ $editing ? route('tracked-assets.update', $asset) : route('tracked-assets.store') }}" class="resource-form-card">
         @csrf
         @if($editing) @method('put') @endif
+        @if($editing)<input type="hidden" name="return_to" value="{{ old('return_to', $returnTo) }}">@endif
         <div class="resource-form-section">
             <div class="resource-form-section-title">Identificare</div>
             <div class="row g-3">
@@ -31,7 +33,7 @@
                 <div class="col-12"><label class="form-label">Observatii</label><textarea name="notes" class="form-control" rows="4">{{ old('notes', $asset?->notes) }}</textarea></div>
             </div>
         </div>
-        <div class="resource-form-actions-bar"><a href="{{ $editing ? route('tracked-assets.show', $asset) : route('tracked-assets.index') }}" class="btn btn-outline-secondary">Renunta</a><button class="btn btn-success"><i class="fa-solid fa-check me-1"></i>{{ $editing ? 'Salveaza modificarile' : 'Creeaza echipamentul' }}</button></div>
+        <div class="resource-form-actions-bar"><a href="{{ $editing ? $returnTo : route('tracked-assets.index') }}" class="btn btn-outline-secondary">Renunta</a><button class="btn btn-success"><i class="fa-solid fa-check me-1"></i>{{ $editing ? 'Salveaza modificarile' : 'Creeaza echipamentul' }}</button></div>
     </form>
 </x-resource-form-shell>
 @endsection

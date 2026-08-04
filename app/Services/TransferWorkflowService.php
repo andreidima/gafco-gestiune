@@ -13,6 +13,7 @@ use App\Models\TransferLine;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -24,11 +25,15 @@ class TransferWorkflowService
     public function create(array $data, User $actor, TaskWorkflowService $tasks): Transfer
     {
         return DB::transaction(function () use ($data, $actor, $tasks): Transfer {
+            $locations = $this->lockActiveLocations(
+                (int) $data['source_location_id'],
+                (int) $data['destination_location_id'],
+            );
             $this->authorizeLocationScope($actor, (int) $data['source_location_id'], (int) $data['destination_location_id']);
             $this->validateReturnParent($data, $actor);
             $this->validateLinesAtSource($data['lines'], (int) $data['source_location_id']);
-            $source = Location::findOrFail($data['source_location_id']);
-            $destination = Location::findOrFail($data['destination_location_id']);
+            $source = $locations->get((int) $data['source_location_id']);
+            $destination = $locations->get((int) $data['destination_location_id']);
             $purpose = $data['purpose'];
             $transfer = Transfer::create([
                 'number' => ($purpose === 'return' ? 'RT-' : 'TR-').now()->format('Ymd-His').'-'.strtoupper(str()->random(3)),
@@ -75,6 +80,10 @@ class TransferWorkflowService
     public function revise(Transfer $transfer, array $data, User $actor, TaskWorkflowService $tasks): void
     {
         DB::transaction(function () use ($transfer, $data, $actor, $tasks): void {
+            $locations = $this->lockActiveLocations(
+                (int) $data['source_location_id'],
+                (int) $data['destination_location_id'],
+            );
             Task::query()->where('transfer_id', $transfer->id)->lockForUpdate()->first();
             $transfer = Transfer::query()->lockForUpdate()->findOrFail($transfer->id);
             if (in_array($transfer->status, ['in_transit', 'received', 'cancelled'], true) || $transfer->archived_at !== null) {
@@ -87,8 +96,8 @@ class TransferWorkflowService
             $this->validateReturnParent($data, $actor, $transfer);
             $this->validateLinesAtSource($data['lines'], (int) $data['source_location_id'], $transfer->id);
             $transfer->loadMissing(['lines', 'task.currentAssignment']);
-            $source = Location::findOrFail($data['source_location_id']);
-            $destination = Location::findOrFail($data['destination_location_id']);
+            $source = $locations->get((int) $data['source_location_id']);
+            $destination = $locations->get((int) $data['destination_location_id']);
             $oldLineSignature = $this->lineSignature($transfer->lines->toArray());
             $newLineSignature = $this->lineSignature($data['lines']);
             $deadlineChanged = ($transfer->task?->manager_deadline?->timestamp)
@@ -494,6 +503,26 @@ class TransferWorkflowService
             ->whereIn('locations.id', [$sourceLocationId, $destinationLocationId])
             ->count();
         abort_unless($allowedCount === count(array_unique([$sourceLocationId, $destinationLocationId])), 403);
+    }
+
+    /** @return Collection<int, Location> */
+    private function lockActiveLocations(int $sourceLocationId, int $destinationLocationId): Collection
+    {
+        $ids = collect([$sourceLocationId, $destinationLocationId])->unique()->sort()->values();
+        $locations = Location::query()
+            ->whereIn('id', $ids)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        if ($locations->count() !== $ids->count() || $locations->contains(fn (Location $location) => ! $location->active)) {
+            throw ValidationException::withMessages([
+                'source_location_id' => 'Locațiile transferului trebuie să fie active.',
+            ]);
+        }
+
+        return $locations;
     }
 
     private function validateReturnParent(array $data, User $actor, ?Transfer $transfer = null): void

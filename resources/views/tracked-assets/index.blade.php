@@ -9,6 +9,7 @@
     $statusVariants = ['available'=>'success','in_use'=>'primary','in_transfer'=>'info','maintenance'=>'warning','lost'=>'danger'];
     $conditionVariants = ['good'=>'light','used'=>'secondary','damaged'=>'danger','needs_service'=>'warning'];
     $verificationDueBefore = now()->subDays(30);
+    $returnTo = request()->fullUrl();
     $hasFilters = request()->filled('search')
         || request()->filled('catalog_item_id')
         || request()->filled('location_id')
@@ -52,7 +53,7 @@
                         <td><div class="resource-cell-stack"><span class="{{ $asset->currentLocation ? '' : 'text-warning' }}"><i class="fa-solid fa-location-dot me-1 text-muted"></i>{{ $asset->currentLocation?->name ?? 'Fara locatie' }}</span>@if($asset->currentCustodian)<span class="resource-secondary"><i class="fa-solid fa-user me-1"></i>{{ $asset->currentCustodian->name }}</span>@endif</div></td>
                         <td>
                             <div class="resource-cell-stack">
-                                <span><span class="resource-secondary me-1">Disponibilitate</span><a href="{{ route('tracked-assets.show', $asset) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a></span>
+                                <span><span class="resource-secondary me-1">Disponibilitate</span><a href="{{ route('tracked-assets.show', ['tracked_asset' => $asset, 'return_to' => $returnTo]) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a></span>
                                 <span><span class="resource-secondary me-1">Conditie</span><span class="badge text-bg-{{ $conditionVariants[$asset->condition] ?? 'secondary' }} {{ $asset->condition === 'good' ? 'border' : '' }}">{{ $conditionLabels[$asset->condition] ?? $asset->condition }}</span></span>
                             </div>
                         </td>
@@ -67,7 +68,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td><div class="resource-row-actions"><x-resource-icon-button :href="route('tracked-assets.show', $asset)" icon="fa-eye" label="Vezi istoricul" />@if(auth()->user()->canManageTrackedAssets())<x-resource-icon-button :href="route('tracked-assets.edit', $asset)" icon="fa-pen" label="Modifica echipamentul" variant="outline-secondary" />@endif</div></td>
+                        <td><div class="resource-row-actions"><x-resource-icon-button :href="route('tracked-assets.show', ['tracked_asset' => $asset, 'return_to' => $returnTo])" icon="fa-eye" label="Vezi istoricul" />@if(auth()->user()->canManageTrackedAssets())<x-resource-icon-button :href="route('tracked-assets.edit', ['tracked_asset' => $asset, 'return_to' => $returnTo])" icon="fa-pen" label="Modifica echipamentul" variant="outline-secondary" />@endif</div></td>
                     </tr>
                 @empty
                     <tr>
@@ -105,7 +106,7 @@
                                 <div class="resource-code">{{ $asset->asset_code }}</div>
                                 @if($asset->serial_number)<div class="resource-mobile-card-subtitle">Serie {{ $asset->serial_number }}</div>@endif
                             </div>
-                            <a href="{{ route('tracked-assets.show', $asset) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a>
+                            <a href="{{ route('tracked-assets.show', ['tracked_asset' => $asset, 'return_to' => $returnTo]) }}" class="badge status-badge-link text-bg-{{ $statusVariants[$asset->status] ?? 'secondary' }}">{{ $statusLabels[$asset->status] ?? $asset->status }}<span class="visually-hidden"> — deschide echipamentul</span></a>
                         </div>
 
                         <div class="resource-mobile-card-grid">
@@ -131,8 +132,8 @@
                         </div>
 
                         <div class="resource-mobile-card-actions">
-                            <a href="{{ route('tracked-assets.show', $asset) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye me-1"></i>Istoric</a>
-                            @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', $asset) }}" class="btn btn-outline-secondary btn-sm" aria-label="Modifica echipamentul"><i class="fa-solid fa-pen"></i></a>@endif
+                            <a href="{{ route('tracked-assets.show', ['tracked_asset' => $asset, 'return_to' => $returnTo]) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-eye me-1"></i>Istoric</a>
+                            @if(auth()->user()->canManageTrackedAssets())<a href="{{ route('tracked-assets.edit', ['tracked_asset' => $asset, 'return_to' => $returnTo]) }}" class="btn btn-outline-secondary btn-sm" aria-label="Modifica echipamentul"><i class="fa-solid fa-pen"></i></a>@endif
                         </div>
                     </div>
                 </article>

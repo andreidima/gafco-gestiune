@@ -211,7 +211,9 @@ class UserInterfaceTest extends TestCase
         $this->assertStringContainsString('replaceOptions: replaceSearchableSelectOptions,', $script);
 
         $this->assertStringContainsString('GafcoSearchableSelect?.replaceOptions(select)', $view);
-        $this->assertStringContainsString("source.addEventListener('change', () => loadInventory({ resetRows: true }))", $view);
+        $this->assertStringContainsString("source.addEventListener('change', () => {", $view);
+        $this->assertStringContainsString('const syncLocationOptions = () => {', $view);
+        $this->assertStringContainsString('option.disabled = Boolean(option.value && source.value && option.value === source.value);', $view);
         $this->assertStringContainsString('const controlsDisabled = inventoryLoading || !source.value;', $view);
         $this->assertStringContainsString('Se încarcă materialele…', $view);
         $this->assertStringContainsString('Alege echipamentul, dacă este cazul', $view);

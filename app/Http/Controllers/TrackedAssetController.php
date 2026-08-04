@@ -11,8 +11,11 @@ use App\Models\User;
 use App\Services\LocationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class TrackedAssetController extends Controller
@@ -58,10 +61,13 @@ class TrackedAssetController extends Controller
     {
         $data = $this->validatedData($request);
 
-        TrackedAsset::create($data + [
-            'qr_code' => 'QR-'.$data['asset_code'],
-            'last_verified_at' => now(),
-        ]);
+        DB::transaction(function () use ($data): void {
+            $this->lockLocations([$data['current_location_id'] ?? null], $data['current_location_id'] ?? null);
+            TrackedAsset::create($data + [
+                'qr_code' => 'QR-'.$data['asset_code'],
+                'last_verified_at' => now(),
+            ]);
+        }, 3);
 
         return redirect()->route('tracked-assets.index')->with('status', 'Echipamentul a fost adaugat.');
     }
@@ -89,33 +95,98 @@ class TrackedAssetController extends Controller
                 ->with(['fromUser', 'toUser', 'location', 'managerApprover'])
                 ->latest()
                 ->get(),
+            'returnTo' => $this->returnTo($request),
         ]);
     }
 
-    public function edit(TrackedAsset $trackedAsset): View
+    public function edit(Request $request, TrackedAsset $trackedAsset): View
     {
-        return view('tracked-assets.form', $this->formData($trackedAsset));
+        return view('tracked-assets.form', $this->formData(
+            $trackedAsset,
+            $this->returnTo($request) ?? route('tracked-assets.index'),
+        ));
     }
 
     public function update(Request $request, TrackedAsset $trackedAsset): RedirectResponse
     {
         $data = $this->validatedData($request, $trackedAsset);
-        $trackedAsset->update($data + [
-            'qr_code' => 'QR-'.$data['asset_code'],
-            'last_verified_at' => now(),
-        ]);
+        DB::transaction(function () use ($trackedAsset, $data): void {
+            $expectedLocationId = $trackedAsset->current_location_id;
+            $this->lockLocations(
+                [$expectedLocationId, $data['current_location_id'] ?? null],
+                $data['current_location_id'] ?? null,
+            );
+            $lockedAsset = TrackedAsset::query()->lockForUpdate()->findOrFail($trackedAsset->id);
 
-        return redirect()->route('tracked-assets.show', $trackedAsset)->with('status', 'Echipamentul a fost actualizat.');
+            if ((int) ($lockedAsset->current_location_id ?? 0) !== (int) ($expectedLocationId ?? 0)) {
+                throw ValidationException::withMessages([
+                    'current_location_id' => 'Echipamentul a fost mutat între timp. Reîncarcă formularul și încearcă din nou.',
+                ]);
+            }
+
+            $lockedAsset->update($data + [
+                'qr_code' => 'QR-'.$data['asset_code'],
+                'last_verified_at' => now(),
+            ]);
+        }, 3);
+
+        return redirect()
+            ->to($this->returnTo($request) ?? route('tracked-assets.index'))
+            ->with('status', 'Echipamentul a fost actualizat.');
     }
 
-    private function formData(?TrackedAsset $asset = null): array
+    private function formData(?TrackedAsset $asset = null, ?string $returnTo = null): array
     {
         return [
             'asset' => $asset,
+            'returnTo' => $returnTo ?? route('tracked-assets.index'),
             'locations' => Location::where('active', true)->orderBy('name')->get(),
             'items' => CatalogItem::where('tracking_type', 'serialized')->where('active', true)->orderBy('name')->get(),
             'custodians' => User::where('active', true)->orderBy('name')->get(),
         ];
+    }
+
+    /** @param  array<int, int|string|null>  $locationIds */
+    private function lockLocations(array $locationIds, int|string|null $activeLocationId): Collection
+    {
+        $ids = collect($locationIds)
+            ->filter(fn ($id) => filled($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->sort()
+            ->values();
+
+        $locations = Location::query()
+            ->whereIn('id', $ids)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        if (filled($activeLocationId) && ! $locations->get((int) $activeLocationId)?->active) {
+            throw ValidationException::withMessages([
+                'current_location_id' => 'Locația selectată nu mai este activă.',
+            ]);
+        }
+
+        return $locations;
+    }
+
+    private function returnTo(Request $request): ?string
+    {
+        $candidate = $request->input('return_to');
+        if (! is_string($candidate) || $candidate === '' || strlen($candidate) > 2048) {
+            return null;
+        }
+
+        $parts = parse_url($candidate);
+        $indexUrl = route('tracked-assets.index');
+        $indexParts = parse_url($indexUrl);
+        if ($parts === false || ($parts['path'] ?? null) !== ($indexParts['path'] ?? null)) {
+            return null;
+        }
+
+        return $indexUrl.(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
     private function validatedData(Request $request, ?TrackedAsset $asset = null): array
@@ -131,7 +202,10 @@ class TrackedAssetController extends Controller
             'serial_number' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:available,in_use,in_transfer,maintenance,lost'],
             'condition' => ['required', 'in:good,used,damaged,needs_service'],
-            'current_location_id' => ['nullable', 'exists:locations,id'],
+            'current_location_id' => [
+                'nullable',
+                Rule::exists('locations', 'id')->where(fn ($query) => $query->where('active', true)),
+            ],
             'current_custodian_id' => ['nullable', 'exists:users,id'],
             'notes' => ['nullable', 'string'],
         ]);

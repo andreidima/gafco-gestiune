@@ -2,6 +2,7 @@
     'title',
     'description' => null,
     'backRoute',
+    'smartBack' => true,
     'icon' => 'fa-pen-to-square',
 ])
 
@@ -14,7 +15,7 @@
                 @if($description)<p>{{ $description }}</p>@endif
             </div>
         </div>
-        <x-back-link :fallback="$backRoute" class="btn-sm" />
+        <x-back-link :fallback="$backRoute" :smart="$smartBack" class="btn-sm" />
     </div>
     {{ $slot }}
 </div>

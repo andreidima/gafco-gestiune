@@ -23,7 +23,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 20,
+            'current_revision' => 22,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
@@ -46,6 +46,8 @@ class NegotiatedOrderWorkflowTest extends TestCase
 
     public function test_order_schema_and_content_migrations_are_reversible_together(): void
     {
+        $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
+        $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
         $localizationMigration = require database_path('migrations/2026_08_02_000033_publish_romanian_interface_localization.php');
         $attachmentControlsMigration = require database_path('migrations/2026_08_01_000032_publish_mobile_attachment_controls.php');
         $transferSourceRefreshMigration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
@@ -62,6 +64,8 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000014_create_negotiated_orders.php');
 
+        $safeguards->down();
+        $codeAndQuantityControls->down();
         $localizationMigration->down();
         $attachmentControlsMigration->down();
         $transferSourceRefreshMigration->down();
@@ -97,6 +101,8 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $transferSourceRefreshMigration->up();
         $attachmentControlsMigration->up();
         $localizationMigration->up();
+        $codeAndQuantityControls->up();
+        $safeguards->up();
 
         $this->assertTrue(Schema::hasTable('negotiated_orders'));
         $this->assertTrue(Schema::hasColumn('supplier_receptions', 'negotiated_order_id'));
