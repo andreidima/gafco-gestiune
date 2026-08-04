@@ -8,7 +8,7 @@
     "src": "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2"
   },
   "node_modules/pdfjs-dist/build/pdf.mjs": {
-    "file": "assets/pdf-CBJrKsoG.js",
+    "file": "assets/pdf-ClWAZjzj.js",
     "name": "pdf",
     "src": "node_modules/pdfjs-dist/build/pdf.mjs",
     "isDynamicEntry": true,
@@ -21,7 +21,7 @@
     "src": "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
   },
   "resources/js/app.js": {
-    "file": "assets/app-BlpNEf2v.js",
+    "file": "assets/app-DMelvEYQ.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -29,7 +29,7 @@
       "node_modules/pdfjs-dist/build/pdf.mjs"
     ],
     "css": [
-      "assets/app-8GSHZUC1.css"
+      "assets/app-gMn4bljl.css"
     ],
     "assets": [
       "assets/pdf.worker.min-CHFwMXne.mjs",

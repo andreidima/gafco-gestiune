@@ -124,6 +124,7 @@ class RomanianInterfaceLocalizationTest extends TestCase
 
     public function test_localization_content_migration_is_reversible(): void
     {
+        $pdfScrollingFix = require database_path('migrations/2026_08_04_000038_publish_reception_pdf_scrolling_fix.php');
         $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
@@ -131,7 +132,7 @@ class RomanianInterfaceLocalizationTest extends TestCase
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 23,
+            'current_revision' => 24,
         ]);
         $this->assertDatabaseHas('release_notes', [
             'slug' => '2026-08-02-interfata-complet-in-romana',
@@ -147,6 +148,7 @@ class RomanianInterfaceLocalizationTest extends TestCase
             (string) DB::table('release_notes')->where('slug', '2026-07-30-interfata-mobila-compacta')->value('body_markdown'),
         );
 
+        $pdfScrollingFix->down();
         $pdfPreviewFix->down();
         $safeguards->down();
         $codeAndQuantityControls->down();
@@ -168,10 +170,11 @@ class RomanianInterfaceLocalizationTest extends TestCase
         $codeAndQuantityControls->up();
         $safeguards->up();
         $pdfPreviewFix->up();
+        $pdfScrollingFix->up();
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 23,
+            'current_revision' => 24,
         ]);
     }
 }

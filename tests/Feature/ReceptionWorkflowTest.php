@@ -156,6 +156,17 @@ class ReceptionWorkflowTest extends TestCase
             ->assertDontSee('data-document-viewer-frame', false);
     }
 
+    public function test_pdf_preview_rows_keep_the_full_rendered_page_height_for_scrolling(): void
+    {
+        $styles = file_get_contents(resource_path('scss/app.scss'));
+
+        $this->assertIsString($styles);
+        $this->assertMatchesRegularExpression(
+            '/\.reception-document-pdf-pages\s*\{[^}]*grid-auto-rows:\s*max-content;/s',
+            $styles,
+        );
+    }
+
     public function test_browser_unsupported_document_keeps_download_without_inline_preview(): void
     {
         Storage::fake('local');
