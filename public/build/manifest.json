@@ -7,15 +7,32 @@
     "file": "assets/bootstrap-icons-mSm7cUeB.woff2",
     "src": "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2"
   },
+  "node_modules/pdfjs-dist/build/pdf.mjs": {
+    "file": "assets/pdf-CBJrKsoG.js",
+    "name": "pdf",
+    "src": "node_modules/pdfjs-dist/build/pdf.mjs",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "node_modules/pdfjs-dist/build/pdf.worker.min.mjs": {
+    "file": "assets/pdf.worker.min-CHFwMXne.mjs",
+    "src": "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
+  },
   "resources/js/app.js": {
-    "file": "assets/app-DFoIQtYQ.js",
+    "file": "assets/app-BlpNEf2v.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
+    "dynamicImports": [
+      "node_modules/pdfjs-dist/build/pdf.mjs"
+    ],
     "css": [
-      "assets/app-xLgI0wco.css"
+      "assets/app-8GSHZUC1.css"
     ],
     "assets": [
+      "assets/pdf.worker.min-CHFwMXne.mjs",
       "assets/bootstrap-icons-mSm7cUeB.woff2",
       "assets/bootstrap-icons-BeopsB42.woff"
     ]

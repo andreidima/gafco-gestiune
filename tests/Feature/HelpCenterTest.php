@@ -16,14 +16,16 @@ class HelpCenterTest extends TestCase
 
     private function attachmentControlsMigration(): object
     {
+        $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
         $localization = require database_path('migrations/2026_08_02_000033_publish_romanian_interface_localization.php');
         $attachmentControls = require database_path('migrations/2026_08_01_000032_publish_mobile_attachment_controls.php');
 
-        return new class($safeguards, $codeAndQuantityControls, $localization, $attachmentControls)
+        return new class($pdfPreviewFix, $safeguards, $codeAndQuantityControls, $localization, $attachmentControls)
         {
             public function __construct(
+                private readonly object $pdfPreviewFix,
                 private readonly object $safeguards,
                 private readonly object $codeAndQuantityControls,
                 private readonly object $localization,
@@ -32,6 +34,7 @@ class HelpCenterTest extends TestCase
 
             public function down(): void
             {
+                $this->pdfPreviewFix->down();
                 $this->safeguards->down();
                 $this->codeAndQuantityControls->down();
                 $this->localization->down();
@@ -44,6 +47,7 @@ class HelpCenterTest extends TestCase
                 $this->localization->up();
                 $this->codeAndQuantityControls->up();
                 $this->safeguards->up();
+                $this->pdfPreviewFix->up();
             }
         };
     }
@@ -106,11 +110,12 @@ class HelpCenterTest extends TestCase
 
     public function test_equipment_location_and_transfer_safeguards_content_migration_is_reversible(): void
     {
+        $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $migration = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
 
         DB::connection()->pretend(fn () => $migration->up());
 
-        $this->assertSame(22, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
+        $this->assertSame(23, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
         $this->assertSame(10, HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'));
         $this->assertStringContainsString(
             'Salvează modificările',
@@ -126,6 +131,7 @@ class HelpCenterTest extends TestCase
             'status' => 'published',
         ]);
 
+        $pdfPreviewFix->down();
         $migration->down();
 
         $this->assertSame(21, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
@@ -138,6 +144,36 @@ class HelpCenterTest extends TestCase
 
         $this->assertSame(22, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
         $this->assertSame(10, HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'));
+        $pdfPreviewFix->up();
+    }
+
+    public function test_reception_pdf_preview_fix_content_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertSame(23, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
+        $this->assertStringContainsString(
+            'afișate pagină cu pagină direct în aplicație',
+            (string) HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('body_markdown'),
+        );
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-04-previzualizare-pdf-documente-receptie',
+            'version' => '2026.08.04.3',
+            'status' => 'published',
+        ]);
+
+        $migration->down();
+
+        $this->assertSame(22, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
+        $this->assertDatabaseMissing('release_notes', [
+            'slug' => '2026-08-04-previzualizare-pdf-documente-receptie',
+        ]);
+
+        $migration->up();
+
+        $this->assertSame(23, HelpArticle::query()->where('slug', 'pagini-si-operatiuni')->value('current_revision'));
     }
 
     public function test_transfer_quantity_layout_release_note_migration_is_reversible(): void
@@ -174,8 +210,8 @@ class HelpCenterTest extends TestCase
             ->where('slug', 'pagini-si-operatiuni')
             ->sole();
 
-        $this->assertSame(22, $article->current_revision);
-        $this->assertCount(22, $article->revisions);
+        $this->assertSame(23, $article->current_revision);
+        $this->assertCount(23, $article->revisions);
         $this->assertStringNotContainsString('Utilizatori și liste', $article->body_markdown);
         $this->assertStringContainsString('Filtrele listelor', $article->body_markdown);
         $this->assertFalse(
@@ -336,6 +372,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Documentele PDF se afișează corect în recepții',
                 'Controale de cantitate clare în transferuri',
                 'Navigare mai clară și protecții pentru locații și transferuri',
                 'Coduri și cantități mai ușor de folosit',
@@ -347,13 +384,13 @@ class HelpCenterTest extends TestCase
                 'Sarcinile active, separate de cele finalizate',
                 'Praguri vizibile pentru regulile de alertare',
                 'Filtrare rapidă fără întreruperea tastării',
-                'Căutare rapidă în listele din aplicație',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Căutare rapidă în listele din aplicație')
             ->assertSee('Navigare mai rapidă și cantități mai clare')
             ->assertSee('Sarcinile șoferului, mai rapide și mai clare pe mobil')
             ->assertSee('Planuri de materiale pe proiect și alerte la depășire')
@@ -363,11 +400,11 @@ class HelpCenterTest extends TestCase
             ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')
             ->assertSee('Documente, recepții complete și loturi la consum')
             ->assertSee('Custodie personală pentru materiale și echipamente')
-            ->assertSee('Filtre memorate și administrare standardizată')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 3]))
             ->assertOk()
+            ->assertSee('Filtre memorate și administrare standardizată')
             ->assertSee('Schimbare rapidă între utilizatori')
             ->assertSee('Fișă completă de inventar pentru materiale')
             ->assertSee('Centru de ajutor și noutăți în aplicație')
@@ -517,7 +554,7 @@ class HelpCenterTest extends TestCase
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 22,
+            'current_revision' => 23,
         ]);
         $this->assertStringContainsString(
             'Observațiile completate apar direct',
@@ -588,10 +625,12 @@ class HelpCenterTest extends TestCase
 
     public function test_transfer_source_inventory_refresh_content_migration_is_reversible(): void
     {
+        $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $migration = require database_path('migrations/2026_08_01_000031_publish_transfer_source_inventory_refresh.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $pdfPreviewFix->down();
         $safeguards->down();
 
         $this->assertSame(
@@ -630,16 +669,19 @@ class HelpCenterTest extends TestCase
             'status' => 'published',
         ]);
         $safeguards->up();
+        $pdfPreviewFix->up();
     }
 
     public function test_mobile_attachment_controls_content_migration_is_reversible(): void
     {
+        $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
         $localizationMigration = require database_path('migrations/2026_08_02_000033_publish_romanian_interface_localization.php');
         $migration = require database_path('migrations/2026_08_01_000032_publish_mobile_attachment_controls.php');
 
         DB::connection()->pretend(fn () => $migration->up());
+        $pdfPreviewFix->down();
         $safeguards->down();
         $codeAndQuantityControls->down();
         $localizationMigration->down();
@@ -683,6 +725,7 @@ class HelpCenterTest extends TestCase
         $localizationMigration->up();
         $codeAndQuantityControls->up();
         $safeguards->up();
+        $pdfPreviewFix->up();
     }
 
     public function test_driver_active_task_tabs_content_migration_is_reversible(): void

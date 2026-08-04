@@ -23,7 +23,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
     {
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'pagini-si-operatiuni',
-            'current_revision' => 22,
+            'current_revision' => 23,
         ]);
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'ghiduri-dupa-rol',
@@ -46,6 +46,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
 
     public function test_order_schema_and_content_migrations_are_reversible_together(): void
     {
+        $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
         $localizationMigration = require database_path('migrations/2026_08_02_000033_publish_romanian_interface_localization.php');
@@ -64,6 +65,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000015_publish_negotiated_orders_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000014_create_negotiated_orders.php');
 
+        $pdfPreviewFix->down();
         $safeguards->down();
         $codeAndQuantityControls->down();
         $localizationMigration->down();
@@ -103,6 +105,7 @@ class NegotiatedOrderWorkflowTest extends TestCase
         $localizationMigration->up();
         $codeAndQuantityControls->up();
         $safeguards->up();
+        $pdfPreviewFix->up();
 
         $this->assertTrue(Schema::hasTable('negotiated_orders'));
         $this->assertTrue(Schema::hasColumn('supplier_receptions', 'negotiated_order_id'));
