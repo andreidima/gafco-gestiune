@@ -56,6 +56,12 @@ class InternalCodeNormalizationTest extends TestCase
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
+        Location::create([
+            'type' => 'base',
+            'code' => 'FORM-LOC',
+            'name' => 'Locație formular',
+            'active' => true,
+        ]);
 
         $this->actingAs($admin)->get(route('supplier-receptions.create'))
             ->assertOk()
