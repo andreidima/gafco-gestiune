@@ -212,7 +212,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $this->assertTrue(Schema::hasTable('project_material_plans'));
         $this->assertTrue(Schema::hasColumn('transfers', 'project_id'));
         $this->assertDatabaseHas('help_articles', ['slug' => 'circuitul-materialelor', 'current_revision' => 10]);
-        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 23]);
+        $this->assertDatabaseHas('help_articles', ['slug' => 'pagini-si-operatiuni', 'current_revision' => 24]);
         $this->assertDatabaseHas('help_articles', ['slug' => 'ghiduri-dupa-rol', 'current_revision' => 16]);
         $this->assertDatabaseHas('help_articles', ['slug' => 'statusuri-si-termeni', 'current_revision' => 5]);
         $this->assertDatabaseHas('release_notes', [
@@ -221,6 +221,7 @@ class ProjectMaterialPlanningTest extends TestCase
             'status' => 'published',
         ]);
 
+        $pdfScrollingFix = require database_path('migrations/2026_08_04_000038_publish_reception_pdf_scrolling_fix.php');
         $pdfPreviewFix = require database_path('migrations/2026_08_04_000037_publish_reception_pdf_preview_fix.php');
         $safeguards = require database_path('migrations/2026_08_04_000035_publish_equipment_location_and_transfer_safeguards.php');
         $codeAndQuantityControls = require database_path('migrations/2026_08_02_000034_normalize_internal_codes_and_publish_quantity_controls.php');
@@ -238,6 +239,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $contentMigration = require database_path('migrations/2026_07_29_000018_publish_project_material_planning_content.php');
         $schemaMigration = require database_path('migrations/2026_07_29_000017_create_project_material_plans.php');
         DB::connection()->pretend(fn () => $contentMigration->up());
+        $pdfScrollingFix->down();
         $pdfPreviewFix->down();
         $safeguards->down();
         $codeAndQuantityControls->down();
@@ -275,6 +277,7 @@ class ProjectMaterialPlanningTest extends TestCase
         $codeAndQuantityControls->up();
         $safeguards->up();
         $pdfPreviewFix->up();
+        $pdfScrollingFix->up();
 
         $this->assertTrue(Schema::hasTable('projects'));
         $this->assertDatabaseHas('release_notes', ['slug' => '2026-07-29-planuri-materiale-pe-proiect']);

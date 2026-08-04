@@ -3821,6 +3821,7 @@ button.reception-document-preview-trigger:focus-visible {
 
 .reception-document-pdf-pages {
     display: grid;
+    grid-auto-rows: max-content;
     align-content: start;
     justify-items: center;
     gap: 1rem;
