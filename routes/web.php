@@ -17,6 +17,7 @@ use App\Http\Controllers\NegotiatedOrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationalAlertController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\QrScanController;
 use App\Http\Controllers\ReceptionDocumentController;
 use App\Http\Controllers\ReceptionIntakeController;
@@ -46,6 +47,8 @@ Route::resourceVerbs([
     'create' => 'adauga',
     'edit' => 'modifica',
 ]);
+
+Route::view('/offline', 'offline')->name('pwa.offline');
 
 Route::middleware('guest')->group(function () {
     Route::get('/autentificare', [LoginController::class, 'create'])->name('login');
@@ -182,6 +185,12 @@ Route::middleware([
     Route::get('notificari', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::put('notificari-push', [PushSubscriptionController::class, 'store'])
+        ->middleware(RejectImpersonatedRequest::class)
+        ->name('push-subscriptions.store');
+    Route::delete('notificari-push', [PushSubscriptionController::class, 'destroy'])
+        ->middleware(RejectImpersonatedRequest::class)
+        ->name('push-subscriptions.destroy');
     Route::get('alerte', [OperationalAlertController::class, 'index'])
         ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil')
         ->name('alerts.index');

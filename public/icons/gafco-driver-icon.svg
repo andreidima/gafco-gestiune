@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">GAFCO Șofer</title>
+  <rect width="512" height="512" rx="112" fill="#703b3b"/>
+  <path d="M102 156c0-20 16-36 36-36h204c20 0 36 16 36 36v118h28c13 0 24 11 24 24v44h-34c-8-32-37-56-72-56s-64 24-72 56h-54c-8-32-37-56-72-56-9 0-17 1-24 4V156Z" fill="#fff"/>
+  <path d="M378 206h46c9 0 18 5 22 13l38 67c4 7 6 15 6 23v33h-64c-8-32-37-56-72-56-9 0-17 1-24 4V206Z" fill="#e8c47a"/>
+  <path d="M396 224h23c5 0 9 2 11 7l22 39h-56v-46Z" fill="#703b3b"/>
+  <circle cx="126" cy="350" r="38" fill="#2a2020"/>
+  <circle cx="126" cy="350" r="16" fill="#e8c47a"/>
+  <circle cx="354" cy="350" r="38" fill="#2a2020"/>
+  <circle cx="354" cy="350" r="16" fill="#e8c47a"/>
+  <path d="M154 174h150v30H154zm0 54h112v30H154z" fill="#703b3b" opacity=".9"/>
+  <path d="M106 410h300" stroke="#e8c47a" stroke-width="18" stroke-linecap="round"/>
+</svg>

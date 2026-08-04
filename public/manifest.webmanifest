@@ -1,0 +1,23 @@
+{
+    "id": "/acasa",
+    "name": "GAFCO Șofer",
+    "short_name": "GAFCO Șofer",
+    "description": "Sarcini, transferuri și confirmări pentru șoferii GAFCO.",
+    "lang": "ro",
+    "start_url": "/acasa?source=pwa",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#f5f1ee",
+    "theme_color": "#703b3b",
+    "icons": [
+        { "src": "/icons/gafco-driver-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/gafco-driver-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/gafco-driver-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        { "name": "Sarcinile mele", "short_name": "Sarcini", "url": "/sarcini", "icons": [{ "src": "/icons/gafco-driver-192.png", "sizes": "192x192" }] },
+        { "name": "Transferurile mele", "short_name": "Transferuri", "url": "/transferuri", "icons": [{ "src": "/icons/gafco-driver-192.png", "sizes": "192x192" }] },
+        { "name": "Scanare QR", "short_name": "QR", "url": "/scanare-qr", "icons": [{ "src": "/icons/gafco-driver-192.png", "sizes": "192x192" }] }
+    ]
+}
