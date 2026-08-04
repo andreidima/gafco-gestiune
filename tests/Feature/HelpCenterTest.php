@@ -140,6 +140,33 @@ class HelpCenterTest extends TestCase
         $this->assertSame(10, HelpArticle::query()->where('slug', 'circuitul-materialelor')->value('current_revision'));
     }
 
+    public function test_transfer_quantity_layout_release_note_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_08_04_000036_publish_transfer_quantity_layout_fix.php');
+
+        DB::connection()->pretend(fn () => $migration->up());
+
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-04-controale-cantitate-clare-in-transferuri',
+            'version' => '2026.08.04.2',
+            'status' => 'published',
+        ]);
+
+        $migration->down();
+
+        $this->assertDatabaseMissing('release_notes', [
+            'slug' => '2026-08-04-controale-cantitate-clare-in-transferuri',
+        ]);
+
+        $migration->up();
+
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-04-controale-cantitate-clare-in-transferuri',
+            'version' => '2026.08.04.2',
+            'status' => 'published',
+        ]);
+    }
+
     public function test_minor_corrections_are_not_published_in_help_or_release_notes(): void
     {
         $article = HelpArticle::query()
@@ -309,6 +336,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Controale de cantitate clare în transferuri',
                 'Navigare mai clară și protecții pentru locații și transferuri',
                 'Coduri și cantități mai ușor de folosit',
                 'Interfață completă în limba română',
@@ -320,13 +348,13 @@ class HelpCenterTest extends TestCase
                 'Praguri vizibile pentru regulile de alertare',
                 'Filtrare rapidă fără întreruperea tastării',
                 'Căutare rapidă în listele din aplicație',
-                'Navigare mai rapidă și cantități mai clare',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
+            ->assertSee('Navigare mai rapidă și cantități mai clare')
             ->assertSee('Sarcinile șoferului, mai rapide și mai clare pe mobil')
             ->assertSee('Planuri de materiale pe proiect și alerte la depășire')
             ->assertSee('Mai multă claritate în activitatea zilnică')
@@ -336,11 +364,11 @@ class HelpCenterTest extends TestCase
             ->assertSee('Documente, recepții complete și loturi la consum')
             ->assertSee('Custodie personală pentru materiale și echipamente')
             ->assertSee('Filtre memorate și administrare standardizată')
-            ->assertSee('Schimbare rapidă între utilizatori')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 3]))
             ->assertOk()
+            ->assertSee('Schimbare rapidă între utilizatori')
             ->assertSee('Fișă completă de inventar pentru materiale')
             ->assertSee('Centru de ajutor și noutăți în aplicație')
             ->assertSee('Fluxuri complete pentru transferuri și sarcini')

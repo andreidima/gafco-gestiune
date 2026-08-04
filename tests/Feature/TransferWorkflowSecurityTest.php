@@ -220,9 +220,19 @@ class TransferWorkflowSecurityTest extends TestCase
             ], ['purpose' => 'return', 'parent_transfer_id' => $original->id]))
             ->assertForbidden();
 
-        $this->actingAs($sourceManager)
-            ->get(route('transfers.create', ['return_of' => $original->id]))
-            ->assertOk();
+        $returnForm = $this->actingAs($sourceManager)
+            ->get(route('transfers.create', ['return_of' => $original->id]));
+
+        $returnForm
+            ->assertOk()
+            ->assertSee('col-md-6 col-lg-4 transfer-line-item-column', false)
+            ->assertSee('col-md-6 col-lg-4 transfer-line-asset-column', false)
+            ->assertSee('col-9 col-lg-3 transfer-line-quantity-column', false)
+            ->assertSee('col-3 col-lg-1 transfer-line-remove-column', false);
+
+        $this->assertSame(2, substr_count((string) $returnForm->getContent(), 'transfer-line-quantity-column'));
+        $this->assertSame(2, substr_count((string) $returnForm->getContent(), 'transfer-line-remove-column'));
+
         $this->actingAs($sourceManager)
             ->post(route('transfers.store'), $this->payload($destination, $source, [
                 ['catalog_item_id' => $item->id, 'tracked_asset_id' => null, 'quantity' => 2],

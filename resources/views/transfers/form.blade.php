@@ -135,7 +135,7 @@
             <div class="col-12" data-transfer-lines>
                 @foreach($initialLines as $index => $line)
                     <div class="row g-2 align-items-end transfer-line border rounded-3 p-2 mb-2">
-                        <div class="col-md-5">
+                        <div class="col-md-6 col-lg-4 transfer-line-item-column">
                             <label class="form-label small">Material</label>
                             <select
                                 name="lines[{{ $index }}][catalog_item_id]"
@@ -148,7 +148,7 @@
                             </select>
                             <div class="form-text transfer-line-availability">Disponibilitatea apare după alegerea materialului.</div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6 col-lg-4 transfer-line-asset-column">
                             <label class="form-label small">Echipament QR</label>
                             <select
                                 name="lines[{{ $index }}][tracked_asset_id]"
@@ -160,11 +160,11 @@
                                 <option value="">Fără echipament unic</option>
                             </select>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-9 col-lg-3 transfer-line-quantity-column">
                             <label class="form-label small">Cant.</label>
                             <input name="lines[{{ $index }}][quantity]" type="number" data-quantity-stepper min="0.001" step="0.001" value="{{ $line['quantity'] ?? 1 }}" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-3 col-lg-1 transfer-line-remove-column">
                             <button type="button" class="btn btn-outline-danger w-100 remove-transfer-line" aria-label="Șterge poziția">
                                 <i class="fa-solid fa-trash" aria-hidden="true"></i>
                             </button>
@@ -194,24 +194,24 @@
 
 <template data-transfer-line-template>
     <div class="row g-2 align-items-end transfer-line border rounded-3 p-2 mb-2">
-        <div class="col-md-5">
+        <div class="col-md-6 col-lg-4 transfer-line-item-column">
             <label class="form-label small">Material</label>
             <select data-name="catalog_item_id" class="form-select transfer-line-item" data-tom-select aria-label="Material">
                 <option value="">Alege pentru cantități</option>
             </select>
             <div class="form-text transfer-line-availability">Disponibilitatea apare după alegerea materialului.</div>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-6 col-lg-4 transfer-line-asset-column">
             <label class="form-label small">Echipament QR</label>
             <select data-name="tracked_asset_id" class="form-select transfer-line-asset" data-tom-select aria-label="Echipament QR">
                 <option value="">Fără echipament unic</option>
             </select>
         </div>
-        <div class="col-md-1">
+        <div class="col-9 col-lg-3 transfer-line-quantity-column">
             <label class="form-label small">Cant.</label>
             <input data-name="quantity" type="number" data-quantity-stepper min="0.001" step="0.001" value="1" class="form-control transfer-line-quantity" aria-label="Cantitate" required>
         </div>
-        <div class="col-md-1">
+        <div class="col-3 col-lg-1 transfer-line-remove-column">
             <button type="button" class="btn btn-outline-danger w-100 remove-transfer-line" aria-label="Șterge poziția">
                 <i class="fa-solid fa-trash" aria-hidden="true"></i>
             </button>
