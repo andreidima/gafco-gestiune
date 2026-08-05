@@ -9,21 +9,70 @@ class TransferPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->active
-            && $user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'manager', 'sef-santier', 'gestionar-baza', 'sofer']);
+        return $user->hasAbility('transfers.view');
     }
 
     public function view(User $user, Transfer $transfer): bool
     {
-        if (! $user->active) {
+        return $this->inScope($user, $transfer, 'transfers.view');
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasAbility('transfers.create');
+    }
+
+    public function update(User $user, Transfer $transfer): bool
+    {
+        return ! in_array($transfer->status, ['in_transit', 'received', 'cancelled'], true)
+            && $transfer->archived_at === null
+            && $this->inScope($user, $transfer, 'transfers.update');
+    }
+
+    public function approve(User $user, Transfer $transfer): bool
+    {
+        if (! $user->active
+            || in_array($transfer->status, ['received', 'cancelled'], true)
+            || $transfer->archived_at !== null) {
             return false;
         }
 
-        if ($user->hasGlobalOperationalReadAccess()) {
+        return $this->inScope($user, $transfer, 'transfers.approve');
+    }
+
+    public function cancel(User $user, Transfer $transfer): bool
+    {
+        return ! in_array($transfer->status, ['received', 'cancelled'], true)
+            && $transfer->archived_at === null
+            && $this->inScope($user, $transfer, 'transfers.cancel');
+    }
+
+    public function receive(User $user, Transfer $transfer): bool
+    {
+        if (! $user->active
+            || ! in_array($transfer->status, ['in_transit', 'received'], true)
+            || $transfer->archived_at !== null) {
+            return false;
+        }
+
+        return $this->inScope($user, $transfer, 'transfers.receive');
+    }
+
+    public function archive(User $user, Transfer $transfer): bool
+    {
+        return in_array($transfer->status, ['received', 'cancelled'], true)
+            && $transfer->archived_at === null
+            && $this->inScope($user, $transfer, 'transfers.archive');
+    }
+
+    private function inScope(User $user, Transfer $transfer, string $ability): bool
+    {
+        $scope = $user->abilityScope($ability);
+        if ($scope === 'global') {
             return true;
         }
 
-        if ($user->usesDriverWorkspace()) {
+        if ($scope === 'assigned_records') {
             if ($transfer->driver_id === $user->id) {
                 return true;
             }
@@ -39,84 +88,24 @@ class TransferPolicy
                 ->exists();
         }
 
-        if (! $user->hasAnyRole(['sef-santier', 'gestionar-baza'])) {
+        if (! in_array($scope, ['assigned_locations', 'destination_location', 'visible_records'], true)) {
             return false;
         }
 
-        if ($transfer->requested_by === $user->id) {
+        if ($scope !== 'destination_location' && $transfer->requested_by === $user->id) {
             return true;
         }
 
-        $managedLocationIds = $user->activeManagedLocations()->pluck('locations.id');
-
-        return $managedLocationIds->contains($transfer->source_location_id)
-            || $managedLocationIds->contains($transfer->destination_location_id);
-    }
-
-    public function create(User $user): bool
-    {
-        return $user->active
-            && ($user->isOperationsAdmin() || $user->hasAnyRole(['sef-santier', 'gestionar-baza']));
-    }
-
-    public function update(User $user, Transfer $transfer): bool
-    {
-        return ! in_array($transfer->status, ['in_transit', 'received', 'cancelled'], true)
-            && $transfer->archived_at === null
-            && $this->canManage($user, $transfer);
-    }
-
-    public function approve(User $user, Transfer $transfer): bool
-    {
-        if (! $user->active
-            || in_array($transfer->status, ['received', 'cancelled'], true)
-            || $transfer->archived_at !== null) {
-            return false;
-        }
-
-        if ($user->isOperationsAdmin()) {
+        if ($scope !== 'destination_location'
+            && ($transfer->driver_id === $user->id
+                || $transfer->task()->whereHas('currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id))->exists())) {
             return true;
         }
 
-        return $user->hasAnyRole(['sef-santier', 'gestionar-baza'])
-            && $user->activeManagedLocations()
-                ->whereIn('locations.id', [$transfer->source_location_id, $transfer->destination_location_id])
-                ->exists();
-    }
+        $locationIds = $scope === 'destination_location'
+            ? [$transfer->destination_location_id]
+            : [$transfer->source_location_id, $transfer->destination_location_id];
 
-    public function cancel(User $user, Transfer $transfer): bool
-    {
-        return ! in_array($transfer->status, ['received', 'cancelled'], true)
-            && $transfer->archived_at === null
-            && $this->canManage($user, $transfer);
-    }
-
-    public function receive(User $user, Transfer $transfer): bool
-    {
-        if (! $user->active
-            || ! in_array($transfer->status, ['in_transit', 'received'], true)
-            || $transfer->archived_at !== null) {
-            return false;
-        }
-
-        return $user->isOperationsAdmin()
-            || ($user->hasAnyRole(['sef-santier', 'gestionar-baza'])
-                && $user->activeManagedLocations()
-                    ->where('locations.id', $transfer->destination_location_id)
-                    ->exists());
-    }
-
-    public function archive(User $user, Transfer $transfer): bool
-    {
-        return in_array($transfer->status, ['received', 'cancelled'], true)
-            && $transfer->archived_at === null
-            && $this->canManage($user, $transfer);
-    }
-
-    private function canManage(User $user, Transfer $transfer): bool
-    {
-        return $user->active
-            && ($user->isOperationsAdmin() || $user->hasAnyRole(['sef-santier', 'gestionar-baza']))
-            && $this->view($user, $transfer);
+        return $user->activeManagedLocations()->whereIn('locations.id', $locationIds)->exists();
     }
 }

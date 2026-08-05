@@ -27,11 +27,10 @@ class ImpersonationController extends Controller
         $roleLabels = config('roles.labels', []);
 
         $users = User::query()
-            ->with(['roles:id,name'])
+            ->with(['roles.permissions', 'permissions'])
             ->where('active', true)
             ->whereKeyNot($actor->getKey())
             ->when($currentTargetId, fn ($query) => $query->whereKeyNot($currentTargetId))
-            ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', ['admin', 'super-admin']))
             ->when($search !== '', fn ($query) => $query->where(function ($searchQuery) use ($search): void {
                 $searchQuery->where('name', 'like', "%{$search}%")
                     ->orWhere('login_code', 'like', "%{$search}%");

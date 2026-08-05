@@ -1,6 +1,23 @@
 <?php
 
 return [
+    'location_abilities' => [
+        'locations.index' => 'locations.view',
+        'catalog-items.index' => 'inventory.view',
+        'tracked-assets.index' => 'tracked-assets.browse',
+        'inventory.index' => 'inventory.view',
+        'inventory.show' => 'inventory.view',
+        'alerts.index' => 'alerts.view',
+        'reception-intakes.index' => 'reception-intakes.view',
+        'supplier-receptions.index' => 'receptions.view',
+        'negotiated-orders.index' => 'negotiated-orders.view',
+        'consumption-reports.index' => 'consumption-reports.view',
+        'transfers.index' => 'transfers.view',
+        'projects.index' => 'projects.view',
+        'tasks.index' => 'tasks.view',
+        'reports.index' => 'reports.view',
+    ],
+
     'routes' => [
         'users.index' => [
             'role' => [

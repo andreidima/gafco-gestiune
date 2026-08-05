@@ -54,7 +54,7 @@ class ProjectController extends Controller
         return view('projects.index', [
             'projects' => $projects,
             'progressByProject' => $progress,
-            'locations' => $this->locationAccess->visibleLocations($user)
+            'locations' => $this->locationAccess->visibleLocations($user, 'projects.view')
                 ->orderBy('type')
                 ->orderBy('name')
                 ->get(),
@@ -131,7 +131,7 @@ class ProjectController extends Controller
     {
         return [
             'project' => $project,
-            'locations' => $this->locationAccess->visibleLocations(request()->user())
+            'locations' => $this->locationAccess->visibleLocations(request()->user(), 'projects.manage')
                 ->orderBy('type')
                 ->orderBy('name')
                 ->get(),
@@ -170,7 +170,7 @@ class ProjectController extends Controller
             ],
             'lines.*.planned_quantity' => ['required', 'numeric', 'min:0.001'],
         ]);
-        abort_unless($this->locationAccess->canView($request->user(), (int) $data['location_id']), 403);
+        abort_unless($this->locationAccess->canView($request->user(), (int) $data['location_id'], 'projects.manage'), 403);
 
         return $data;
     }

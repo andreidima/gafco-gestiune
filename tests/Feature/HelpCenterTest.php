@@ -411,6 +411,7 @@ class HelpCenterTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder([
+                'Drepturile configurate controlează accesul efectiv',
                 'Roluri configurabile și excepții de acces justificate',
                 'Administrarea și explicarea accesului',
                 'Aplicație instalabilă pentru șoferi',
@@ -422,7 +423,6 @@ class HelpCenterTest extends TestCase
                 'Interfață completă în limba română',
                 'Fișiere mai ușor de gestionat pe telefon',
                 'Liste corecte la schimbarea sursei transferului',
-                'Documentele rămân la vedere în timpul recepției',
             ])
             ->assertDontSee('Afișare completă a rolurilor și a listelor')
             ->assertDontSee('Noutate nepublicată');
@@ -430,6 +430,7 @@ class HelpCenterTest extends TestCase
             ->get(route('release-notes.index', ['page' => 2]))
             ->assertOk()
             ->assertSee('Observații vizibile în lista documentelor de procesat')
+            ->assertSee('Documentele rămân la vedere în timpul recepției')
             ->assertSee('Sarcinile active, separate de cele finalizate')
             ->assertSee('Praguri vizibile pentru regulile de alertare')
             ->assertSee('Filtrare rapidă fără întreruperea tastării')
@@ -438,11 +439,11 @@ class HelpCenterTest extends TestCase
             ->assertSee('Sarcinile șoferului, mai rapide și mai clare pe mobil')
             ->assertSee('Planuri de materiale pe proiect și alerte la depășire')
             ->assertSee('Mai multă claritate în activitatea zilnică')
-            ->assertSee('Comenzi negociate transformabile în recepții')
             ->assertDontSee('Noutate nepublicată');
         $this->actingAs($user)
             ->get(route('release-notes.index', ['page' => 3]))
             ->assertOk()
+            ->assertSee('Comenzi negociate transformabile în recepții')
             ->assertSee('Custodie personală pentru materiale și echipamente')
             ->assertSee('Alerte pentru stoc și documente de recepție')
             ->assertSee('Stoc disponibil în transferuri și consumuri corectabile')

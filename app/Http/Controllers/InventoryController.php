@@ -30,10 +30,10 @@ class InventoryController extends Controller
             'location_id' => $request->integer('location_id'),
             'hide_zero' => $request->boolean('hide_zero'),
         ];
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
-        $locations = $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get();
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user, 'inventory.view');
+        $locations = $this->locationAccess->visibleLocations($user, 'inventory.view')->orderBy('type')->orderBy('name')->get();
 
-        if ($filters['location_id'] && ! $this->locationAccess->canView($user, $filters['location_id'])) {
+        if ($filters['location_id'] && ! $this->locationAccess->canView($user, $filters['location_id'], 'inventory.view')) {
             abort(403);
         }
 
@@ -120,9 +120,9 @@ class InventoryController extends Controller
             403
         );
 
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user, 'inventory.view');
         $locationId = $request->integer('location_id');
-        if ($locationId && ! $this->locationAccess->canView($user, $locationId)) {
+        if ($locationId && ! $this->locationAccess->canView($user, $locationId, 'inventory.view')) {
             abort(403);
         }
 
@@ -164,7 +164,7 @@ class InventoryController extends Controller
             'item' => $catalogItem,
             'lots' => $lots,
             'movements' => $movements,
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'inventory.view')->orderBy('type')->orderBy('name')->get(),
             'selectedLocationId' => $locationId,
             'canViewCommercial' => $user->canViewCommercialInventory(),
             'materialCustodies' => Schema::hasTable('material_custodies')

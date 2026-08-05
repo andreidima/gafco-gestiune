@@ -31,6 +31,10 @@ class TaskWorkflowSecurityTest extends TestCase
         $incumbent = $this->userWithRole('sofer');
         $firstCandidate = $this->userWithRole('sofer');
         $secondCandidate = $this->userWithRole('sofer');
+        $this->assertTrue($incumbent->hasPermissionTo('tasks.respond'));
+        $this->assertSame('assigned_records', $incumbent->abilityScope('tasks.respond'));
+        $this->assertSame('assigned_records', $incumbent->abilityScope('tasks.view'));
+        $this->assertTrue($incumbent->usesDriverWorkspace());
         $task = $this->task($manager);
         $workflow = app(TaskWorkflowService::class);
 

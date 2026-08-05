@@ -19,7 +19,9 @@ class ImpersonationService
             && $actor->can(ImpersonationContext::PERMISSION)
             && $target->active
             && ! $target->is($actor)
-            && ! $target->hasAnyRole(['admin', 'super-admin'])
+            && ! $target->isProtectedAdministrator()
+            && collect(['access.view', 'roles.manage', 'permissions.assign-direct', 'users.manage'])
+                ->every(fn (string $ability): bool => ! $target->hasAbility($ability))
             && ! $target->can(ImpersonationContext::PERMISSION)
             && Gate::forUser($target)->denies('access-database-tools');
     }

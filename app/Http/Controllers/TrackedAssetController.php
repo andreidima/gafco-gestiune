@@ -24,7 +24,7 @@ class TrackedAssetController extends Controller
 
     public function index(Request $request): View
     {
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user(), 'tracked-assets.browse');
 
         return view('tracked-assets.index', [
             'assets' => TrackedAsset::with(['catalogItem', 'currentLocation', 'currentCustodian'])
@@ -48,7 +48,7 @@ class TrackedAssetController extends Controller
             'totalAssets' => TrackedAsset::query()
                 ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('current_location_id', $visibleLocationIds))
                 ->count(),
-            'locations' => $this->locationAccess->visibleLocations($request->user())->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($request->user(), 'tracked-assets.browse')->orderBy('name')->get(),
         ]);
     }
 
@@ -74,10 +74,10 @@ class TrackedAssetController extends Controller
 
     public function show(Request $request, TrackedAsset $trackedAsset): View
     {
-        if ($request->user()->hasAnyRole(['sef-santier', 'gestionar-baza'])) {
+        if ($request->user()->abilityScope('tracked-assets.view') === 'assigned_locations') {
             abort_unless(
                 $trackedAsset->current_location_id
-                    && $this->locationAccess->canView($request->user(), (int) $trackedAsset->current_location_id),
+                    && $this->locationAccess->canView($request->user(), (int) $trackedAsset->current_location_id, 'tracked-assets.view'),
                 403
             );
         }

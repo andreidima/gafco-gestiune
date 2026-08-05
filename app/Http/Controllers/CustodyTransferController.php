@@ -15,7 +15,7 @@ class CustodyTransferController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorizeWorkspace($request);
+        $this->authorizeWorkspace($request, 'custody.initiate');
 
         $request->merge([
             'operation_type' => $request->input('operation_type', 'handoff'),
@@ -59,7 +59,7 @@ class CustodyTransferController extends Controller
 
     public function update(Request $request, CustodyTransfer $custodyTransfer): RedirectResponse
     {
-        $this->authorizeWorkspace($request);
+        $this->authorizeWorkspace($request, 'custody.manage');
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
             'response_notes' => ['nullable', 'required_if:decision,rejected', 'string', 'max:2000'],
@@ -83,11 +83,8 @@ class CustodyTransferController extends Controller
             : 'Confirmarea a fost înregistrată. Operațiunea se finalizează după toate acordurile necesare.');
     }
 
-    private function authorizeWorkspace(Request $request): void
+    private function authorizeWorkspace(Request $request, string $ability): void
     {
-        abort_unless($request->user()->hasAnyRole([
-            'super-admin', 'admin', 'dispecer', 'sef-santier',
-            'gestionar-baza', 'sofer', 'muncitor',
-        ]), 403);
+        abort_unless($request->user()->hasAbility($ability), 403);
     }
 }

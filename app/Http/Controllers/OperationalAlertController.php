@@ -40,7 +40,7 @@ class OperationalAlertController extends Controller
             ? (string) $request->input('severity')
             : null;
         $locationId = $request->integer('location_id');
-        if ($locationId && ! $this->locationAccess->canView($user, $locationId)) {
+        if ($locationId && ! $this->locationAccess->canView($user, $locationId, 'alerts.view')) {
             abort(403);
         }
 
@@ -67,7 +67,7 @@ class OperationalAlertController extends Controller
             'alerts' => $query->paginate(25)->withQueryString(),
             'activeCount' => (clone $baseQuery)->active()->count(),
             'criticalCount' => (clone $baseQuery)->active()->where('severity', 'danger')->count(),
-            'locations' => $this->locationAccess->visibleLocations($user)
+            'locations' => $this->locationAccess->visibleLocations($user, 'alerts.view')
                 ->orderBy('type')
                 ->orderBy('name')
                 ->get(),
@@ -80,7 +80,7 @@ class OperationalAlertController extends Controller
             ],
             'typeLabels' => OperationalAlert::TYPE_LABELS,
             'severityLabels' => OperationalAlert::SEVERITY_LABELS,
-            'canConfigure' => $user->hasAnyRole(['super-admin', 'admin']),
+            'canConfigure' => $user->hasAbility('alerts.manage'),
         ]);
     }
 }

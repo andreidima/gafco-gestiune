@@ -3,25 +3,19 @@
 namespace App\Services;
 
 use App\Authorization\AccessDecision;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Gate;
 
 class EffectiveAccessService
 {
-    private const SCOPE_PRIORITY = [
-        'global' => 100,
-        'protected_identity' => 95,
-        'assigned_locations' => 80,
-        'destination_location' => 75,
-        'selected_location' => 70,
-        'visible_records' => 60,
-        'assigned_records' => 50,
-        'personal' => 40,
-        'lookup' => 30,
-    ];
+    /** @var array<int, string>|null */
+    private ?array $selectableLocations = null;
 
-    public function __construct(private readonly AccessCatalog $catalog) {}
+    public function __construct(
+        private readonly AccessCatalog $catalog,
+        private readonly AccessScopeService $scopes,
+    ) {}
 
     /** @return Collection<int, AccessDecision> */
     public function decisions(User $user): Collection
@@ -34,9 +28,10 @@ class EffectiveAccessService
             ->map(fn ($location): string => "{$location->code} - {$location->name}")
             ->values()
             ->all();
+        $selectableLocations = $this->selectableLocations();
 
         return collect($this->catalog->permissions())
-            ->map(function (array $definition, string $ability) use ($user, $directPermissions, $exceptionContexts, $locations): AccessDecision {
+            ->map(function (array $definition, string $ability) use ($user, $directPermissions, $exceptionContexts, $locations, $selectableLocations): AccessDecision {
                 $sources = collect();
 
                 foreach ($user->roles as $role) {
@@ -60,22 +55,18 @@ class EffectiveAccessService
                 }
 
                 if (($definition['driver'] ?? 'permission') === 'gate') {
-                    $allowedByGate = Gate::forUser($user)->allows($ability);
-                    if ($allowedByGate) {
+                    if ($this->scopes->allows($user, $ability)) {
                         $sources = collect([[
                             'type' => 'protected',
                             'label' => 'Identitatea contului protejat',
                             'scope' => $definition['direct_scope'] ?? 'protected_identity',
                         ]]);
                     }
-                    $allowed = $user->active && $allowedByGate;
-                } else {
-                    $allowed = $user->active && $sources->isNotEmpty();
                 }
 
-                $scope = $allowed
-                    ? $sources->sortByDesc(fn (array $source): int => self::SCOPE_PRIORITY[$source['scope']] ?? 0)->first()['scope']
-                    : ($definition['direct_scope'] ?? 'visible_records');
+                $allowed = $this->scopes->allows($user, $ability);
+                $scope = $this->scopes->scope($user, $ability)
+                    ?? ($definition['direct_scope'] ?? 'visible_records');
                 $condition = $definition['condition'] ?? null;
                 $conditional = $allowed && ($scope !== 'global' || $condition !== null);
 
@@ -98,7 +89,11 @@ class EffectiveAccessService
                     scopeLabel: $this->catalog->scopeLabel($scope),
                     reason: $reason,
                     sources: $sources->values()->all(),
-                    locations: in_array($scope, ['assigned_locations', 'destination_location', 'visible_records'], true) ? $locations : [],
+                    locations: match ($scope) {
+                        'assigned_locations', 'destination_location', 'visible_records' => $locations,
+                        'selected_location' => $selectableLocations,
+                        default => [],
+                    },
                     condition: $condition,
                 );
             })
@@ -192,5 +187,16 @@ class EffectiveAccessService
         }
 
         return $warnings;
+    }
+
+    /** @return array<int, string> */
+    private function selectableLocations(): array
+    {
+        return $this->selectableLocations ??= Location::query()
+            ->where('active', true)
+            ->orderBy('name')
+            ->get(['code', 'name'])
+            ->map(fn (Location $location): string => "{$location->code} - {$location->name}")
+            ->all();
     }
 }

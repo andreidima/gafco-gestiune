@@ -9,7 +9,7 @@
     $limitedViewer = ! auth()->user()->isManagementUser();
     $backRoute = $returnTo ?? (auth()->user()->isManagementUser()
         ? route('tracked-assets.index')
-        : (auth()->user()->hasRole('contabil') ? route('reports.index') : route('qr-scan.index')));
+        : (auth()->user()->hasAbility('reports.view') ? route('reports.index') : route('qr-scan.index')));
     $visiblePerson = static function ($person, string $genericLabel) use ($limitedViewer): string {
         if (! $person) {
             return '-';

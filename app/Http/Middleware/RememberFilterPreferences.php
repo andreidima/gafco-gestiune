@@ -167,7 +167,8 @@ class RememberFilterPreferences
             ['options' => ['min_range' => 1]],
         );
 
-        if (! $locationId || ! $this->locationAccess->canView($request->user(), (int) $locationId)) {
+        $ability = config('filter-preferences.location_abilities.'.($request->route()?->getName() ?? ''), 'locations.view');
+        if (! $locationId || ! $this->locationAccess->canView($request->user(), (int) $locationId, $ability)) {
             return null;
         }
 

@@ -34,7 +34,8 @@ class TransferController extends Controller
     {
         $this->authorize('viewAny', Transfer::class);
         $user = $request->user();
-        $managedActionLocationIds = $user->isOperationsAdmin() || $user->usesDriverWorkspace()
+        $canApproveGlobally = $user->hasGlobalAbility('transfers.approve');
+        $managedActionLocationIds = $canApproveGlobally || $user->usesDriverWorkspace()
             ? collect()
             : $user->activeManagedLocations()->pluck('locations.id');
         $query = $this->visibleQuery($request->user())
@@ -50,8 +51,8 @@ class TransferController extends Controller
                     ->where('transfer_approvals.status', 'pending')
                     ->whereNotIn('transfers.status', ['received', 'cancelled'])
                     ->whereNull('transfers.archived_at')
-                    ->when($user->isOperationsAdmin(), fn ($eligible) => $eligible->where('scope', '!=', 'driver'))
-                    ->when(! $user->isOperationsAdmin(), fn ($eligible) => $eligible->where(function ($actions) use ($user, $managedActionLocationIds): void {
+                    ->when($canApproveGlobally, fn ($eligible) => $eligible->where('scope', '!=', 'driver'))
+                    ->when(! $canApproveGlobally, fn ($eligible) => $eligible->where(function ($actions) use ($user, $managedActionLocationIds): void {
                         $actions->where('expected_user_id', $user->id);
                         if (! $user->usesDriverWorkspace()) {
                             $actions->orWhereIn('location_id', $managedActionLocationIds);
@@ -80,7 +81,7 @@ class TransferController extends Controller
 
         return view('transfers.index', [
             'transfers' => $transfers,
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'transfers.view')->orderBy('name')->get(),
             'drivers' => $request->user()->usesDriverWorkspace()
                 ? collect()
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
@@ -125,7 +126,7 @@ class TransferController extends Controller
             $this->authorize('update', $transfer);
         }
 
-        $location = $this->locationAccess->visibleLocations($request->user())
+        $location = $this->locationAccess->visibleLocations($request->user(), 'transfers.create')
             ->findOrFail($data['source_location_id']);
         $ignoreTransferId = $transfer?->id;
 
@@ -295,7 +296,7 @@ class TransferController extends Controller
         return [
             'transfer' => $transfer,
             'parent' => $parent,
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'transfers.create')->orderBy('type')->orderBy('name')->get(),
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
             'projects' => $projects,
             'projectPlanData' => $projects->mapWithKeys(fn (Project $project) => [
@@ -385,10 +386,11 @@ class TransferController extends Controller
     private function visibleQuery(User $user): Builder
     {
         $query = Transfer::query();
-        if ($user->hasGlobalOperationalReadAccess()) {
+        $scope = $user->abilityScope('transfers.view');
+        if ($scope === 'global') {
             return $query;
         }
-        if ($user->usesDriverWorkspace()) {
+        if ($scope === 'assigned_records') {
             return $query->where(function ($visible) use ($user): void {
                 $visible->where('driver_id', $user->id)
                     ->orWhereHas('task.currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id))
@@ -397,12 +399,18 @@ class TransferController extends Controller
                         ->where('status', 'reassignment_requested'));
             });
         }
+        if (! in_array($scope, ['assigned_locations', 'visible_records'], true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
         $locationIds = $user->activeManagedLocations()->pluck('locations.id');
 
         return $query->where(function ($visible) use ($user, $locationIds): void {
             $visible->where('requested_by', $user->id)
                 ->orWhereIn('source_location_id', $locationIds)
-                ->orWhereIn('destination_location_id', $locationIds);
+                ->orWhereIn('destination_location_id', $locationIds)
+                ->orWhere('driver_id', $user->id)
+                ->orWhereHas('task.currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id));
         });
     }
 

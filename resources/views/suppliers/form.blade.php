@@ -119,7 +119,7 @@
                             {{ $openOrderCount === 1 ? 'o comandă negociată deschisă' : $openOrderCount.' comenzi negociate deschise' }}.
                         </div>
                         <div class="mt-1">Închide sau anulează comenzile înainte să dezactivezi furnizorul.</div>
-                        @if(auth()->user()->hasAnyRole(['super-admin', 'admin']))
+                        @if(auth()->user()->hasAbility('negotiated-orders.view'))
                             <a
                                 href="{{ route('negotiated-orders.index', ['supplier_id' => $supplier->id, 'status' => 'created']) }}"
                                 class="btn btn-outline-warning btn-sm mt-3"

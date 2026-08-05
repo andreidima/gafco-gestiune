@@ -88,10 +88,11 @@ class AccessAdministrationTest extends TestCase
     {
         $foundation = require database_path('migrations/2026_08_05_000041_add_access_administration_foundation.php');
         $administration = require database_path('migrations/2026_08_05_000042_create_access_role_administration.php');
+        $enforcement = require database_path('migrations/2026_08_05_000043_enforce_configured_access.php');
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'administrarea-accesului',
-            'current_revision' => 2,
+            'current_revision' => 3,
             'status' => 'published',
         ]);
         $this->assertDatabaseHas('release_notes', [
@@ -99,7 +100,13 @@ class AccessAdministrationTest extends TestCase
             'version' => '2026.08.05.1',
             'status' => 'published',
         ]);
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-05-aplicarea-drepturilor-configurate',
+            'version' => '2026.08.05.3',
+            'status' => 'published',
+        ]);
 
+        $enforcement->down();
         $administration->down();
         $foundation->down();
 
@@ -109,6 +116,7 @@ class AccessAdministrationTest extends TestCase
 
         $foundation->up();
         $administration->up();
+        $enforcement->up();
     }
 
     public function test_removing_last_eligible_role_withdraws_stale_location_responsibility_and_audits_change(): void

@@ -159,7 +159,7 @@
                         $pendingApprovals = $approvals->where('status', 'pending');
                         $rejectedApproval = $approvals->firstWhere('status', 'rejected');
                         $actionableTransfer = ! in_array($transfer->status, ['received', 'cancelled'], true) && ! $transfer->archived_at;
-                        $pendingForUser = $actionableTransfer ? $pendingApprovals->filter(fn ($approval) => (auth()->user()->isOperationsAdmin() && $approval->scope !== 'driver')
+                        $pendingForUser = $actionableTransfer ? $pendingApprovals->filter(fn ($approval) => (auth()->user()->hasGlobalAbility('transfers.approve') && $approval->scope !== 'driver')
                             || ($approval->scope === 'driver' && $approval->expected_user_id === auth()->id())
                             || ($approval->location && $approval->location->activeManagers->contains('id', auth()->id()))) : collect();
                         $assignment = $transfer->task?->currentAssignment;
@@ -267,7 +267,7 @@
                     $pendingApprovals = $approvals->where('status', 'pending');
                     $rejectedApproval = $approvals->firstWhere('status', 'rejected');
                     $actionableTransfer = ! in_array($transfer->status, ['received', 'cancelled'], true) && ! $transfer->archived_at;
-                    $pendingForUser = $actionableTransfer ? $pendingApprovals->filter(fn ($approval) => (auth()->user()->isOperationsAdmin() && $approval->scope !== 'driver')
+                    $pendingForUser = $actionableTransfer ? $pendingApprovals->filter(fn ($approval) => (auth()->user()->hasGlobalAbility('transfers.approve') && $approval->scope !== 'driver')
                         || ($approval->scope === 'driver' && $approval->expected_user_id === auth()->id())
                         || ($approval->location && $approval->location->activeManagers->contains('id', auth()->id()))) : collect();
                     $assignment = $transfer->task?->currentAssignment;

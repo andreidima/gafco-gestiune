@@ -15,7 +15,7 @@ class ReportController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $canReadGlobally = $user->hasGlobalInventoryReadAccess();
+        $canReadGlobally = $user->hasGlobalAbility('reports.view');
         $managedLocationIds = $canReadGlobally
             ? null
             : $user->activeManagedLocations()
