@@ -13,6 +13,7 @@ class ReceptionAccessService
     public function visibleReceptions(User $user): Builder
     {
         return SupplierReception::query()
+            ->when(! $user->hasPermissionTo('receptions.view'), fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->when(! $user->hasGlobalInventoryReadAccess(), fn (Builder $query) => $query
                 ->whereIn('location_id', $this->managedLocationIds($user)));
     }
@@ -20,6 +21,7 @@ class ReceptionAccessService
     public function visibleIntakes(User $user): Builder
     {
         return ReceptionIntake::query()
+            ->when(! $user->hasPermissionTo('reception-intakes.view'), fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->when(! $user->hasGlobalOperationalReadAccess(), function (Builder $query) use ($user): void {
                 $managed = $this->managedLocationIds($user);
                 $query->where(function (Builder $visible) use ($user, $managed): void {

@@ -10,6 +10,14 @@
     :back-route="route('users.index')"
     icon="fa-user-gear"
 >
+    @if($editing && $accessWarnings->isNotEmpty())
+        <div class="mb-3">
+            @foreach($accessWarnings as $warning)
+                <div class="alert alert-{{ $warning['severity'] }} py-2 mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>{{ $warning['message'] }}</div>
+            @endforeach
+            <a href="{{ route('access.show', $user) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-shield-halved me-1"></i>Vezi accesul efectiv</a>
+        </div>
+    @endif
     <form method="post" action="{{ $editing ? route('users.update', $user) : route('users.store') }}" class="resource-form-card">
         @csrf
         @if($editing) @method('put') @endif

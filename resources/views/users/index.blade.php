@@ -62,6 +62,7 @@
                         <td><span class="badge text-bg-{{ $user->active ? 'success' : 'secondary' }}">{{ $user->active ? 'Activ' : 'Inactiv' }}</span></td>
                         <td>
                             <div class="resource-row-actions">
+                                <x-resource-icon-button :href="route('access.show', $user)" icon="fa-shield-halved" label="Explică accesul utilizatorului" />
                                 @if($impersonationService->canTake($impersonationActor, $user))
                                     <form method="post" action="{{ route('impersonation.take', $user) }}">
                                         @csrf
@@ -138,6 +139,7 @@
                         </div>
 
                         <div class="resource-mobile-card-actions">
+                            <a href="{{ route('access.show', $user) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-shield-halved me-1"></i>Acces</a>
                             @if($impersonationService->canTake($impersonationActor, $user))
                                 <form method="post" action="{{ route('impersonation.take', $user) }}" class="d-flex flex-fill">
                                     @csrf

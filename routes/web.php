@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccessAdministrationController;
 use App\Http\Controllers\AlertRuleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CatalogItemController;
@@ -291,6 +292,13 @@ Route::middleware([
     Route::resource('users', UserController::class)->only(['store', 'update'])
         ->middleware(['role:admin|super-admin', RejectImpersonatedRequest::class]);
 
+    Route::get('administrare-acces', [AccessAdministrationController::class, 'index'])
+        ->middleware(['permission:access.view', RejectImpersonatedRequest::class])
+        ->name('access.index');
+    Route::get('administrare-acces/{user}', [AccessAdministrationController::class, 'show'])
+        ->middleware(['permission:access.view', RejectImpersonatedRequest::class])
+        ->name('access.show');
+
     Route::get('{legacyPath}', LegacyRouteRedirectController::class)
-        ->where('legacyPath', '(?:dashboard|locations(?:/.*)?|catalog-items(?:/.*)?|suppliers(?:/.*)?|inventory(?:/.*)?|tracked-assets(?:/.*)?|projects(?:/.*)?|transfers(?:/.*)?|driver-requests|tasks(?:/.*)?|notifications|alerts|settings/alerts|reception-intakes(?:/.*)?|reception-documents(?:/.*)?|supplier-receptions(?:/.*)?|negotiated-orders(?:/.*)?|consumption-reports(?:/.*)?|returns|field(?:/.*)?|qr-scan|reports|users(?:/.*)?)');
+        ->where('legacyPath', '(?:dashboard|locations(?:/.*)?|catalog-items(?:/.*)?|suppliers(?:/.*)?|inventory(?:/.*)?|tracked-assets(?:/.*)?|projects(?:/.*)?|transfers(?:/.*)?|driver-requests|tasks(?:/.*)?|notifications|alerts|settings/alerts|reception-intakes(?:/.*)?|reception-documents(?:/.*)?|supplier-receptions(?:/.*)?|negotiated-orders(?:/.*)?|consumption-reports(?:/.*)?|returns|field(?:/.*)?|qr-scan|reports|users(?:/.*)?|access(?:/.*)?)');
 });

@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Services\LocationAccessService;
 use App\Services\LocationDeactivationService;
+use App\Services\LocationResponsibilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class LocationController extends Controller
     public function __construct(
         private readonly LocationAccessService $locationAccess,
         private readonly LocationDeactivationService $locationDeactivation,
+        private readonly LocationResponsibilityService $locationResponsibilities,
     ) {}
 
     public function index(Request $request): View
@@ -72,17 +74,25 @@ class LocationController extends Controller
     {
         $data = $this->validatedData($request);
 
-        DB::transaction(function () use ($data): void {
-            $managerIds = array_values($data['manager_user_ids'] ?? []);
+        DB::transaction(function () use ($data, $request): void {
+            $managerIds = $this->normalizedManagerIds($data['manager_user_ids'] ?? []);
             unset($data['manager_user_ids']);
             $location = Location::create($data + [
                 'active' => $data['active'] ?? true,
                 'manager_user_id' => $managerIds[0] ?? null,
             ]);
             $location->managers()->sync($this->managerSyncData($managerIds));
+            $after = $this->responsibilitySnapshot($location);
+
+            activity('access')
+                ->performedOn($location)
+                ->causedBy($request->user())
+                ->withProperties(['after' => $after])
+                ->log('Responsabili locație configurați');
+            $this->auditUserResponsibilityChanges($location, [], $after['manager_user_ids'], $request->user());
         });
 
-        return redirect()->route('locations.index')->with('status', 'Locatia a fost adaugata.');
+        return redirect()->route('locations.index')->with('status', 'Locația a fost adăugată.');
     }
 
     public function edit(Location $location): View
@@ -95,11 +105,12 @@ class LocationController extends Controller
     public function update(Request $request, Location $location): RedirectResponse
     {
         $data = $this->validatedData($request, $location);
-        $managerIds = array_values($data['manager_user_ids'] ?? []);
+        $managerIds = $this->normalizedManagerIds($data['manager_user_ids'] ?? []);
         unset($data['manager_user_ids']);
 
-        DB::transaction(function () use ($location, $managerIds, $data): void {
+        DB::transaction(function () use ($location, $managerIds, $data, $request): void {
             $lockedLocation = Location::query()->lockForUpdate()->findOrFail($location->id);
+            $before = $this->responsibilitySnapshot($lockedLocation);
 
             if ($lockedLocation->active
                 && array_key_exists('active', $data)
@@ -109,9 +120,24 @@ class LocationController extends Controller
 
             $lockedLocation->managers()->sync($this->managerSyncData($managerIds));
             $lockedLocation->update($data + ['manager_user_id' => $managerIds[0] ?? null]);
+
+            $after = $this->responsibilitySnapshot($lockedLocation->fresh());
+            if ($before !== $after) {
+                activity('access')
+                    ->performedOn($lockedLocation)
+                    ->causedBy($request->user())
+                    ->withProperties(['before' => $before, 'after' => $after])
+                    ->log('Responsabili locație actualizați');
+                $this->auditUserResponsibilityChanges(
+                    $lockedLocation,
+                    $before['manager_user_ids'],
+                    $after['manager_user_ids'],
+                    $request->user(),
+                );
+            }
         }, 3);
 
-        return redirect()->route('locations.index')->with('status', 'Locatia a fost actualizata.');
+        return redirect()->route('locations.index')->with('status', 'Locația a fost actualizată.');
     }
 
     private function managerSyncData(array $managerIds): array
@@ -125,11 +151,7 @@ class LocationController extends Controller
     {
         return [
             'location' => $location,
-            'managers' => User::where('active', true)
-                ->whereHas('roles', fn ($query) => $query->whereIn('name', ['sef-santier', 'gestionar-baza', 'dispecer', 'admin', 'super-admin']))
-                ->with('roles')
-                ->orderBy('name')
-                ->get(),
+            'managers' => $this->locationResponsibilities->eligibleUsers(),
         ];
     }
 
@@ -139,7 +161,7 @@ class LocationController extends Controller
             'code' => Str::upper(trim((string) $request->input('code'))),
         ]);
 
-        return $request->validate([
+        $data = $request->validate([
             'type' => ['required', 'in:base,site'],
             'code' => ['required', 'string', 'max:40', Rule::unique('locations', 'code')->ignore($location)],
             'name' => ['required', 'string', 'max:255'],
@@ -149,5 +171,61 @@ class LocationController extends Controller
             'manager_user_ids.*' => ['integer', 'exists:users,id'],
             'active' => ['nullable', 'boolean'],
         ]);
+
+        $this->locationResponsibilities->assertEligible($data['manager_user_ids'] ?? []);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<int, int|string>  $managerIds
+     * @return array<int, int>
+     */
+    private function normalizedManagerIds(array $managerIds): array
+    {
+        return collect($managerIds)->map(fn ($id): int => (int) $id)->unique()->values()->all();
+    }
+
+    /** @return array{manager_user_ids: array<int, int>, managers: array<int, string>} */
+    private function responsibilitySnapshot(Location $location): array
+    {
+        $location->unsetRelation('activeManagers');
+        $location->load('activeManagers');
+        $managers = $location->activeManagers
+            ->sortBy([
+                ['pivot.is_primary', 'desc'],
+                ['name', 'asc'],
+            ])
+            ->values();
+
+        return [
+            'manager_user_ids' => $managers->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            'managers' => $managers
+                ->map(fn ($manager): string => "{$manager->login_code} - {$manager->name}")
+                ->all(),
+        ];
+    }
+
+    /**
+     * @param  array<int, int>  $beforeIds
+     * @param  array<int, int>  $afterIds
+     */
+    private function auditUserResponsibilityChanges(Location $location, array $beforeIds, array $afterIds, User $actor): void
+    {
+        $changedIds = collect($beforeIds)->merge($afterIds)->unique()->filter(
+            fn (int $userId): bool => in_array($userId, $beforeIds, true) !== in_array($userId, $afterIds, true)
+        );
+
+        User::query()->whereKey($changedIds)->get()->each(function (User $user) use ($actor, $afterIds, $beforeIds, $location): void {
+            activity('access')
+                ->performedOn($user)
+                ->causedBy($actor)
+                ->withProperties([
+                    'location' => "{$location->code} - {$location->name}",
+                    'before' => ['responsible' => in_array($user->id, $beforeIds, true)],
+                    'after' => ['responsible' => in_array($user->id, $afterIds, true)],
+                ])
+                ->log('Responsabilitate de locație actualizată');
+        });
     }
 }
