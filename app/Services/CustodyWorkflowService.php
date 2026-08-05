@@ -159,7 +159,7 @@ class CustodyWorkflowService
 
         $holderId = (int) $asset->current_custodian_id;
         $canActForHolder = $holderId === (int) $actor->id
-            || $actor->isOperationsAdmin()
+            || $actor->hasGlobalAbility('custody.manage')
             || ($asset->current_location_id && $this->locationAccess->canWrite($actor, (int) $asset->current_location_id));
         abort_unless($canActForHolder, 403);
 
@@ -232,7 +232,7 @@ class CustodyWorkflowService
 
         $holding = MaterialCustody::with('catalogItem')->lockForUpdate()->findOrFail($data['material_custody_id']);
         $canActForHolder = (int) $holding->user_id === (int) $actor->id
-            || $actor->isOperationsAdmin()
+            || $actor->hasGlobalAbility('custody.manage')
             || $this->locationAccess->canWrite($actor, (int) $holding->location_id);
         abort_unless($canActForHolder, 403);
 
@@ -441,10 +441,7 @@ class CustodyWorkflowService
         }
 
         $user = User::where('active', true)->findOrFail($userId);
-        if (! $user->hasAnyRole([
-            'super-admin', 'admin', 'dispecer', 'sef-santier',
-            'gestionar-baza', 'sofer', 'muncitor',
-        ])) {
+        if (! $user->hasAbility('custody.view')) {
             throw ValidationException::withMessages([
                 'to_user_id' => 'Persoana aleasă nu are un rol operațional pentru gestionarea custodiei.',
             ]);
@@ -541,9 +538,11 @@ class CustodyWorkflowService
                 $recipients = $recipients->merge(
                     $locationManagers->isNotEmpty()
                         ? $locationManagers
-                        : User::where('active', true)
-                            ->whereHas('roles', fn ($query) => $query->whereIn('name', ['super-admin', 'admin', 'dispecer']))
-                            ->get(),
+                        : User::permission('custody.manage')
+                            ->where('active', true)
+                            ->with(['roles.permissions', 'permissions'])
+                            ->get()
+                            ->filter(fn (User $user): bool => $user->hasGlobalAbility('custody.manage')),
                 );
             } elseif ($transfer->to_user_id) {
                 $recipients->push($transfer->toUser);

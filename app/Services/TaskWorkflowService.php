@@ -444,7 +444,7 @@ class TaskWorkflowService
     {
         if (! $driver->active || ! $driver->usesDriverWorkspace()) {
             throw ValidationException::withMessages([
-                'driver_id' => 'Poate fi alocat doar un sofer activ.',
+                'driver_id' => 'Poate fi alocat doar un utilizator activ cu drepturile necesare pentru sarcini.',
             ]);
         }
     }

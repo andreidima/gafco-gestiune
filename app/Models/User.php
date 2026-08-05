@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\NormalizesInternalCodes;
+use App\Services\AccessScopeService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -98,69 +99,101 @@ class User extends Authenticatable
 
     public function isOperationsAdmin(): bool
     {
-        return $this->hasAnyRole(['super-admin', 'admin', 'dispecer']);
+        return $this->hasGlobalAbility('inventory.manage');
     }
 
     public function isManagementUser(): bool
     {
-        return $this->isOperationsAdmin() || $this->hasAnyRole(['manager', 'sef-santier', 'gestionar-baza']);
+        return $this->hasAbility('tracked-assets.browse')
+            || $this->hasAbility('projects.view')
+            || $this->hasAbility('reports.view');
     }
 
     public function hasGlobalOperationalReadAccess(): bool
     {
-        return $this->isOperationsAdmin() || $this->hasRole('manager');
+        return collect(['transfers.view', 'tasks.view', 'reception-intakes.view'])
+            ->contains(fn (string $ability): bool => $this->hasGlobalAbility($ability));
     }
 
     public function hasGlobalInventoryReadAccess(): bool
     {
-        return $this->hasGlobalOperationalReadAccess() || $this->hasRole('contabil');
+        return $this->hasGlobalAbility('inventory.view');
     }
 
     public function canViewCommercialInventory(): bool
     {
-        return $this->hasPermissionTo('inventory.view-commercial')
-            || $this->hasAnyRole(['super-admin', 'admin', 'dispecer', 'manager', 'contabil']);
+        return $this->hasAbility('inventory.view-commercial');
     }
 
     public function canViewInventory(): bool
     {
-        return $this->hasAnyRole([
-            'super-admin', 'admin', 'dispecer', 'manager',
-            'sef-santier', 'gestionar-baza', 'contabil',
-        ]);
+        return $this->hasAbility('inventory.view');
     }
 
     public function usesDriverWorkspace(): bool
     {
-        return $this->hasRole('sofer') && ! $this->isManagementUser();
+        return $this->abilityScope('tasks.respond') === 'assigned_records'
+            && $this->abilityScope('tasks.view') === 'assigned_records';
     }
 
     public function usesWorkerWorkspace(): bool
     {
-        return $this->hasRole('muncitor') && ! $this->isManagementUser() && ! $this->usesDriverWorkspace();
+        return $this->abilityScope('custody.view') === 'personal'
+            && ! $this->usesDriverWorkspace();
     }
 
     public function canManageLocations(): bool
     {
-        return $this->isOperationsAdmin();
+        return $this->hasAbility('locations.manage');
     }
 
     public function canManageInventoryMasterData(): bool
     {
-        return $this->isOperationsAdmin() || $this->hasRole('gestionar-baza');
+        return $this->hasAbility('catalog.manage');
     }
 
     public function canManageTrackedAssets(): bool
     {
-        return $this->isOperationsAdmin();
+        return $this->hasAbility('tracked-assets.manage');
+    }
+
+    public function hasAbility(string $ability): bool
+    {
+        return app(AccessScopeService::class)->allows($this, $ability);
+    }
+
+    public function abilityScope(string $ability): ?string
+    {
+        return app(AccessScopeService::class)->scope($this, $ability);
+    }
+
+    public function hasGlobalAbility(string $ability): bool
+    {
+        return app(AccessScopeService::class)->isGlobal($this, $ability);
+    }
+
+    public function hasLocationAbility(string $ability, int $locationId): bool
+    {
+        return app(AccessScopeService::class)->allowsManagedLocation($this, $ability, $locationId);
     }
 
     public function scopeAssignableDrivers(Builder $query): Builder
     {
+        $rolesWithBroaderTaskAccess = collect(
+            (config('access.permissions', [])['tasks.view'] ?? [])['grants'] ?? []
+        )
+            ->reject(fn (string $scope): bool => $scope === 'assigned_records')
+            ->keys()
+            ->all();
+
         return $query
-            ->whereHas('roles', fn (Builder $roles) => $roles->where('name', 'sofer'))
-            ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', [
-                'super-admin', 'admin', 'dispecer', 'manager', 'sef-santier', 'gestionar-baza',
-            ]));
+            ->permission('tasks.respond')
+            ->where(function (Builder $withTaskAccess): void {
+                $withTaskAccess
+                    ->whereHas('roles.permissions', fn (Builder $permissions) => $permissions->where('name', 'tasks.view'))
+                    ->orWhereHas('permissions', fn (Builder $permissions) => $permissions->where('name', 'tasks.view'));
+            })
+            ->when($rolesWithBroaderTaskAccess !== [], fn (Builder $drivers) => $drivers
+                ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', $rolesWithBroaderTaskAccess)));
     }
 }

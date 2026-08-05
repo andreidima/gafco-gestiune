@@ -67,7 +67,7 @@
                 @foreach($approvals as $approval)
                     @php
                         $eligible = auth()->user()->can('approve', $transfer)
-                            && (auth()->user()->isOperationsAdmin()
+                            && (auth()->user()->hasGlobalAbility('transfers.approve')
                                 || ($approval->scope === 'driver' && $approval->expected_user_id === auth()->id())
                                 || ($approval->location && $approval->location->activeManagers->contains(auth()->user())));
                     @endphp

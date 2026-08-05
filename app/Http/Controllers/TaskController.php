@@ -70,7 +70,7 @@ class TaskController extends Controller
             'drivers' => $user->usesDriverWorkspace()
                 ? collect()
                 : User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'tasks.view')->orderBy('name')->get(),
             'totalTasks' => $this->visibleQuery($user)->count(),
             'driverTaskCounts' => $driverTaskCounts,
         ]);
@@ -308,10 +308,11 @@ class TaskController extends Controller
     private function visibleQuery(User $user): Builder
     {
         $query = Task::query();
-        if ($user->hasGlobalOperationalReadAccess()) {
+        $scope = $user->abilityScope('tasks.view');
+        if ($scope === 'global') {
             return $query;
         }
-        if ($user->usesDriverWorkspace()) {
+        if ($scope === 'assigned_records') {
             return $query->where(function ($visible) use ($user): void {
                 $visible->whereHas('currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id))
                     ->orWhereHas('assignments', fn ($assignment) => $assignment
@@ -320,12 +321,17 @@ class TaskController extends Controller
                         ->whereHas('replacementCandidates', fn ($candidate) => $candidate->where('status', 'pending')));
             });
         }
+        if (! in_array($scope, ['assigned_locations', 'visible_records'], true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
         $locationIds = $user->activeManagedLocations()->pluck('locations.id');
 
         return $query->where(function ($visible) use ($user, $locationIds): void {
             $visible->where('created_by', $user->id)
                 ->orWhereIn('source_location_id', $locationIds)
-                ->orWhereIn('destination_location_id', $locationIds);
+                ->orWhereIn('destination_location_id', $locationIds)
+                ->orWhereHas('currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id));
         });
     }
 
@@ -365,13 +371,13 @@ class TaskController extends Controller
         return [
             'task' => $task,
             'drivers' => User::assignableDrivers()->where('active', true)->orderBy('name')->get(),
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'tasks.create')->orderBy('name')->get(),
         ];
     }
 
     private function authorizeLocationScope(User $actor, ?int $sourceLocationId, ?int $destinationLocationId): void
     {
-        if ($actor->isOperationsAdmin()) {
+        if ($actor->hasGlobalAbility('tasks.create')) {
             return;
         }
 
@@ -381,7 +387,7 @@ class TaskController extends Controller
         }
 
         abort_unless(
-            $actor->hasAnyRole(['sef-santier', 'gestionar-baza'])
+            in_array($actor->abilityScope('tasks.create'), ['assigned_locations', 'visible_records'], true)
                 && $actor->activeManagedLocations()->whereIn('locations.id', $locationIds)->count() === $locationIds->count(),
             403
         );

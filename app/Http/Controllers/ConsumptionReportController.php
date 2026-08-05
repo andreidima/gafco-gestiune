@@ -26,7 +26,7 @@ class ConsumptionReportController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user, 'consumption-reports.view');
         $reports = ConsumptionReport::with([
             'location',
             'reporter',
@@ -45,7 +45,7 @@ class ConsumptionReportController extends Controller
                 ->latest('reported_at')
                 ->paginate(20)
                 ->withQueryString(),
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('type')->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'consumption-reports.view')->orderBy('type')->orderBy('name')->get(),
             'items' => CatalogItem::where('tracking_type', 'quantity')->where('active', true)->orderBy('name')->get(),
             'totalReports' => ConsumptionReport::query()
                 ->when($visibleLocationIds !== null, fn ($query) => $query->whereIn('location_id', $visibleLocationIds))
@@ -66,7 +66,7 @@ class ConsumptionReportController extends Controller
     public function edit(Request $request, ConsumptionReport $consumptionReport): View
     {
         $this->authorizeCorrection($request->user());
-        abort_unless($this->locationAccess->canView($request->user(), (int) $consumptionReport->location_id), 403);
+        abort_unless($this->locationAccess->canView($request->user(), (int) $consumptionReport->location_id, 'consumption-reports.correct'), 403);
         $consumptionReport->load([
             'location',
             'lines.catalogItem',
@@ -399,7 +399,7 @@ class ConsumptionReportController extends Controller
     {
         return Location::query()
             ->where('active', true)
-            ->when(! $user->isOperationsAdmin(), fn (Builder $query) => $query
+            ->when(! $user->hasGlobalAbility('consumption-reports.create'), fn (Builder $query) => $query
                 ->whereIn('id', $this->managedActiveLocationIds($user)));
     }
 
@@ -414,7 +414,7 @@ class ConsumptionReportController extends Controller
 
     private function canCreate(User $user): bool
     {
-        if (! ($user->isOperationsAdmin() || $user->hasAnyRole(['sef-santier', 'gestionar-baza']))) {
+        if (! $user->hasAbility('consumption-reports.create')) {
             return false;
         }
 
@@ -423,7 +423,7 @@ class ConsumptionReportController extends Controller
 
     private function canCorrect(User $user): bool
     {
-        return $user->active && $user->hasAnyRole(['super-admin', 'admin']);
+        return $user->hasAbility('consumption-reports.correct');
     }
 
     private function authorizeCorrection(User $user): void

@@ -16,7 +16,7 @@ class CatalogItemController extends Controller
 
     public function index(Request $request): View
     {
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user(), 'inventory.view');
         $stockScope = fn ($query) => $query
             ->when($visibleLocationIds !== null, fn ($visible) => $visible->whereIn('location_id', $visibleLocationIds));
 

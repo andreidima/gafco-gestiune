@@ -215,14 +215,26 @@ class AccessRoleAdministrationTest extends TestCase
     public function test_role_administration_content_migration_is_reversible(): void
     {
         $migration = require database_path('migrations/2026_08_05_000042_create_access_role_administration.php');
+        $enforcement = require database_path('migrations/2026_08_05_000043_enforce_configured_access.php');
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'administrarea-accesului',
-            'current_revision' => 2,
+            'current_revision' => 3,
         ]);
         $this->assertDatabaseHas('release_notes', [
             'slug' => '2026-08-05-roluri-si-exceptii-de-acces',
             'version' => '2026.08.05.2',
+        ]);
+        $this->assertDatabaseHas('release_notes', [
+            'slug' => '2026-08-05-aplicarea-drepturilor-configurate',
+            'version' => '2026.08.05.3',
+        ]);
+
+        $enforcement->down();
+
+        $this->assertDatabaseHas('help_articles', [
+            'slug' => 'administrarea-accesului',
+            'current_revision' => 2,
         ]);
 
         $migration->down();
@@ -237,6 +249,7 @@ class AccessRoleAdministrationTest extends TestCase
         $this->assertFalse(AccessRoleProfile::query()->getConnection()->getSchemaBuilder()->hasTable('access_role_profiles'));
 
         $migration->up();
+        $enforcement->up();
     }
 
     private function protectedAdministrator(): User

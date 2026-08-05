@@ -26,10 +26,7 @@ class ReceptionIntakeController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        abort_unless($user->hasAnyRole([
-            'super-admin', 'admin', 'dispecer', 'manager',
-            'sef-santier', 'gestionar-baza', 'muncitor',
-        ]), 403);
+        abort_unless($user->hasAbility('reception-intakes.view'), 403);
 
         $query = $this->access->visibleIntakes($user)
             ->with(['location', 'submitter', 'processor', 'reception'])
@@ -47,13 +44,13 @@ class ReceptionIntakeController extends Controller
             'intakes' => $query->paginate(20)->withQueryString(),
             'locations' => $this->filterLocations($user)->get(),
             'openCount' => (clone $this->access->visibleIntakes($user))->where('status', 'created')->count(),
-            'canUpload' => $user->hasPermissionTo('reception-documents.upload'),
+            'canUpload' => $user->hasAbility('reception-documents.upload'),
         ]);
     }
 
     public function create(Request $request): View
     {
-        abort_unless($request->user()->hasPermissionTo('reception-documents.upload'), 403);
+        abort_unless($request->user()->hasAbility('reception-documents.upload'), 403);
 
         return view('reception-intakes.create', [
             'locations' => $this->uploadLocations($request)->get(),
@@ -64,7 +61,7 @@ class ReceptionIntakeController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user->hasPermissionTo('reception-documents.upload'), 403);
+        abort_unless($user->hasAbility('reception-documents.upload'), 403);
         $locationIds = $this->uploadLocations($request)->pluck('id');
         $data = $this->validatePayload($request, $locationIds->all());
         $storedDocuments = collect();
@@ -115,12 +112,12 @@ class ReceptionIntakeController extends Controller
 
     public function cancel(Request $request, ReceptionIntake $receptionIntake): RedirectResponse
     {
-        abort_unless($this->access->canProcessIntake($request->user(), $receptionIntake), 403);
+        abort_unless($this->access->canCancelIntake($request->user(), $receptionIntake), 403);
         $data = $request->validate(['reason' => ['required', 'string', 'max:2000']]);
 
         DB::transaction(function () use ($request, $receptionIntake, $data): void {
             $lockedIntake = ReceptionIntake::query()->lockForUpdate()->findOrFail($receptionIntake->id);
-            abort_unless($this->access->canProcessIntake($request->user(), $lockedIntake), 409);
+            abort_unless($this->access->canCancelIntake($request->user(), $lockedIntake), 409);
 
             $lockedIntake->update([
                 'status' => 'closed',
@@ -169,11 +166,12 @@ class ReceptionIntakeController extends Controller
 
     private function filterLocations($user): Builder
     {
-        if ($user->hasGlobalOperationalReadAccess()) {
+        $scope = $user->abilityScope('reception-intakes.view');
+        if ($scope === 'global') {
             return Location::query()->where('active', true)->orderBy('type')->orderBy('name');
         }
 
-        if ($user->hasAnyRole(['sef-santier', 'gestionar-baza'])) {
+        if (in_array($scope, ['assigned_locations', 'visible_records'], true)) {
             return Location::query()
                 ->where('active', true)
                 ->whereIn('id', $user->activeManagedLocations()
@@ -193,10 +191,12 @@ class ReceptionIntakeController extends Controller
     {
         $user = $request->user();
 
+        $scope = $user->abilityScope('reception-documents.upload');
+
         return Location::query()
             ->where('active', true)
             ->when(
-                $user->hasAnyRole(['sef-santier', 'gestionar-baza']) && ! $user->isOperationsAdmin(),
+                ! in_array($scope, ['global', 'selected_location'], true),
                 fn (Builder $query) => $query->whereIn(
                     'id',
                     $user->activeManagedLocations()->where('locations.active', true)->pluck('locations.id'),

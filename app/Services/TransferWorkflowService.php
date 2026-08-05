@@ -176,8 +176,9 @@ class TransferWorkflowService
                 throw ValidationException::withMessages(['decision' => 'Aprobarile unui transfer inchis nu mai pot fi modificate.']);
             }
 
-            $allowed = $actor->isOperationsAdmin()
-                || ($approval->location && $approval->location->activeManagers->contains($actor));
+            $allowed = $actor->hasGlobalAbility('transfers.approve')
+                || ($approval->location
+                    && $actor->hasLocationAbility('transfers.approve', (int) $approval->location_id));
             abort_unless($allowed, 403);
 
             $approval->update([
@@ -205,12 +206,7 @@ class TransferWorkflowService
             Task::query()->where('transfer_id', $transfer->id)->lockForUpdate()->first();
             $transfer = Transfer::query()->lockForUpdate()->findOrFail($transfer->id);
             abort_unless(
-                $actor->isOperationsAdmin()
-                    || (! $actor->usesDriverWorkspace()
-                        && $actor->hasAnyRole(['sef-santier', 'gestionar-baza'])
-                        && $actor->activeManagedLocations()
-                            ->where('locations.id', $transfer->destination_location_id)
-                            ->exists()),
+                $actor->hasLocationAbility('transfers.receive', (int) $transfer->destination_location_id),
                 403
             );
             if ($transfer->status === 'received') {
@@ -495,14 +491,15 @@ class TransferWorkflowService
 
     private function authorizeLocationScope(User $actor, int $sourceLocationId, int $destinationLocationId): void
     {
-        if ($actor->isOperationsAdmin()) {
+        if ($actor->hasGlobalAbility('transfers.create')) {
             return;
         }
 
-        $allowedCount = $actor->activeManagedLocations()
-            ->whereIn('locations.id', [$sourceLocationId, $destinationLocationId])
-            ->count();
-        abort_unless($allowedCount === count(array_unique([$sourceLocationId, $destinationLocationId])), 403);
+        abort_unless(
+            $actor->hasLocationAbility('transfers.create', $sourceLocationId)
+                && $actor->hasLocationAbility('transfers.create', $destinationLocationId),
+            403
+        );
     }
 
     /** @return Collection<int, Location> */
@@ -558,7 +555,7 @@ class TransferWorkflowService
     {
         $driver = User::assignableDrivers()->where('active', true)->find($driverId);
         if (! $driver) {
-            throw ValidationException::withMessages(['driver_id' => 'Soferul selectat nu este activ sau nu are rolul de sofer.']);
+            throw ValidationException::withMessages(['driver_id' => 'Șoferul selectat nu este activ sau nu are drepturile necesare pentru sarcini alocate.']);
         }
 
         return $driver;

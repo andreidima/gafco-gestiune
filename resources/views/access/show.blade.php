@@ -16,7 +16,7 @@
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if($canManageExceptions)<a href="{{ route('access.exceptions.edit', $user) }}" class="btn btn-outline-primary"><i class="fa-solid fa-bolt me-1"></i>Administrează excepțiile</a>@endif
-            @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<a href="{{ route('users.edit', $user) }}" class="btn btn-primary"><i class="fa-solid fa-user-pen me-1"></i>Modifică utilizatorul</a>@endif
+            @if(auth()->user()->hasAbility('users.manage'))<a href="{{ route('users.edit', $user) }}" class="btn btn-primary"><i class="fa-solid fa-user-pen me-1"></i>Modifică utilizatorul</a>@endif
         </div>
     </div>
 

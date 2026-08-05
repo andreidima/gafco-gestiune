@@ -16,6 +16,7 @@ use App\Models\Transfer;
 use App\Models\TransferApproval;
 use App\Models\User;
 use App\Services\OperationalAlertAccessService;
+use App\Services\ReceptionAccessService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -24,7 +25,10 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly OperationalAlertAccessService $alertAccess) {}
+    public function __construct(
+        private readonly OperationalAlertAccessService $alertAccess,
+        private readonly ReceptionAccessService $receptionAccess,
+    ) {}
 
     public function __invoke(Request $request): View
     {
@@ -32,8 +36,12 @@ class DashboardController extends Controller
         $dashboardMode = match (true) {
             $user->usesDriverWorkspace() => 'driver',
             $user->usesWorkerWorkspace() => 'worker',
-            $user->hasGlobalOperationalReadAccess() || $user->hasRole('contabil') => 'operations',
-            $user->hasAnyRole(['sef-santier', 'gestionar-baza']) => 'manager',
+            collect([
+                'locations.view', 'catalog.view', 'inventory.view', 'tracked-assets.browse',
+                'transfers.view', 'tasks.view', 'receptions.view', 'consumption-reports.view', 'custody.view',
+            ])
+                ->every(fn (string $ability): bool => $user->hasGlobalAbility($ability)) => 'operations',
+            $user->isManagementUser() => 'manager',
             default => 'limited',
         };
         $showOperationsOverview = $dashboardMode === 'operations';
@@ -140,11 +148,7 @@ class DashboardController extends Controller
 
         if ($dashboardMode === 'driver') {
             $tasks = $this->visibleTasks($user);
-            $pendingCustody = CustodyTransfer::where('status', 'pending')
-                ->where(fn ($query) => $query->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id))
-                ->count();
-
-            return [
+            $queues = [
                 [
                     'title' => 'Asteapta raspunsul meu',
                     'count' => (clone $tasks)->where('status', 'pending_acceptance')
@@ -172,15 +176,22 @@ class DashboardController extends Controller
                     'icon' => 'fa-truck-fast',
                     'tone' => 'accent-forest',
                 ],
-                [
+            ];
+
+            if ($user->hasAbility('custody.view')) {
+                $queues[] = [
                     'title' => 'Custodie de confirmat',
-                    'count' => $pendingCustody,
+                    'count' => CustodyTransfer::where('status', 'pending')
+                        ->where(fn ($query) => $query->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id))
+                        ->count(),
                     'description' => 'Confirmă primirea, predarea sau returul bunurilor.',
                     'href' => route('field.worker', ['status' => 'pending']),
                     'icon' => 'fa-hand-holding-hand',
                     'tone' => 'accent-slate',
-                ],
-            ];
+                ];
+            }
+
+            return $queues;
         }
 
         if ($dashboardMode === 'worker') {
@@ -192,87 +203,104 @@ class DashboardController extends Controller
                     ? MaterialCustody::where('user_id', $user->id)->where('quantity', '>', 0)->count()
                     : 0);
 
-            return [
+            $queues = [
                 ['title' => 'Predări de confirmat', 'count' => $pendingCustody, 'description' => 'Confirmă predarea, primirea sau returul.', 'href' => route('field.worker', ['status' => 'pending']), 'icon' => 'fa-handshake', 'tone' => 'accent-amber'],
                 ['title' => 'Custodia mea', 'count' => $custodyPositions, 'description' => 'Echipamente și materiale aflate în responsabilitatea ta.', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand', 'tone' => 'accent-forest'],
-                ['title' => 'Scanare QR', 'count' => null, 'description' => 'Deschide rapid un echipament dupa cod.', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode', 'tone' => 'accent-slate'],
             ];
+            if ($user->hasAbility('qr.scan')) {
+                $queues[] = ['title' => 'Scanare QR', 'count' => null, 'description' => 'Deschide rapid un echipament dupa cod.', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode', 'tone' => 'accent-slate'];
+            }
+
+            return $queues;
         }
 
+        $queues = [];
         $tasks = $this->visibleTasks($user);
         $canDispatch = $user->can('create', Task::class);
-        if ($canDispatch) {
-            $managedLocationIds = $user->activeManagedLocations()->pluck('locations.id');
-            $pendingCustody = Schema::hasColumn('custody_transfers', 'operation_type')
-                ? CustodyTransfer::where('status', 'pending')
-                    ->where(function ($query) use ($user, $managedLocationIds): void {
-                        $query->where('from_user_id', $user->id)
-                            ->orWhere('to_user_id', $user->id)
-                            ->orWhere(function ($returns) use ($user, $managedLocationIds): void {
-                                $returns->where('operation_type', 'return')
-                                    ->whereNull('to_approved_at')
-                                    ->when(
-                                        ! $user->isOperationsAdmin(),
-                                        fn ($visible) => $visible->whereIn('location_id', $managedLocationIds),
-                                    );
-                            });
-                    })
-                    ->count()
-                : 0;
 
-            return [
-                [
-                    'title' => 'Necesita aprobarea mea',
-                    'count' => $this->pendingApprovals($user)->count(),
-                    'description' => 'Transferuri la care poti lua acum o decizie.',
-                    'href' => route('field.site-manager'),
-                    'icon' => 'fa-user-check',
-                    'tone' => 'accent-rose',
-                ],
-                [
-                    'title' => 'Sarcini intarziate',
-                    'count' => (clone $tasks)->whereNotNull('manager_deadline')->where('manager_deadline', '<', now())
-                        ->whereNotIn('status', ['completed', 'cancelled', 'archived'])->count(),
-                    'description' => 'Sarcini vizibile cu termen depasit.',
-                    'href' => route('tasks.index', ['overdue' => 1]),
-                    'icon' => 'fa-triangle-exclamation',
-                    'tone' => 'accent-danger',
-                ],
-                [
-                    'title' => 'Sarcini nealocate',
-                    'count' => (clone $tasks)->where('status', 'unassigned')->count(),
-                    'description' => 'Alege un sofer si trimite spre acceptare.',
-                    'href' => route('tasks.dispatch').'#unassigned-tasks',
-                    'icon' => 'fa-inbox',
-                    'tone' => 'accent-amber',
-                ],
-                [
-                    'title' => 'Soferi disponibili',
-                    'count' => User::assignableDrivers()->where('active', true)
-                        ->whereDoesntHave('taskAssignments', fn ($assignment) => $assignment
-                            ->whereIn('status', ['pending', 'accepted', 'reassignment_requested'])
-                            ->whereHas('task', fn ($task) => $task->whereNotIn('status', ['completed', 'cancelled', 'archived'])))
-                        ->count(),
-                    'description' => 'Liberi acum pentru o sarcina noua.',
-                    'href' => route('tasks.dispatch'),
-                    'icon' => 'fa-users-viewfinder',
-                    'tone' => 'accent-forest',
-                ],
-                [
-                    'title' => 'Custodii de confirmat',
-                    'count' => $pendingCustody,
-                    'description' => 'Predări și retururi care așteaptă o decizie.',
-                    'href' => route('field.worker', ['status' => 'pending']),
-                    'icon' => 'fa-hand-holding-hand',
-                    'tone' => 'accent-slate',
-                ],
+        if ($user->hasAbility('transfers.approve')) {
+            $queues[] = [
+                'title' => 'Necesita aprobarea mea',
+                'count' => $this->pendingApprovals($user)->count(),
+                'description' => 'Transferuri la care poti lua acum o decizie.',
+                'href' => route('field.site-manager'),
+                'icon' => 'fa-user-check',
+                'tone' => 'accent-rose',
             ];
         }
 
-        return [
-            ['title' => 'Transferuri in tranzit', 'count' => Transfer::where('status', 'in_transit')->count(), 'description' => 'Fluxuri active in acest moment.', 'href' => route('transfers.index', ['status' => 'in_transit']), 'icon' => 'fa-right-left', 'tone' => 'accent-amber'],
-            ['title' => 'Receptii luna', 'count' => SupplierReception::where('received_at', '>=', now()->subDays(30))->count(), 'description' => 'Intrari inregistrate in ultimele 30 de zile.', 'href' => route('supplier-receptions.index'), 'icon' => 'fa-receipt', 'tone' => 'accent-teal'],
-        ];
+        if ($user->hasAbility('tasks.view')) {
+            $queues[] = [
+                'title' => 'Sarcini intarziate',
+                'count' => (clone $tasks)->whereNotNull('manager_deadline')->where('manager_deadline', '<', now())
+                    ->whereNotIn('status', ['completed', 'cancelled', 'archived'])->count(),
+                'description' => 'Sarcini vizibile cu termen depasit.',
+                'href' => route('tasks.index', ['overdue' => 1]),
+                'icon' => 'fa-triangle-exclamation',
+                'tone' => 'accent-danger',
+            ];
+        }
+
+        if ($canDispatch) {
+            $queues[] = [
+                'title' => 'Sarcini nealocate',
+                'count' => (clone $tasks)->where('status', 'unassigned')->count(),
+                'description' => 'Alege un sofer si trimite spre acceptare.',
+                'href' => route('tasks.dispatch').'#unassigned-tasks',
+                'icon' => 'fa-inbox',
+                'tone' => 'accent-amber',
+            ];
+        }
+
+        if ($user->hasAbility('tasks.assign')) {
+            $queues[] = [
+                'title' => 'Soferi disponibili',
+                'count' => User::assignableDrivers()->where('active', true)
+                    ->whereDoesntHave('taskAssignments', fn ($assignment) => $assignment
+                        ->whereIn('status', ['pending', 'accepted', 'reassignment_requested'])
+                        ->whereHas('task', fn ($task) => $task->whereNotIn('status', ['completed', 'cancelled', 'archived'])))
+                    ->count(),
+                'description' => 'Liberi acum pentru o sarcina noua.',
+                'href' => route('tasks.dispatch'),
+                'icon' => 'fa-users-viewfinder',
+                'tone' => 'accent-forest',
+            ];
+        }
+
+        if ($user->hasAbility('custody.view') && Schema::hasColumn('custody_transfers', 'operation_type')) {
+            $managedLocationIds = $user->activeManagedLocations()->pluck('locations.id');
+            $pendingCustody = CustodyTransfer::where('status', 'pending')
+                ->where(function ($query) use ($user, $managedLocationIds): void {
+                    $query->where('from_user_id', $user->id)
+                        ->orWhere('to_user_id', $user->id)
+                        ->orWhere(function ($returns) use ($user, $managedLocationIds): void {
+                            $returns->where('operation_type', 'return')
+                                ->whereNull('to_approved_at')
+                                ->when(
+                                    ! $user->hasGlobalAbility('custody.manage'),
+                                    fn ($visible) => $visible->whereIn('location_id', $managedLocationIds),
+                                );
+                        });
+                })
+                ->count();
+            $queues[] = [
+                'title' => 'Custodii de confirmat',
+                'count' => $pendingCustody,
+                'description' => 'Predări și retururi care așteaptă o decizie.',
+                'href' => route('field.worker', ['status' => 'pending']),
+                'icon' => 'fa-hand-holding-hand',
+                'tone' => 'accent-slate',
+            ];
+        }
+
+        if (! $canDispatch && $user->hasAbility('transfers.view')) {
+            $queues[] = ['title' => 'Transferuri in tranzit', 'count' => $this->visibleTransfers($user)->where('status', 'in_transit')->count(), 'description' => 'Fluxuri active in acest moment.', 'href' => route('transfers.index', ['status' => 'in_transit']), 'icon' => 'fa-right-left', 'tone' => 'accent-amber'];
+        }
+        if (! $canDispatch && $user->hasAbility('receptions.view')) {
+            $queues[] = ['title' => 'Receptii luna', 'count' => $this->receptionAccess->visibleReceptions($user)->where('received_at', '>=', now()->subDays(30))->count(), 'description' => 'Intrari inregistrate in ultimele 30 de zile.', 'href' => route('supplier-receptions.index'), 'icon' => 'fa-receipt', 'tone' => 'accent-teal'];
+        }
+
+        return array_slice($queues, 0, 5);
     }
 
     private function quickActions(User $user, string $dashboardMode): array
@@ -282,18 +310,18 @@ class DashboardController extends Controller
         }
 
         if ($dashboardMode === 'driver') {
-            return [
-                ['label' => 'Sarcinile mele', 'href' => route('tasks.index'), 'icon' => 'fa-list-check'],
-                ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
-                ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
-            ];
+            return collect([
+                'tasks.view' => ['label' => 'Sarcinile mele', 'href' => route('tasks.index'), 'icon' => 'fa-list-check'],
+                'custody.view' => ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
+                'qr.scan' => ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
+            ])->filter(fn (array $action, string $ability): bool => $user->hasAbility($ability))->values()->all();
         }
 
         if ($dashboardMode === 'worker') {
-            return [
-                ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
-                ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
-            ];
+            return collect([
+                'custody.view' => ['label' => 'Custodia mea', 'href' => route('field.worker'), 'icon' => 'fa-hand-holding-hand'],
+                'qr.scan' => ['label' => 'Scanează QR', 'href' => route('qr-scan.index'), 'icon' => 'fa-qrcode'],
+            ])->filter(fn (array $action, string $ability): bool => $user->hasAbility($ability))->values()->all();
         }
 
         $actions = [];
@@ -307,7 +335,7 @@ class DashboardController extends Controller
         if (Schema::hasTable('projects') && $user->can('viewAny', Project::class)) {
             $actions[] = ['label' => 'Proiecte materiale', 'href' => route('projects.index'), 'icon' => 'fa-diagram-project'];
         }
-        if ($user->hasAnyRole(['super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza'])) {
+        if ($user->hasAbility('receptions.create')) {
             $actions[] = ['label' => 'Recepție nouă', 'href' => route('supplier-receptions.create'), 'icon' => 'fa-receipt'];
         }
         if ($user->canViewInventory()) {
@@ -323,10 +351,11 @@ class DashboardController extends Controller
     private function visibleTasks(User $user): Builder
     {
         $query = Task::query();
-        if ($user->hasGlobalOperationalReadAccess()) {
+        $scope = $user->abilityScope('tasks.view');
+        if ($scope === 'global') {
             return $query;
         }
-        if ($user->usesDriverWorkspace()) {
+        if ($scope === 'assigned_records') {
             return $query->where(function ($visible) use ($user): void {
                 $visible->whereHas('currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id))
                     ->orWhereHas('assignments', fn ($assignment) => $assignment
@@ -335,12 +364,44 @@ class DashboardController extends Controller
                         ->whereHas('replacementCandidates', fn ($candidate) => $candidate->where('status', 'pending')));
             });
         }
+        if (! in_array($scope, ['assigned_locations', 'visible_records'], true)) {
+            return $query->whereRaw('1 = 0');
+        }
         $locationIds = $user->activeManagedLocations()->pluck('locations.id');
 
         return $query->where(function ($visible) use ($user, $locationIds): void {
             $visible->where('created_by', $user->id)
                 ->orWhereIn('source_location_id', $locationIds)
-                ->orWhereIn('destination_location_id', $locationIds);
+                ->orWhereIn('destination_location_id', $locationIds)
+                ->orWhereHas('currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id));
+        });
+    }
+
+    private function visibleTransfers(User $user): Builder
+    {
+        $query = Transfer::query();
+        $scope = $user->abilityScope('transfers.view');
+        if ($scope === 'global') {
+            return $query;
+        }
+        if ($scope === 'assigned_records') {
+            return $query->where(function ($visible) use ($user): void {
+                $visible->where('driver_id', $user->id)
+                    ->orWhereHas('task.currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id));
+            });
+        }
+        if (! in_array($scope, ['assigned_locations', 'visible_records'], true)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $locationIds = $user->activeManagedLocations()->pluck('locations.id');
+
+        return $query->where(function ($visible) use ($user, $locationIds): void {
+            $visible->where('requested_by', $user->id)
+                ->orWhereIn('source_location_id', $locationIds)
+                ->orWhereIn('destination_location_id', $locationIds)
+                ->orWhere('driver_id', $user->id)
+                ->orWhereHas('task.currentAssignment', fn ($assignment) => $assignment->where('driver_id', $user->id));
         });
     }
 
@@ -352,7 +413,11 @@ class DashboardController extends Controller
                 ->whereColumn('transfers.revision', 'transfer_approvals.revision')
                 ->whereNotIn('status', ['received', 'cancelled']));
 
-        if ($user->isOperationsAdmin()) {
+        if (! $user->hasAbility('transfers.approve')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasGlobalAbility('transfers.approve')) {
             return $query->where('scope', '!=', 'driver');
         }
 

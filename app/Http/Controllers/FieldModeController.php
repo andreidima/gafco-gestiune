@@ -34,12 +34,21 @@ class FieldModeController extends Controller
     public function siteManager(Request $request): View
     {
         $user = $request->user();
-        abort_unless($user->isOperationsAdmin() || $user->hasAnyRole(['sef-santier', 'gestionar-baza']), 403);
+        abort_unless($user->hasAbility('transfers.approve') || $user->hasAbility('consumption-reports.create'), 403);
 
         $managedLocationIds = $user->activeManagedLocations()->pluck('locations.id');
+        $canViewTransfers = $user->hasAbility('transfers.view');
+        $canApproveTransfers = $user->hasAbility('transfers.approve');
+        $canViewTasks = $user->hasAbility('tasks.view');
+        $canViewConsumption = $user->hasAbility('consumption-reports.view');
+        $globalTransfers = $user->hasGlobalAbility('transfers.view');
+        $globalApprovals = $user->hasGlobalAbility('transfers.approve');
+        $globalTasks = $user->hasGlobalAbility('tasks.view');
+        $globalConsumption = $user->hasGlobalAbility('consumption-reports.view');
         $visibleTransfers = Transfer::query()
             ->whereIn('status', ['pending_approval', 'approved', 'in_transit'])
-            ->when(! $user->isOperationsAdmin(), fn ($query) => $query->where(function ($visible) use ($managedLocationIds): void {
+            ->when(! $canViewTransfers, fn ($query) => $query->whereRaw('1 = 0'))
+            ->when(! $globalTransfers, fn ($query) => $query->where(function ($visible) use ($managedLocationIds): void {
                 $visible->whereIn('source_location_id', $managedLocationIds)->orWhereIn('destination_location_id', $managedLocationIds);
             }));
         $activeTransfersCount = (clone $visibleTransfers)->count();
@@ -59,11 +68,12 @@ class FieldModeController extends Controller
 
         $pendingApprovalsQuery = TransferApproval::query()
             ->where('status', 'pending')
-            ->when($user->isOperationsAdmin(), fn ($query) => $query->where('scope', '!=', 'driver'))
+            ->when(! $canApproveTransfers, fn ($query) => $query->whereRaw('1 = 0'))
+            ->when($globalApprovals, fn ($query) => $query->where('scope', '!=', 'driver'))
             ->whereHas('transfer', fn ($transfer) => $transfer
                 ->whereColumn('transfers.revision', 'transfer_approvals.revision')
                 ->whereNotIn('status', ['received', 'cancelled']))
-            ->when(! $user->isOperationsAdmin(), fn ($query) => $query->whereIn('location_id', $managedLocationIds));
+            ->when(! $globalApprovals, fn ($query) => $query->whereIn('location_id', $managedLocationIds));
         $pendingApprovalsCount = (clone $pendingApprovalsQuery)->count();
         $pendingApprovals = $pendingApprovalsQuery
             ->with(['transfer.sourceLocation', 'transfer.destinationLocation', 'location'])
@@ -72,7 +82,8 @@ class FieldModeController extends Controller
             ->get();
 
         $visibleTasks = Task::query()
-            ->when(! $user->isOperationsAdmin(), fn ($query) => $query->where(function ($visible) use ($user, $managedLocationIds): void {
+            ->when(! $canViewTasks, fn ($query) => $query->whereRaw('1 = 0'))
+            ->when(! $globalTasks, fn ($query) => $query->where(function ($visible) use ($user, $managedLocationIds): void {
                 $visible->where('created_by', $user->id)
                     ->orWhereIn('source_location_id', $managedLocationIds)
                     ->orWhereIn('destination_location_id', $managedLocationIds);
@@ -84,7 +95,8 @@ class FieldModeController extends Controller
             ->count();
 
         $recentConsumptionQuery = ConsumptionReport::with(['location', 'lines.catalogItem'])
-            ->when(! $user->isOperationsAdmin(), fn ($query) => $query->whereIn('location_id', $managedLocationIds));
+            ->when(! $canViewConsumption, fn ($query) => $query->whereRaw('1 = 0'))
+            ->when(! $globalConsumption, fn ($query) => $query->whereIn('location_id', $managedLocationIds));
 
         return view('field.site-manager', [
             'pendingTransfers' => $pendingTransfers,
@@ -93,7 +105,9 @@ class FieldModeController extends Controller
             'activeTransfersCount' => $activeTransfersCount,
             'overdueTasksCount' => $overdueTasksCount,
             'consumptionThisMonthCount' => (clone $recentConsumptionQuery)->where('reported_at', '>=', now()->subDays(30))->count(),
-            'managedLocationsCount' => $user->isOperationsAdmin() ? Location::where('active', true)->count() : $managedLocationIds->count(),
+            'managedLocationsCount' => $user->hasAbility('locations.view')
+                ? ($user->hasGlobalAbility('locations.view') ? Location::where('active', true)->count() : $managedLocationIds->count())
+                : 0,
             'recentConsumption' => $recentConsumptionQuery
                 ->latest('reported_at')
                 ->limit(8)
@@ -106,12 +120,12 @@ class FieldModeController extends Controller
         $user = $request->user();
         $expandedCustodyAvailable = Schema::hasTable('material_custodies')
             && Schema::hasColumn('custody_transfers', 'operation_type');
-        $globalView = $user->hasGlobalOperationalReadAccess();
+        $globalView = $user->hasGlobalAbility('custody.view');
         $managedLocationIds = $user->activeManagedLocations()
             ->where('locations.active', true)
             ->pluck('locations.id')
             ->map(fn ($id) => (int) $id);
-        $writeLocations = $user->isOperationsAdmin()
+        $writeLocations = $user->hasGlobalAbility('custody.initiate')
             ? Location::where('active', true)->orderBy('name')->get()
             : $user->activeManagedLocations()->where('locations.active', true)->orderBy('name')->get();
         CustodyTransfer::where('status', 'pending')
@@ -219,11 +233,9 @@ class FieldModeController extends Controller
             ->whereDoesntHave('catalogItem', fn ($query) => $query->where('active', false))
             ->orderBy('asset_code')
             ->get();
-        $recipients = User::where('active', true)
+        $recipients = User::permission('custody.view')
+            ->where('active', true)
             ->where('id', '!=', $user->id)
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', [
-                'admin', 'dispecer', 'sef-santier', 'gestionar-baza', 'sofer', 'muncitor',
-            ]))
             ->orderBy('name')
             ->get();
 
@@ -240,10 +252,7 @@ class FieldModeController extends Controller
             'returnLocations' => Location::where('active', true)->orderBy('name')->get(),
             'writeLocations' => $writeLocations,
             'canIssueCustody' => $writeLocations->isNotEmpty(),
-            'canInitiateCustody' => $user->hasAnyRole([
-                'super-admin', 'admin', 'dispecer', 'sef-santier',
-                'gestionar-baza', 'sofer', 'muncitor',
-            ]),
+            'canInitiateCustody' => $user->hasAbility('custody.initiate'),
             'showRecipientCodes' => $user->usesDriverWorkspace(),
             'expandedCustodyAvailable' => $expandedCustodyAvailable,
         ]);

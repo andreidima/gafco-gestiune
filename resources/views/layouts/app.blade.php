@@ -22,12 +22,17 @@
     @auth
         @php
             $navigationUser = auth()->user();
-            $navigationOperations = $navigationUser->isOperationsAdmin();
-            $navigationManager = $navigationUser->hasAnyRole(['sef-santier', 'gestionar-baza']);
+            $navigationOperations = $navigationUser->hasAbility('transfers.approve')
+                || $navigationUser->hasAbility('consumption-reports.create');
+            $navigationManager = $navigationOperations;
             $navigationDriver = $navigationUser->usesDriverWorkspace();
             $navigationWorker = $navigationUser->usesWorkerWorkspace();
-            $navigationAccounting = $navigationUser->hasRole('contabil');
-            $navigationManagement = $navigationUser->isManagementUser();
+            $navigationManagement = ! $navigationDriver && ! $navigationWorker && collect([
+                'locations.view', 'catalog.view', 'suppliers.view', 'inventory.view',
+                'tracked-assets.browse', 'projects.view', 'reception-intakes.view',
+                'receptions.view', 'negotiated-orders.view', 'consumption-reports.view',
+                'alerts.view',
+            ])->contains(fn (string $ability): bool => $navigationUser->hasAbility($ability));
             $notificationsAvailable = \Illuminate\Support\Facades\Schema::hasTable('notifications');
             $receptionWorkflowAvailable = \Illuminate\Support\Facades\Schema::hasTable('reception_intakes');
             $negotiatedOrdersAvailable = \Illuminate\Support\Facades\Schema::hasTable('negotiated_orders');
@@ -83,22 +88,26 @@
                                     <i class="fa-solid fa-house me-1"></i> Acasa
                                 </a>
                             </li>
-                            @if($navigationManagement || $navigationAccounting)
+                            @if($navigationManagement)
                                 <li class="nav-item me-2 dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('locations.*', 'catalog-items.*', 'suppliers.*', 'inventory.*', 'tracked-assets.*', 'projects.*', 'reception-intakes.*', 'supplier-receptions.*', 'negotiated-orders.*', 'consumption-reports.*', 'returns.*', 'alerts.*', 'field.worker') ? 'active' : '' }}" href="#" id="gestiuneDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-boxes-stacked me-1"></i> Gestiune
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="gestiuneDropdown">
-                                        @if($navigationManagement && $receptionWorkflowAvailable)
+                                        @if($navigationUser->hasAbility('locations.view'))
                                             <li><a class="dropdown-item {{ request()->routeIs('locations.*') ? 'active' : '' }}" href="{{ route('locations.index') }}">Locatii</a></li>
+                                        @endif
+                                        @if($navigationUser->hasAbility('tracked-assets.browse'))
                                             <li><a class="dropdown-item {{ request()->routeIs('tracked-assets.*') ? 'active' : '' }}" href="{{ route('tracked-assets.index') }}">Echipamente</a></li>
+                                        @endif
+                                        @if($navigationUser->hasAbility('catalog.view'))
                                             <li><a class="dropdown-item {{ request()->routeIs('catalog-items.*') ? 'active' : '' }}" href="{{ route('catalog-items.index') }}">Nomenclator</a></li>
                                         @endif
-                                        <li><a class="dropdown-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" href="{{ route('suppliers.index') }}">Furnizori</a></li>
-                                        @if($navigationManagement && $projectsAvailable)
+                                        @if($navigationUser->hasAbility('suppliers.view'))<li><a class="dropdown-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" href="{{ route('suppliers.index') }}">Furnizori</a></li>@endif
+                                        @if($navigationUser->hasAbility('projects.view') && $projectsAvailable)
                                             <li><a class="dropdown-item {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}">Proiecte materiale</a></li>
                                         @endif
-                                        <li><a class="dropdown-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Fișă inventar materiale</a></li>
+                                        @if($navigationUser->hasAbility('inventory.view'))<li><a class="dropdown-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">Fișă inventar materiale</a></li>@endif
                                         @if($navigationCanViewAlerts)
                                             <li>
                                                 <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('alerts.*') ? 'active' : '' }}" href="{{ route('alerts.index') }}">
@@ -109,7 +118,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if($navigationManagement && $receptionWorkflowAvailable)
+                                        @if($navigationUser->hasAbility('reception-intakes.view') && $receptionWorkflowAvailable)
                                             <li>
                                                 <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 {{ request()->routeIs('reception-intakes.*') ? 'active' : '' }}" href="{{ route('reception-intakes.index') }}">
                                                     <span>Documente de procesat</span>
@@ -125,34 +134,34 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        <li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Recepții</a></li>
-                                        @if($navigationUser->hasAnyRole(['admin', 'super-admin']) && $negotiatedOrdersAvailable)
+                                        @if($navigationUser->hasAbility('receptions.view'))<li><a class="dropdown-item {{ request()->routeIs('supplier-receptions.*') ? 'active' : '' }}" href="{{ route('supplier-receptions.index') }}">Recepții</a></li>@endif
+                                        @if($navigationUser->hasAbility('negotiated-orders.view') && $negotiatedOrdersAvailable)
                                             <li><a class="dropdown-item {{ request()->routeIs('negotiated-orders.*') ? 'active' : '' }}" href="{{ route('negotiated-orders.index') }}">Comenzi negociate</a></li>
                                         @endif
-                                        <li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>
-                                        @if($navigationManagement)<li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>@endif
-                                        @if($navigationManagement)<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
+                                        @if($navigationUser->hasAbility('consumption-reports.view'))<li><a class="dropdown-item {{ request()->routeIs('consumption-reports.*') ? 'active' : '' }}" href="{{ route('consumption-reports.index') }}">Consum</a></li>@endif
+                                        @if($navigationUser->hasAbility('custody.view'))<li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>@endif
+                                        @if($navigationUser->hasAbility('transfers.view'))<li><a class="dropdown-item {{ request('purpose') === 'return' ? 'active' : '' }}" href="{{ route('transfers.index', ['purpose' => 'return']) }}">Retururi</a></li>@endif
                                     </ul>
                                 </li>
                             @endif
 
-                            @if($navigationManagement)
+                            @if($navigationDriver)
+                                @if($navigationUser->hasAbility('tasks.view'))<li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i class="fa-solid fa-list-check me-1"></i>Sarcinile mele</a></li>@endif
+                                @if($navigationUser->hasAbility('transfers.view'))<li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}"><i class="fa-solid fa-right-left me-1"></i>Transferurile mele</a></li>@endif
+                                @if($navigationUser->hasAbility('custody.view'))<li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-hand-holding-hand me-1"></i>Custodia mea</a></li>@endif
+                            @elseif($navigationUser->hasAbility('transfers.view') || $navigationUser->hasAbility('tasks.view'))
                                 <li class="nav-item me-2 dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('transfers.*', 'tasks.*', 'driver-requests.*') ? 'active' : '' }}" href="#" id="transferuriDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-right-left me-1"></i> Operatiuni
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="transferuriDropdown">
-                                        <li><a class="dropdown-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">Transferuri</a></li>
-                                        <li><a class="dropdown-item {{ request()->routeIs('tasks.index', 'tasks.show', 'tasks.create', 'tasks.edit') ? 'active' : '' }}" href="{{ route('tasks.index') }}">Sarcini soferi</a></li>
+                                        @if($navigationUser->hasAbility('transfers.view'))<li><a class="dropdown-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}">Transferuri</a></li>@endif
+                                        @if($navigationUser->hasAbility('tasks.view'))<li><a class="dropdown-item {{ request()->routeIs('tasks.index', 'tasks.show', 'tasks.create', 'tasks.edit') ? 'active' : '' }}" href="{{ route('tasks.index') }}">Sarcini soferi</a></li>@endif
                                         @can('create', \App\Models\Task::class)
                                             <li><a class="dropdown-item {{ request()->routeIs('tasks.dispatch') ? 'active' : '' }}" href="{{ route('tasks.dispatch') }}">Situatie soferi</a></li>
                                         @endcan
                                     </ul>
                                 </li>
-                            @elseif($navigationDriver)
-                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i class="fa-solid fa-list-check me-1"></i>Sarcinile mele</a></li>
-                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}" href="{{ route('transfers.index') }}"><i class="fa-solid fa-right-left me-1"></i>Transferurile mele</a></li>
-                                <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}"><i class="fa-solid fa-hand-holding-hand me-1"></i>Custodia mea</a></li>
                             @endif
 
                             @if($navigationOperations)
@@ -160,8 +169,8 @@
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('field.*', 'qr-scan.*') ? 'active' : '' }}" href="#" id="terenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-mobile-screen-button me-1"></i>Teren</a>
                                     <ul class="dropdown-menu" aria-labelledby="terenDropdown">
                                         <li><a class="dropdown-item {{ request()->routeIs('field.site-manager') ? 'active' : '' }}" href="{{ route('field.site-manager') }}">Sef santier</a></li>
-                                        <li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>
-                                        <li><a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">Scanare QR</a></li>
+                                        @if($navigationUser->hasAbility('custody.view'))<li><a class="dropdown-item {{ request()->routeIs('field.worker') ? 'active' : '' }}" href="{{ route('field.worker') }}">Custodie personală</a></li>@endif
+                                        @if($navigationUser->hasAbility('qr.scan'))<li><a class="dropdown-item {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}">Scanare QR</a></li>@endif
                                     </ul>
                                 </li>
                             @elseif($navigationManager)
@@ -179,21 +188,21 @@
                                 @endif
                             @endif
 
-                            @if($navigationDriver || $navigationWorker)
+                            @if(($navigationDriver || $navigationWorker) && $navigationUser->hasAbility('qr.scan'))
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('qr-scan.*') ? 'active' : '' }}" href="{{ route('qr-scan.index') }}"><i class="fa-solid fa-qrcode me-1"></i>QR</a></li>
                             @endif
 
-                            @if($navigationManagement || $navigationAccounting)
+                            @if($navigationUser->hasAbility('reports.view'))
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><i class="fa-solid fa-chart-column me-1"></i>Rapoarte</a></li>
                             @endif
 
-                            @if($navigationUser->hasAnyRole(['admin','super-admin']) || $navigationUser->can('access.view'))
+                            @if($navigationUser->hasAbility('users.view') || $navigationUser->can('access.view') || $navigationUser->hasAbility('alerts.manage'))
                                 <li class="nav-item me-2 dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*', 'access.*', 'alert-rules.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fa-solid fa-gear me-1"></i> Setări
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="utileDropdown">
-                                        @if($navigationUser->hasAnyRole(['admin','super-admin']))
+                                        @if($navigationUser->hasAbility('users.view'))
                                             <li>
                                                 <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
                                                     Utilizatori
@@ -207,7 +216,7 @@
                                                 </a>
                                             </li>
                                         @endcan
-                                        @if($alertsAvailable)
+                                        @if($alertsAvailable && $navigationUser->hasAbility('alerts.manage'))
                                             <li>
                                                 <a class="dropdown-item {{ request()->routeIs('alert-rules.*') ? 'active' : '' }}" href="{{ route('alert-rules.index') }}">
                                                     Reguli de alertare

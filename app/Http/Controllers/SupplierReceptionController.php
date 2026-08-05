@@ -37,11 +37,8 @@ class SupplierReceptionController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $canViewIntakes = $user->hasAnyRole([
-            'super-admin', 'admin', 'dispecer', 'manager',
-            'sef-santier', 'gestionar-baza', 'muncitor',
-        ]);
-        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
+        $canViewIntakes = $user->hasAbility('reception-intakes.view');
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user, 'receptions.view');
         $receptions = $this->receptionAccess->visibleReceptions($user)
             ->with([
                 'location',
@@ -67,7 +64,7 @@ class SupplierReceptionController extends Controller
                 ->latest()
                 ->paginate(20)
                 ->withQueryString(),
-            'locations' => $this->locationAccess->visibleLocations($user)->orderBy('name')->get(),
+            'locations' => $this->locationAccess->visibleLocations($user, 'receptions.view')->orderBy('name')->get(),
             'suppliers' => Supplier::orderByDesc('active')->orderBy('name')->get(),
             'items' => CatalogItem::where('active', true)->where('tracking_type', 'quantity')->orderBy('name')->get(),
             'totalReceptions' => SupplierReception::query()
@@ -78,7 +75,7 @@ class SupplierReceptionController extends Controller
                 : 0,
             'canViewIntakes' => $canViewIntakes,
             'canCreate' => $this->canCreate($user),
-            'canUploadDocuments' => $user->hasPermissionTo('reception-documents.upload'),
+            'canUploadDocuments' => $user->hasAbility('reception-documents.upload'),
         ]);
     }
 
@@ -122,7 +119,7 @@ class SupplierReceptionController extends Controller
 
         if ($request->filled('negotiated_order_id')) {
             abort_if($intake, 422);
-            abort_unless($request->user()->hasAnyRole(['super-admin', 'admin']), 403);
+            abort_unless($request->user()->hasAbility('negotiated-orders.manage'), 403);
             $negotiatedOrder = NegotiatedOrder::with(['location', 'supplier', 'lines.catalogItem'])
                 ->findOrFail($request->integer('negotiated_order_id'));
             abort_unless($negotiatedOrder->isCreated(), 409, 'Comanda este deja închisă.');
@@ -152,7 +149,7 @@ class SupplierReceptionController extends Controller
         }
         $negotiatedOrder = null;
         if (! empty($data['negotiated_order_id'])) {
-            abort_unless($user->hasAnyRole(['super-admin', 'admin']), 403);
+            abort_unless($user->hasAbility('negotiated-orders.manage'), 403);
             $negotiatedOrder = NegotiatedOrder::findOrFail($data['negotiated_order_id']);
             abort_unless($negotiatedOrder->isCreated(), 409, 'Comanda este deja închisă.');
         }
@@ -546,7 +543,7 @@ class SupplierReceptionController extends Controller
     {
         return Location::query()
             ->where('active', true)
-            ->when(! $user->isOperationsAdmin(), fn (Builder $query) => $query
+            ->when(! $user->hasGlobalAbility('receptions.create'), fn (Builder $query) => $query
                 ->whereIn('id', $user->activeManagedLocations()
                     ->where('locations.active', true)
                     ->pluck('locations.id')));
@@ -554,7 +551,7 @@ class SupplierReceptionController extends Controller
 
     private function canCreate(User $user): bool
     {
-        return ($user->isOperationsAdmin() || $user->hasAnyRole(['sef-santier', 'gestionar-baza']))
+        return $user->hasAbility('receptions.create')
             && $this->writeLocations($user)->exists();
     }
 }

@@ -326,20 +326,13 @@ class OperationalAlertSyncService
             return collect();
         }
 
-        return User::query()
+        return User::permission('alerts.view')
             ->where('active', true)
-            ->where(function ($query) use ($project): void {
-                $query->whereKey($project->created_by)
-                    ->orWhereHas('roles', fn ($roles) => $roles->whereIn('name', [
-                        'super-admin',
-                        'admin',
-                    ]))
-                    ->orWhereHas('activeManagedLocations', fn ($locations) => $locations
-                        ->whereKey($project->location_id)
-                        ->where('locations.active', true));
-            })
-            ->with('roles')
-            ->get();
+            ->with(['roles.permissions', 'permissions'])
+            ->get()
+            ->filter(fn (User $user): bool => (int) $user->id === (int) $project->created_by
+                || $user->hasLocationAbility('alerts.view', (int) $project->location_id))
+            ->values();
     }
 
     private function tablesAreAvailable(): bool

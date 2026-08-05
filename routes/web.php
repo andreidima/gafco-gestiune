@@ -96,29 +96,29 @@ Route::middleware([
     Route::resource('locatii', LocationController::class)->only(['create', 'edit'])
         ->names('locations')
         ->parameters(['locatii' => 'location'])
-        ->middleware('role:super-admin|admin|dispecer');
+        ->middleware('permission:locations.manage');
     Route::resource('locatii', LocationController::class)->only(['index'])
         ->names('locations')
         ->parameters(['locatii' => 'location'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+        ->middleware('permission:locations.view');
     Route::resource('locations', LocationController::class)->only(['store', 'update'])
-        ->middleware('role:super-admin|admin|dispecer');
+        ->middleware('permission:locations.manage');
 
     Route::resource('nomenclator', CatalogItemController::class)->only(['create', 'edit'])
         ->names('catalog-items')
         ->parameters(['nomenclator' => 'catalog_item'])
-        ->middleware('role:super-admin|admin|dispecer|gestionar-baza');
+        ->middleware('permission:catalog.manage');
     Route::resource('nomenclator', CatalogItemController::class)->only(['index'])
         ->names('catalog-items')
         ->parameters(['nomenclator' => 'catalog_item'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+        ->middleware('permission:catalog.view');
     Route::resource('catalog-items', CatalogItemController::class)->only(['store', 'update'])
-        ->middleware('role:super-admin|admin|dispecer|gestionar-baza');
+        ->middleware('permission:catalog.manage');
 
     Route::resource('furnizori', SupplierController::class)->only(['index'])
         ->names('suppliers')
         ->parameters(['furnizori' => 'supplier'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:suppliers.view');
     Route::resource('furnizori', SupplierController::class)->only(['create', 'edit'])
         ->names('suppliers')
         ->parameters(['furnizori' => 'supplier'])
@@ -133,33 +133,37 @@ Route::middleware([
         ->name('suppliers.activate');
 
     Route::get('inventar', [InventoryController::class, 'index'])->name('inventory.index')
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:inventory.view');
     Route::get('inventar/{catalogItem}', [InventoryController::class, 'show'])->name('inventory.show')
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:inventory.view');
     Route::put('preferences/inventory', [UserPreferenceController::class, 'updateInventory'])->name('preferences.inventory.update')
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:inventory.view');
 
     Route::resource('echipamente', TrackedAssetController::class)->only(['create', 'edit'])
         ->names('tracked-assets')
         ->parameters(['echipamente' => 'tracked_asset'])
-        ->middleware('role:super-admin|admin|dispecer');
+        ->middleware('permission:tracked-assets.manage');
     Route::resource('echipamente', TrackedAssetController::class)->only(['index'])
         ->names('tracked-assets')
         ->parameters(['echipamente' => 'tracked_asset'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+        ->middleware('permission:tracked-assets.browse');
     Route::resource('echipamente', TrackedAssetController::class)->only(['show'])
         ->names('tracked-assets')
         ->parameters(['echipamente' => 'tracked_asset'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor|contabil');
+        ->middleware('permission:tracked-assets.view');
     Route::resource('tracked-assets', TrackedAssetController::class)->only(['store', 'update'])
-        ->middleware('role:super-admin|admin|dispecer');
+        ->middleware('permission:tracked-assets.manage');
 
-    Route::resource('proiecte', ProjectController::class)->only(['index', 'create', 'show', 'edit'])
+    Route::resource('proiecte', ProjectController::class)->only(['create', 'edit'])
         ->names('projects')
         ->parameters(['proiecte' => 'project'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+        ->middleware('permission:projects.manage');
+    Route::resource('proiecte', ProjectController::class)->only(['index', 'show'])
+        ->names('projects')
+        ->parameters(['proiecte' => 'project'])
+        ->middleware('permission:projects.view');
     Route::resource('projects', ProjectController::class)->only(['store', 'update'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza');
+        ->middleware('permission:projects.manage');
 
     Route::get('transferuri/optiuni-sursa', [TransferController::class, 'sourceOptions'])->name('transfers.source-options');
     Route::resource('transferuri', TransferController::class)->only(['index', 'create', 'show', 'edit'])
@@ -195,30 +199,30 @@ Route::middleware([
         ->middleware(RejectImpersonatedRequest::class)
         ->name('push-subscriptions.destroy');
     Route::get('alerte', [OperationalAlertController::class, 'index'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil')
+        ->middleware('permission:alerts.view')
         ->name('alerts.index');
     Route::get('setari/alerte', [AlertRuleController::class, 'index'])
-        ->middleware('role:super-admin|admin')
+        ->middleware('permission:alerts.manage')
         ->name('alert-rules.index');
     Route::post('settings/alerts', [AlertRuleController::class, 'store'])
-        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class])
+        ->middleware(['permission:alerts.manage', RejectImpersonatedRequest::class])
         ->name('alert-rules.store');
     Route::delete('settings/alerts/{alertRule}', [AlertRuleController::class, 'destroy'])
-        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class])
+        ->middleware(['permission:alerts.manage', RejectImpersonatedRequest::class])
         ->name('alert-rules.destroy');
 
     Route::get('documente-de-procesat/trimite', [ReceptionIntakeController::class, 'create'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|muncitor')
+        ->middleware('permission:reception-intakes.create')
         ->name('reception-intakes.create');
     Route::resource('documente-de-procesat', ReceptionIntakeController::class)->only(['index', 'show'])
         ->names('reception-intakes')
         ->parameters(['documente-de-procesat' => 'reception_intake'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|muncitor');
+        ->middleware('permission:reception-intakes.view');
     Route::post('reception-intakes', [ReceptionIntakeController::class, 'store'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|muncitor')
+        ->middleware('permission:reception-intakes.create')
         ->name('reception-intakes.store');
     Route::post('reception-intakes/{receptionIntake}/cancel', [ReceptionIntakeController::class, 'cancel'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->middleware('permission:reception-intakes.cancel')
         ->name('reception-intakes.cancel');
     Route::get('documente-receptie/{receptionDocument}/descarca', ReceptionDocumentController::class)
         ->name('reception-documents.download');
@@ -228,71 +232,82 @@ Route::middleware([
     Route::resource('receptii', SupplierReceptionController::class)->only(['create'])
         ->names('supplier-receptions')
         ->parameters(['receptii' => 'supplier_reception'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('permission:receptions.create');
     Route::resource('receptii', SupplierReceptionController::class)->only(['index', 'show'])
         ->names('supplier-receptions')
         ->parameters(['receptii' => 'supplier_reception'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:receptions.view');
     Route::resource('receptii', SupplierReceptionController::class)->only(['edit'])
         ->names('supplier-receptions')
         ->parameters(['receptii' => 'supplier_reception']);
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['store'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('permission:receptions.create');
     Route::resource('supplier-receptions', SupplierReceptionController::class)->only(['update']);
 
-    Route::resource('comenzi-negociate', NegotiatedOrderController::class)->only(['index', 'create', 'show', 'edit'])
+    Route::resource('comenzi-negociate', NegotiatedOrderController::class)->only(['create', 'edit'])
         ->names('negotiated-orders')
         ->parameters(['comenzi-negociate' => 'negotiatedOrder'])
-        ->middleware('role:super-admin|admin');
+        ->middleware('permission:negotiated-orders.manage');
+    Route::resource('comenzi-negociate', NegotiatedOrderController::class)->only(['index', 'show'])
+        ->names('negotiated-orders')
+        ->parameters(['comenzi-negociate' => 'negotiatedOrder'])
+        ->middleware('permission:negotiated-orders.view');
     Route::resource('negotiated-orders', NegotiatedOrderController::class)->only(['store', 'update'])
         ->parameters(['negotiated-orders' => 'negotiatedOrder'])
-        ->middleware('role:super-admin|admin');
+        ->middleware('permission:negotiated-orders.manage');
     Route::post('negotiated-orders/{negotiatedOrder}/cancel', [NegotiatedOrderController::class, 'cancel'])
-        ->middleware('role:super-admin|admin')
+        ->middleware('permission:negotiated-orders.manage')
         ->name('negotiated-orders.cancel');
 
     Route::get('consumuri/propunere-alocare', [ConsumptionReportController::class, 'allocationProposal'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->middleware('permission:consumption-reports.create')
         ->name('consumption-reports.allocation-proposal');
     Route::get('consumuri/optiuni-stoc', [ConsumptionReportController::class, 'stockOptions'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza')
+        ->middleware('permission:consumption-reports.create')
         ->name('consumption-reports.stock-options');
     Route::resource('consumuri', ConsumptionReportController::class)->only(['index'])
         ->names('consumption-reports')
         ->parameters(['consumuri' => 'consumption_report'])
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:consumption-reports.view');
     Route::resource('consumuri', ConsumptionReportController::class)->only(['create'])
         ->names('consumption-reports')
         ->parameters(['consumuri' => 'consumption_report'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('permission:consumption-reports.create');
     Route::resource('consumuri', ConsumptionReportController::class)->only(['edit'])
         ->names('consumption-reports')
         ->parameters(['consumuri' => 'consumption_report'])
-        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class]);
+        ->middleware(['permission:consumption-reports.correct', RejectImpersonatedRequest::class]);
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['store'])
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza');
+        ->middleware('permission:consumption-reports.create');
     Route::resource('consumption-reports', ConsumptionReportController::class)->only(['update'])
-        ->middleware(['role:super-admin|admin', RejectImpersonatedRequest::class]);
+        ->middleware(['permission:consumption-reports.correct', RejectImpersonatedRequest::class]);
 
-    Route::resource('custody-transfers', CustodyTransferController::class)->only(['store', 'update']);
+    Route::resource('custody-transfers', CustodyTransferController::class)->only(['store'])
+        ->middleware('permission:custody.initiate');
+    Route::resource('custody-transfers', CustodyTransferController::class)->only(['update'])
+        ->middleware('permission:custody.manage');
     Route::get('retururi', [ReturnController::class, 'index'])->name('returns.index');
     Route::get('teren/sofer', [FieldModeController::class, 'driver'])->name('field.driver');
     Route::get('teren/sef-santier', [FieldModeController::class, 'siteManager'])->name('field.site-manager');
     Route::get('teren/muncitor', [FieldModeController::class, 'worker'])->name('field.worker')
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|sofer|muncitor');
+        ->middleware('permission:custody.view');
     Route::get('scanare-qr', [QrScanController::class, 'index'])->name('qr-scan.index')
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|sofer|muncitor');
+        ->middleware('permission:qr.scan');
     Route::post('qr-scan', [QrScanController::class, 'lookup'])->name('qr-scan.lookup')
-        ->middleware('role:super-admin|admin|dispecer|sef-santier|gestionar-baza|sofer|muncitor');
+        ->middleware('permission:qr.scan');
     Route::get('rapoarte', [ReportController::class, 'index'])->name('reports.index')
-        ->middleware('role:super-admin|admin|dispecer|manager|sef-santier|gestionar-baza|contabil');
+        ->middleware('permission:reports.view');
 
-    Route::resource('utilizatori', UserController::class)->only(['index', 'create', 'edit'])
+    Route::resource('utilizatori', UserController::class)->only(['index'])
         ->names('users')
         ->parameters(['utilizatori' => 'user'])
-        ->middleware(['role:admin|super-admin', RejectImpersonatedRequest::class]);
+        ->middleware(['permission:users.view', RejectImpersonatedRequest::class]);
+    Route::resource('utilizatori', UserController::class)->only(['create', 'edit'])
+        ->names('users')
+        ->parameters(['utilizatori' => 'user'])
+        ->middleware(['permission:users.manage', RejectImpersonatedRequest::class]);
     Route::resource('users', UserController::class)->only(['store', 'update'])
-        ->middleware(['role:admin|super-admin', RejectImpersonatedRequest::class]);
+        ->middleware(['permission:users.manage', RejectImpersonatedRequest::class]);
 
     Route::get('administrare-acces', [AccessAdministrationController::class, 'index'])
         ->middleware(['permission:access.view', RejectImpersonatedRequest::class])

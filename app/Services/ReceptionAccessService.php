@@ -13,20 +13,22 @@ class ReceptionAccessService
     public function visibleReceptions(User $user): Builder
     {
         return SupplierReception::query()
-            ->when(! $user->hasPermissionTo('receptions.view'), fn (Builder $query) => $query->whereRaw('1 = 0'))
-            ->when(! $user->hasGlobalInventoryReadAccess(), fn (Builder $query) => $query
+            ->when(! $user->hasAbility('receptions.view'), fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->when(! $user->hasGlobalAbility('receptions.view'), fn (Builder $query) => $query
                 ->whereIn('location_id', $this->managedLocationIds($user)));
     }
 
     public function visibleIntakes(User $user): Builder
     {
+        $scope = $user->abilityScope('reception-intakes.view');
+
         return ReceptionIntake::query()
-            ->when(! $user->hasPermissionTo('reception-intakes.view'), fn (Builder $query) => $query->whereRaw('1 = 0'))
-            ->when(! $user->hasGlobalOperationalReadAccess(), function (Builder $query) use ($user): void {
+            ->when($scope === null, fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->when($scope !== 'global', function (Builder $query) use ($scope, $user): void {
                 $managed = $this->managedLocationIds($user);
-                $query->where(function (Builder $visible) use ($user, $managed): void {
+                $query->where(function (Builder $visible) use ($scope, $user, $managed): void {
                     $visible->where('submitted_by', $user->id);
-                    if ($managed !== []) {
+                    if ($managed !== [] && $scope !== 'personal') {
                         $visible->orWhereIn('location_id', $managed);
                     }
                 });
@@ -46,23 +48,26 @@ class ReceptionAccessService
     public function canProcessIntake(User $user, ReceptionIntake $intake): bool
     {
         return $intake->status === 'created'
-            && ($user->isOperationsAdmin()
-                || ($user->hasAnyRole(['sef-santier', 'gestionar-baza'])
-                    && in_array((int) $intake->location_id, $this->managedLocationIds($user), true)));
+            && $user->hasLocationAbility('receptions.create', (int) $intake->location_id);
+    }
+
+    public function canCancelIntake(User $user, ReceptionIntake $intake): bool
+    {
+        return $intake->status === 'created'
+            && $user->hasLocationAbility('reception-intakes.cancel', (int) $intake->location_id);
     }
 
     public function canEditAllReceptionDetails(User $user, SupplierReception $reception): bool
     {
-        return ($user->hasPermissionTo('reception-details.edit-all')
-                || $user->hasPermissionTo('accounting.edit-operations'))
+        return ($user->hasAbility('reception-details.edit-all')
+                || $user->hasAbility('accounting.edit-operations'))
             && $this->canViewReception($user, $reception);
     }
 
     public function canEditReceptionExpiration(User $user, SupplierReception $reception): bool
     {
         return ($this->canEditAllReceptionDetails($user, $reception)
-                || ($user->hasPermissionTo('reception-details.edit-expiration')
-                    && in_array((int) $reception->location_id, $this->managedLocationIds($user), true)))
+                || $user->hasLocationAbility('reception-details.edit-expiration', (int) $reception->location_id))
             && $this->canViewReception($user, $reception);
     }
 
