@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccessRoleProfile;
 use App\Models\User;
 use App\Services\AccessCatalog;
 use App\Services\EffectiveAccessService;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role;
 
 class AccessAdministrationController extends Controller
 {
@@ -22,6 +24,25 @@ class AccessAdministrationController extends Controller
     {
         $baseQuery = $this->visibleUsers($request->user());
         $usersQuery = (clone $baseQuery)->with(['roles.permissions', 'permissions', 'activeManagedLocations']);
+        $roleRecords = Role::query()
+            ->where('guard_name', 'web')
+            ->with('permissions')
+            ->withCount('users')
+            ->orderBy('name')
+            ->get();
+        $profiles = AccessRoleProfile::query()->whereIn('role_id', $roleRecords->pluck('id'))->get()->keyBy('role_id');
+        $roleMetadata = $roleRecords->mapWithKeys(function (Role $role) use ($profiles): array {
+            $system = config("access.roles.{$role->name}");
+            $profile = $profiles->get($role->id);
+
+            return [$role->name => $system ?? [
+                'description' => $profile?->description ?? 'Rol personalizat fără descriere.',
+                'workspace' => $profile?->workspace ?? 'Personalizat',
+                'system' => false,
+                'privileged' => false,
+                'requires_locations' => (bool) $profile?->requires_locations,
+            ]];
+        })->all();
 
         $users = $usersQuery
             ->when($request->search, fn (Builder $query, string $search) => $query->where(function (Builder $searchQuery) use ($search): void {
@@ -43,17 +64,19 @@ class AccessAdministrationController extends Controller
 
         return view('access.index', [
             'users' => $users,
-            'roles' => $this->catalog->roles(),
-            'roleLabels' => config('roles.labels', []),
+            'roles' => $roleMetadata,
+            'roleRecords' => $roleRecords,
+            'roleLabels' => $roleRecords->mapWithKeys(fn (Role $role): array => [$role->name => $this->catalog->roleLabel($role->name)])->all(),
             'permissionsByModule' => $this->catalog->permissionsByModule(),
             'catalog' => $this->catalog,
+            'canManageAccess' => $request->user()->isProtectedAdministrator(),
             'stats' => [
                 'total' => (clone $baseQuery)->count(),
                 'active' => (clone $baseQuery)->where('active', true)->count(),
                 'without_role' => (clone $baseQuery)->whereDoesntHave('roles')->count(),
                 'with_direct_permissions' => (clone $baseQuery)->whereHas('permissions')->count(),
                 'missing_location_scope' => (clone $baseQuery)
-                    ->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', ['sef-santier', 'gestionar-baza']))
+                    ->whereHas('roles', fn (Builder $roles) => $roles->whereIn('name', $this->catalog->rolesRequiringLocations()))
                     ->whereDoesntHave('activeManagedLocations')
                     ->count(),
             ],
@@ -63,13 +86,20 @@ class AccessAdministrationController extends Controller
     public function show(Request $request, User $user): View
     {
         $this->ensureVisible($request->user(), $user);
-        $user->load(['roles.permissions', 'permissions', 'activeManagedLocations']);
+        $user->load(['roles.permissions', 'permissions', 'permissionExceptions.permission', 'permissionExceptions.granter', 'activeManagedLocations']);
 
         return view('access.show', [
             'user' => $user,
             'summary' => $this->effectiveAccess->summary($user),
             'warnings' => $this->effectiveAccess->warnings($user),
             'decisionsByModule' => $this->effectiveAccess->groupedDecisions($user),
+            'exceptionContexts' => $user->permissionExceptions->keyBy('permission.name'),
+            'roleLabels' => $user->roles
+                ->mapWithKeys(fn (Role $role): array => [$role->name => $this->catalog->roleLabel($role->name)])
+                ->all(),
+            'canManageExceptions' => $request->user()->isProtectedAdministrator()
+                && ! $user->isProtectedAdministrator()
+                && ! $user->hasRole('super-admin'),
             'recentActivities' => Activity::query()
                 ->where('subject_type', $user->getMorphClass())
                 ->where('subject_id', $user->getKey())

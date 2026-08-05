@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LocationResponsibilityService
@@ -22,7 +23,7 @@ class LocationResponsibilityService
     {
         return User::query()
             ->where('active', true)
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', self::ELIGIBLE_ROLES))
+            ->whereHas('roles', fn ($query) => $this->eligibleRoleQuery($query))
             ->with('roles')
             ->orderBy('name')
             ->get();
@@ -39,7 +40,7 @@ class LocationResponsibilityService
         $eligibleIds = User::query()
             ->whereKey($managerIds)
             ->where('active', true)
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', self::ELIGIBLE_ROLES))
+            ->whereHas('roles', fn ($query) => $this->eligibleRoleQuery($query))
             ->pluck('id');
 
         if ($eligibleIds->count() !== $managerIds->count()) {
@@ -52,7 +53,9 @@ class LocationResponsibilityService
     /** @return array<int, string> */
     public function reconcile(User $user): array
     {
-        $stillEligible = $user->active && $user->hasAnyRole(self::ELIGIBLE_ROLES);
+        $stillEligible = $user->active && $user->roles()
+            ->where(fn ($query) => $this->eligibleRoleQuery($query))
+            ->exists();
         if ($stillEligible) {
             return [];
         }
@@ -87,7 +90,7 @@ class LocationResponsibilityService
         $replacement = $location->activeManagers()
             ->where('users.active', true)
             ->whereKeyNot($removedUser->id)
-            ->whereHas('roles', fn ($query) => $query->whereIn('name', self::ELIGIBLE_ROLES))
+            ->whereHas('roles', fn ($query) => $this->eligibleRoleQuery($query))
             ->orderByDesc('location_manager.is_primary')
             ->orderBy('users.name')
             ->first();
@@ -105,5 +108,18 @@ class LocationResponsibilityService
         }
 
         $location->update(['manager_user_id' => $replacement?->id]);
+    }
+
+    private function eligibleRoleQuery($query): void
+    {
+        $query->where(function ($eligible): void {
+            $eligible->whereIn('name', self::ELIGIBLE_ROLES);
+            if (Schema::hasTable('access_role_profiles')) {
+                $eligible->orWhereIn('roles.id', fn ($profiles) => $profiles
+                    ->select('role_id')
+                    ->from('access_role_profiles')
+                    ->where('requires_locations', true));
+            }
+        });
     }
 }

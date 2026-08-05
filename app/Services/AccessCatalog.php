@@ -2,10 +2,18 @@
 
 namespace App\Services;
 
+use App\Models\AccessRoleProfile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class AccessCatalog
 {
+    /** @var array<string, string> */
+    private array $customRoleLabels = [];
+
+    /** @var Collection<int, AccessRoleProfile>|null */
+    private ?Collection $customRoleProfiles = null;
+
     /** @return array<string, array<string, mixed>> */
     public function permissions(): array
     {
@@ -30,7 +38,42 @@ class AccessCatalog
     /** @return array<int, string> */
     public function roleNames(): array
     {
-        return array_keys($this->roles());
+        $names = collect(array_keys($this->roles()));
+        if (! Schema::hasTable('access_role_profiles')) {
+            return $names->all();
+        }
+
+        return $names
+            ->merge($this->customRoleProfiles()->pluck('role.name'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function roleRequiresLocations(string $role): bool
+    {
+        $configured = config("access.roles.{$role}.requires_locations");
+        if (is_bool($configured)) {
+            return $configured;
+        }
+
+        if (! Schema::hasTable('access_role_profiles')) {
+            return false;
+        }
+
+        return (bool) $this->customRoleProfiles()
+            ->first(fn (AccessRoleProfile $profile): bool => $profile->role?->name === $role)
+            ?->requires_locations;
+    }
+
+    /** @return array<int, string> */
+    public function rolesRequiringLocations(): array
+    {
+        return collect($this->roleNames())
+            ->filter(fn (string $role): bool => $this->roleRequiresLocations($role))
+            ->values()
+            ->all();
     }
 
     /** @return array<int, string> */
@@ -45,12 +88,46 @@ class AccessCatalog
 
     public function roleLabel(string $role): string
     {
-        return config("roles.labels.{$role}", $role);
+        $configured = config("roles.labels.{$role}");
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
+        }
+
+        if (array_key_exists($role, $this->customRoleLabels)) {
+            return $this->customRoleLabels[$role];
+        }
+
+        if (! Schema::hasTable('access_role_profiles')) {
+            return $role;
+        }
+
+        return $this->customRoleLabels[$role] = $this->customRoleProfiles()
+            ->first(fn (AccessRoleProfile $profile): bool => $profile->role?->name === $role)
+            ?->label ?? $role;
     }
 
     public function scopeLabel(string $scope): string
     {
         return config("access.scope_labels.{$scope}", $scope);
+    }
+
+    /** @return array<int, string> */
+    public function reservedPermissions(): array
+    {
+        return config('access.reserved_permissions', []);
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function directAssignablePermissions(): array
+    {
+        $allowed = array_flip(config('access.direct_exception_permissions', []));
+
+        return array_filter(
+            $this->seedablePermissions(),
+            fn (array $definition, string $ability): bool => isset($allowed[$ability])
+                && ! in_array($ability, $this->reservedPermissions(), true),
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**
@@ -67,5 +144,23 @@ class AccessCatalog
             ->map(fn (Collection $permissions): Collection => $permissions
                 ->sortBy(fn (array $entry): string => $entry['definition']['label'])
                 ->values());
+    }
+
+    /** @return Collection<int, AccessRoleProfile> */
+    private function customRoleProfiles(): Collection
+    {
+        if ($this->customRoleProfiles !== null) {
+            return $this->customRoleProfiles;
+        }
+
+        if (! Schema::hasTable('access_role_profiles')) {
+            return $this->customRoleProfiles = collect();
+        }
+
+        return $this->customRoleProfiles = AccessRoleProfile::query()
+            ->with('role:id,name,guard_name')
+            ->get()
+            ->filter(fn (AccessRoleProfile $profile): bool => $profile->role?->guard_name === 'web')
+            ->values();
     }
 }

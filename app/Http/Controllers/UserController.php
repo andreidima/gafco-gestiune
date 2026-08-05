@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AccessCatalog;
 use App\Services\EffectiveAccessService;
 use App\Services\LocationResponsibilityService;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,7 @@ use Spatie\Permission\Models\Role;
 class UserController extends Controller
 {
     public function __construct(
+        private readonly AccessCatalog $accessCatalog,
         private readonly EffectiveAccessService $effectiveAccess,
         private readonly LocationResponsibilityService $locationResponsibilities,
     ) {}
@@ -50,6 +52,8 @@ class UserController extends Controller
                 ->paginate(20)
                 ->withQueryString(),
             'roles' => $this->assignableRoles(),
+            'roleLabels' => $this->roleLabels(),
+            'rolesRequiringLocations' => $this->accessCatalog->rolesRequiringLocations(),
             'totalUsers' => $totalUsers->count(),
         ]);
     }
@@ -150,6 +154,7 @@ class UserController extends Controller
         return [
             'user' => $user,
             'roles' => $this->assignableRoles(),
+            'roleLabels' => $this->roleLabels(),
             'accessWarnings' => $user ? $this->effectiveAccess->warnings($user) : collect(),
         ];
     }
@@ -191,6 +196,14 @@ class UserController extends Controller
             ->where('name', '!=', 'super-admin')
             ->orderBy('name')
             ->get();
+    }
+
+    /** @return array<string, string> */
+    private function roleLabels(): array
+    {
+        return $this->assignableRoles()
+            ->mapWithKeys(fn (Role $role): array => [$role->name => $this->accessCatalog->roleLabel($role->name)])
+            ->all();
     }
 
     private function ensureCanManage(User $user): void

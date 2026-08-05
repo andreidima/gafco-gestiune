@@ -4,7 +4,6 @@
 
 @section('content')
 @php
-    $roleLabels = config('roles.labels', []);
     $riskLabels = ['elevated' => 'Acces ridicat', 'sensitive' => 'Acces sensibil', 'protected' => 'Acces protejat'];
     $riskColors = ['elevated' => 'warning', 'sensitive' => 'danger', 'protected' => 'dark'];
 @endphp
@@ -15,9 +14,10 @@
             <h1 class="h3 mt-2 mb-1">{{ $user->name }}</h1>
             <div class="d-flex flex-wrap align-items-center gap-2"><span class="resource-code">{{ $user->login_code }}</span><span class="badge text-bg-{{ $user->active ? 'success' : 'secondary' }}">{{ $user->active ? 'Activ' : 'Inactiv' }}</span></div>
         </div>
-        @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))
-            <a href="{{ route('users.edit', $user) }}" class="btn btn-primary"><i class="fa-solid fa-user-pen me-1"></i>Modifică utilizatorul</a>
-        @endif
+        <div class="d-flex flex-wrap gap-2">
+            @if($canManageExceptions)<a href="{{ route('access.exceptions.edit', $user) }}" class="btn btn-outline-primary"><i class="fa-solid fa-bolt me-1"></i>Administrează excepțiile</a>@endif
+            @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<a href="{{ route('users.edit', $user) }}" class="btn btn-primary"><i class="fa-solid fa-user-pen me-1"></i>Modifică utilizatorul</a>@endif
+        </div>
     </div>
 
     @foreach($warnings as $warning)
@@ -31,6 +31,18 @@
         <div class="col-6 col-lg"><div class="card h-100"><div class="card-body"><div class="text-muted small">Refuzate</div><div class="fs-3 fw-semibold text-secondary">{{ $summary['denied'] }}</div></div></div></div>
         <div class="col-12 col-lg"><div class="card h-100"><div class="card-body"><div class="text-muted small">Excepții directe</div><div class="fs-3 fw-semibold text-info">{{ $summary['direct'] }}</div></div></div></div>
     </div>
+
+    @if($user->permissions->isNotEmpty())
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3"><h2 class="h5 mb-1">Excepții individuale</h2><p class="text-muted mb-0">Drepturi acordate direct acestui utilizator, separat de rolurile sale.</p></div>
+            <div class="list-group list-group-flush">
+                @foreach($user->permissions->sortBy('name') as $permission)
+                    @php($context = $exceptionContexts->get($permission->name))
+                    <div class="list-group-item py-3"><div class="d-flex flex-wrap justify-content-between gap-2"><strong>{{ config('access.permissions.'.$permission->name.'.label', $permission->name) }}</strong><code>{{ $permission->name }}</code></div><div class="small mt-1">{{ $context?->reason ?? 'Justificarea nu este disponibilă.' }}</div><div class="small text-muted">Acordată de {{ $context?->granter?->name ?? 'Sistem / configurație anterioară' }}</div></div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <div class="row g-3 mb-4">
         <div class="col-lg-6">
@@ -58,7 +70,7 @@
                                         <td class="ps-3"><strong>{{ $decision->label }}</strong>@if(isset($riskLabels[$decision->risk]))<span class="badge text-bg-{{ $riskColors[$decision->risk] }} ms-1">{{ $riskLabels[$decision->risk] }}</span>@endif<div class="small text-muted">{{ $decision->description }}</div><code class="small">{{ $decision->ability }}</code></td>
                                         <td><span class="badge text-bg-{{ $decision->allowed ? 'success' : 'secondary' }}"><i class="fa-solid fa-{{ $decision->allowed ? 'check' : 'xmark' }} me-1"></i>{{ $decision->allowed ? 'Permis' : 'Refuzat' }}</span>@if($decision->conditional)<div class="small text-warning mt-1">Acces condiționat</div>@endif</td>
                                         <td>@if($decision->allowed)<strong>{{ $decision->scopeLabel }}</strong>@if($decision->locations)<ul class="small text-muted ps-3 mb-0">@foreach($decision->locations as $location)<li>{{ $location }}</li>@endforeach</ul>@endif @else<span class="text-muted">—</span>@endif</td>
-                                        <td><div>{{ $decision->reason }}</div>@foreach($decision->sources as $source)<div class="small text-muted">{{ $source['label'] }} · {{ config('access.scope_labels.'.$source['scope'], $source['scope']) }}</div>@endforeach @if($decision->condition)<div class="small text-warning mt-1"><i class="fa-solid fa-filter me-1"></i>{{ $decision->condition }}</div>@endif</td>
+                                        <td><div>{{ $decision->reason }}</div>@foreach($decision->sources as $source)<div class="small text-muted">{{ $source['label'] }} · {{ config('access.scope_labels.'.$source['scope'], $source['scope']) }}</div>@if(isset($source['reason']))<div class="small text-info">Motiv: {{ $source['reason'] }}</div>@endif @endforeach @if($decision->condition)<div class="small text-warning mt-1"><i class="fa-solid fa-filter me-1"></i>{{ $decision->condition }}</div>@endif</td>
                                     </tr>
                                 @endforeach
                                 </tbody>
@@ -78,6 +90,7 @@
                     <div class="d-flex flex-wrap justify-content-between gap-2"><strong>{{ $activity->description }}</strong><span class="text-muted small">{{ $activity->created_at->format('d.m.Y H:i') }}</span></div>
                     <div class="small text-muted">de {{ $activity->causer?->name ?? 'Sistem' }}</div>
                     @if(data_get($activity->properties, 'location'))<div class="small mt-1">Locație: {{ data_get($activity->properties, 'location') }}</div>@endif
+                    @if(data_get($activity->properties, 'reason'))<div class="small mt-1">Motiv: {{ data_get($activity->properties, 'reason') }}</div>@endif
                     @php($removedLocations = data_get($activity->properties, 'removed_location_responsibilities', []))
                     @if($removedLocations)<div class="small text-warning mt-1">Responsabilități retrase automat: {{ implode(', ', $removedLocations) }}</div>@endif
                 </div>

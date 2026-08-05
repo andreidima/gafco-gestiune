@@ -4,7 +4,6 @@
 
 @section('content')
 @php
-    $roleLabels = config('roles.labels', []);
     $hasFilters = request()->filled('search')
         || request()->filled('role')
         || (request()->has('active') && request('active') !== '');
@@ -41,7 +40,7 @@
                     @php
                         $userRoleNames = $user->roles->pluck('name');
                         $visibleRoles = $user->roles->where('name', '!=', 'super-admin');
-                        $requiresManagedLocation = $userRoleNames->intersect(['sef-santier', 'gestionar-baza'])->isNotEmpty();
+                        $requiresManagedLocation = $userRoleNames->intersect($rolesRequiringLocations)->isNotEmpty();
                         $requiresPhone = $userRoleNames->intersect(['sofer', 'sef-santier', 'gestionar-baza', 'dispecer'])->isNotEmpty();
                     @endphp
                     <tr>
@@ -105,7 +104,7 @@
                 @php
                     $userRoleNames = $user->roles->pluck('name');
                     $visibleRoles = $user->roles->where('name', '!=', 'super-admin');
-                    $requiresManagedLocation = $userRoleNames->intersect(['sef-santier', 'gestionar-baza'])->isNotEmpty();
+                    $requiresManagedLocation = $userRoleNames->intersect($rolesRequiringLocations)->isNotEmpty();
                     $requiresPhone = $userRoleNames->intersect(['sofer', 'sef-santier', 'gestionar-baza', 'dispecer'])->isNotEmpty();
                     $hasMissingProfileData = ($visibleRoles->isEmpty() && ! $user->isProtectedAdministrator())
                         || ($requiresManagedLocation && $user->activeManagedLocations->isEmpty())

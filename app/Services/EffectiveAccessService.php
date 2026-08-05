@@ -26,8 +26,9 @@ class EffectiveAccessService
     /** @return Collection<int, AccessDecision> */
     public function decisions(User $user): Collection
     {
-        $user->loadMissing(['roles.permissions', 'permissions', 'activeManagedLocations']);
+        $user->loadMissing(['roles.permissions', 'permissions', 'permissionExceptions.permission', 'activeManagedLocations']);
         $directPermissions = $user->permissions->pluck('name');
+        $exceptionContexts = $user->permissionExceptions->keyBy('permission.name');
         $locations = $user->activeManagedLocations
             ->sortBy('name')
             ->map(fn ($location): string => "{$location->code} - {$location->name}")
@@ -35,7 +36,7 @@ class EffectiveAccessService
             ->all();
 
         return collect($this->catalog->permissions())
-            ->map(function (array $definition, string $ability) use ($user, $directPermissions, $locations): AccessDecision {
+            ->map(function (array $definition, string $ability) use ($user, $directPermissions, $exceptionContexts, $locations): AccessDecision {
                 $sources = collect();
 
                 foreach ($user->roles as $role) {
@@ -49,10 +50,12 @@ class EffectiveAccessService
                 }
 
                 if ($directPermissions->contains($ability)) {
+                    $context = $exceptionContexts->get($ability);
                     $sources->push([
                         'type' => 'direct',
                         'label' => 'Excepție atribuită direct',
                         'scope' => $definition['direct_scope'] ?? 'visible_records',
+                        'reason' => $context?->reason ?? 'Justificarea nu este disponibilă.',
                     ]);
                 }
 
@@ -130,7 +133,7 @@ class EffectiveAccessService
     /** @return Collection<int, array{severity: string, message: string}> */
     public function warnings(User $user): Collection
     {
-        $user->loadMissing(['roles', 'permissions', 'activeManagedLocations']);
+        $user->loadMissing(['roles', 'permissions', 'permissionExceptions.permission', 'activeManagedLocations']);
         $roles = $user->roles->pluck('name');
         $warnings = collect();
 
@@ -147,7 +150,7 @@ class EffectiveAccessService
             $warnings->push(['severity' => 'danger', 'message' => 'Există roluri neînregistrate în catalog: '.$unknownRoles->join(', ').'.']);
         }
 
-        if ($roles->intersect(['sef-santier', 'gestionar-baza'])->isNotEmpty()
+        if ($roles->intersect($this->catalog->rolesRequiringLocations())->isNotEmpty()
             && $user->activeManagedLocations->isEmpty()) {
             $warnings->push(['severity' => 'warning', 'message' => 'Rol local fără nicio locație administrată.']);
         }
@@ -170,6 +173,15 @@ class EffectiveAccessService
             $warnings->push([
                 'severity' => 'info',
                 'message' => $user->permissions->count().' '.($user->permissions->count() === 1 ? 'excepție este atribuită' : 'excepții sunt atribuite').' direct.',
+            ]);
+        }
+
+        $documentedPermissions = $user->permissionExceptions->pluck('permission.name');
+        $undocumented = $user->permissions->pluck('name')->diff($documentedPermissions);
+        if ($undocumented->isNotEmpty()) {
+            $warnings->push([
+                'severity' => 'warning',
+                'message' => 'Există excepții fără justificare înregistrată: '.$undocumented->join(', ').'.',
             ]);
         }
 
