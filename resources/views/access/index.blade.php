@@ -5,7 +5,6 @@
 @section('content')
 @php
     $hasFilters = request()->filled('search') || request()->filled('role') || request()->filled('active');
-    $roleNames = array_keys($roles);
     $riskLabels = ['elevated' => 'Acces ridicat', 'sensitive' => 'Acces sensibil', 'protected' => 'Acces protejat'];
     $riskColors = ['elevated' => 'warning', 'sensitive' => 'danger', 'protected' => 'dark'];
 @endphp
@@ -16,6 +15,11 @@
         :count="$stats['total']"
         icon="fa-shield-halved"
     />
+    @if($canManageAccess)
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ route('access.roles.index') }}" class="btn btn-primary"><i class="fa-solid fa-users-gear me-1"></i>Roluri și drepturi</a>
+        </div>
+    @endif
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl"><div class="card h-100"><div class="card-body"><div class="text-muted small">Conturi vizibile</div><div class="fs-3 fw-semibold">{{ $stats['total'] }}</div></div></div></div>
@@ -81,16 +85,16 @@
         <div class="card-header bg-white py-3"><h2 class="h5 mb-1"><i class="fa-solid fa-users-gear me-2 text-primary"></i>Rolurile aplicației</h2><p class="text-muted mb-0">Rolul stabilește spațiul principal de lucru și setul standard de capabilități.</p></div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
-                <thead><tr><th class="ps-3">Rol</th><th>Spațiu de lucru</th><th>Scop</th><th>Cerințe</th></tr></thead>
-                <tbody>@foreach($roles as $role => $metadata)<tr><td class="ps-3"><strong>{{ $roleLabels[$role] ?? $role }}</strong>@if($metadata['privileged'])<span class="badge text-bg-danger ms-1">Privilegiat</span>@endif</td><td>{{ $metadata['workspace'] }}</td><td>{{ $metadata['description'] }}</td><td>{{ $metadata['requires_locations'] ? 'Necesită cel puțin o locație administrată' : 'Fără locație obligatorie' }}</td></tr>@endforeach</tbody>
+                <thead><tr><th class="ps-3">Rol</th><th>Spațiu de lucru</th><th>Scop</th><th>Drepturi</th><th>Cerințe</th>@if($canManageAccess)<th class="text-end pe-3">Acțiuni</th>@endif</tr></thead>
+                <tbody>@foreach($roleRecords as $roleRecord)@php($metadata = $roles[$roleRecord->name])<tr><td class="ps-3"><strong>{{ $roleLabels[$roleRecord->name] ?? $roleRecord->name }}</strong>@if($metadata['privileged'])<span class="badge text-bg-danger ms-1">Privilegiat</span>@endif @unless($metadata['system'])<span class="badge text-bg-info ms-1">Personalizat</span>@endunless<div class="small text-muted"><code>{{ $roleRecord->name }}</code> · {{ $roleRecord->users_count }} utilizatori</div></td><td>{{ $metadata['workspace'] }}</td><td>{{ $metadata['description'] }}</td><td>{{ $roleRecord->permissions->count() }}</td><td>{{ $metadata['requires_locations'] ? 'Necesită cel puțin o locație administrată' : 'Fără locație obligatorie' }}</td>@if($canManageAccess)<td class="text-end pe-3"><a href="{{ route('access.roles.edit', $roleRecord) }}" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen me-1"></i>{{ $roleRecord->name === 'super-admin' ? 'Consultă' : 'Configurează' }}</a></td>@endif</tr>@endforeach</tbody>
             </table>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header bg-white py-3">
-            <h2 class="h5 mb-1"><i class="fa-solid fa-table-cells-large me-2 text-primary"></i>Matricea rolurilor standard</h2>
-            <p class="text-muted mb-0">Matricea descrie accesul implicit. Excepțiile atribuite direct unui utilizator apar numai în fișa persoanei.</p>
+            <h2 class="h5 mb-1"><i class="fa-solid fa-table-cells-large me-2 text-primary"></i>Matricea rolurilor configurate</h2>
+            <p class="text-muted mb-0">Matricea arată configurația salvată acum. Excepțiile atribuite direct apar numai în fișa persoanei.</p>
         </div>
         <div class="accordion accordion-flush" id="role-matrix">
             @foreach($permissionsByModule as $module => $permissions)
@@ -103,13 +107,13 @@
                     <div id="matrix-module-{{ $loop->index }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}" data-bs-parent="#role-matrix">
                         <div class="table-responsive">
                             <table class="table table-sm align-middle mb-0">
-                                <thead><tr><th class="ps-3" style="min-width: 250px">Capabilitate</th>@foreach($roleNames as $role)<th class="text-center" style="min-width: 115px">{{ $roleLabels[$role] ?? $role }}</th>@endforeach</tr></thead>
+                                <thead><tr><th class="ps-3" style="min-width: 250px">Capabilitate</th>@foreach($roleRecords as $roleRecord)<th class="text-center" style="min-width: 115px">{{ $roleLabels[$roleRecord->name] ?? $roleRecord->name }}</th>@endforeach</tr></thead>
                                 <tbody>
                                 @foreach($permissions as $entry)
                                     <tr>
                                         <td class="ps-3"><strong>{{ $entry['definition']['label'] }}</strong>@if(isset($riskLabels[$entry['definition']['risk']]))<span class="badge text-bg-{{ $riskColors[$entry['definition']['risk']] }} ms-1">{{ $riskLabels[$entry['definition']['risk']] }}</span>@endif<div class="small text-muted"><code>{{ $entry['ability'] }}</code></div></td>
-                                        @foreach($roleNames as $role)
-                                            @php($scope = $entry['definition']['grants'][$role] ?? null)
+                                        @foreach($roleRecords as $roleRecord)
+                                            @php($scope = $roleRecord->permissions->contains('name', $entry['ability']) ? ($entry['definition']['grants'][$roleRecord->name] ?? $entry['definition']['direct_scope']) : null)
                                             <td class="text-center">@if($scope)<span class="badge text-bg-success" title="{{ $catalog->scopeLabel($scope) }}"><i class="fa-solid fa-check"></i><span class="visually-hidden">{{ $catalog->scopeLabel($scope) }}</span></span><div class="small text-muted mt-1">{{ $catalog->scopeLabel($scope) }}</div>@else<span class="text-muted">—</span>@endif</td>
                                         @endforeach
                                     </tr>

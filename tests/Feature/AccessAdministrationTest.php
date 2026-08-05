@@ -25,7 +25,7 @@ class AccessAdministrationTest extends TestCase
         $this->actingAs($admin)->get(route('access.index'))
             ->assertOk()
             ->assertSee('Administrare acces')
-            ->assertSee('Matricea rolurilor standard');
+            ->assertSee('Matricea rolurilor configurate');
 
         $this->actingAs($manager)->get(route('access.index'))->assertForbidden();
     }
@@ -86,11 +86,12 @@ class AccessAdministrationTest extends TestCase
 
     public function test_access_help_and_release_content_is_published_and_reversible(): void
     {
-        $migration = require database_path('migrations/2026_08_05_000041_add_access_administration_foundation.php');
+        $foundation = require database_path('migrations/2026_08_05_000041_add_access_administration_foundation.php');
+        $administration = require database_path('migrations/2026_08_05_000042_create_access_role_administration.php');
 
         $this->assertDatabaseHas('help_articles', [
             'slug' => 'administrarea-accesului',
-            'current_revision' => 1,
+            'current_revision' => 2,
             'status' => 'published',
         ]);
         $this->assertDatabaseHas('release_notes', [
@@ -99,13 +100,15 @@ class AccessAdministrationTest extends TestCase
             'status' => 'published',
         ]);
 
-        $migration->down();
+        $administration->down();
+        $foundation->down();
 
         $this->assertDatabaseMissing('help_articles', ['slug' => 'administrarea-accesului']);
         $this->assertDatabaseMissing('release_notes', ['slug' => '2026-08-05-administrarea-accesului']);
         $this->assertDatabaseMissing('permissions', ['name' => 'access.view']);
 
-        $migration->up();
+        $foundation->up();
+        $administration->up();
     }
 
     public function test_removing_last_eligible_role_withdraws_stale_location_responsibility_and_audits_change(): void

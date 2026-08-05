@@ -5,7 +5,7 @@ namespace App\Authorization;
 final readonly class AccessDecision
 {
     /**
-     * @param  array<int, array{type: string, label: string, scope: string}>  $sources
+     * @param  array<int, array{type: string, label: string, scope: string, reason?: string}>  $sources
      * @param  array<int, string>  $locations
      */
     public function __construct(

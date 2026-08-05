@@ -66,6 +66,11 @@ class User extends Authenticatable
         return $this->hasMany(UserPreference::class);
     }
 
+    public function permissionExceptions(): HasMany
+    {
+        return $this->hasMany(AccessPermissionException::class);
+    }
+
     public function operationalAlerts(): BelongsToMany
     {
         return $this->belongsToMany(OperationalAlert::class, 'operational_alert_user')

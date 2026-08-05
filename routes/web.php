@@ -17,6 +17,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NegotiatedOrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperationalAlertController;
+use App\Http\Controllers\PermissionExceptionController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\QrScanController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\ReceptionIntakeController;
 use App\Http\Controllers\ReleaseNoteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\RoleAdministrationController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierReceptionController;
 use App\Http\Controllers\TaskAssignmentController;
@@ -295,6 +297,36 @@ Route::middleware([
     Route::get('administrare-acces', [AccessAdministrationController::class, 'index'])
         ->middleware(['permission:access.view', RejectImpersonatedRequest::class])
         ->name('access.index');
+    Route::get('administrare-acces/roluri', [RoleAdministrationController::class, 'index'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.index');
+    Route::get('administrare-acces/roluri/adauga', [RoleAdministrationController::class, 'create'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.create');
+    Route::post('administrare-acces/roluri', [RoleAdministrationController::class, 'store'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.store');
+    Route::get('administrare-acces/roluri/{role}/modifica', [RoleAdministrationController::class, 'edit'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.edit');
+    Route::post('administrare-acces/roluri/{role}/previzualizare', [RoleAdministrationController::class, 'preview'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.preview');
+    Route::put('administrare-acces/roluri/{role}', [RoleAdministrationController::class, 'update'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.update');
+    Route::delete('administrare-acces/roluri/{role}', [RoleAdministrationController::class, 'destroy'])
+        ->middleware(['permission:roles.manage', RejectImpersonatedRequest::class])
+        ->name('access.roles.destroy');
+    Route::get('administrare-acces/utilizatori/{user}/exceptii', [PermissionExceptionController::class, 'edit'])
+        ->middleware(['permission:permissions.assign-direct', RejectImpersonatedRequest::class])
+        ->name('access.exceptions.edit');
+    Route::post('administrare-acces/utilizatori/{user}/exceptii/previzualizare', [PermissionExceptionController::class, 'preview'])
+        ->middleware(['permission:permissions.assign-direct', RejectImpersonatedRequest::class])
+        ->name('access.exceptions.preview');
+    Route::put('administrare-acces/utilizatori/{user}/exceptii', [PermissionExceptionController::class, 'update'])
+        ->middleware(['permission:permissions.assign-direct', RejectImpersonatedRequest::class])
+        ->name('access.exceptions.update');
     Route::get('administrare-acces/{user}', [AccessAdministrationController::class, 'show'])
         ->middleware(['permission:access.view', RejectImpersonatedRequest::class])
         ->name('access.show');
