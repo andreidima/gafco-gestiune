@@ -25,7 +25,7 @@ class DatabaseToolsAccessTest extends TestCase
         $this->actingAs($andrei)
             ->get(route('system.database'))
             ->assertOk()
-            ->assertSee('Setari')
+            ->assertSee('Setări')
             ->assertSee('Baza de date si migrari');
 
         $this->actingAs($otherUser)

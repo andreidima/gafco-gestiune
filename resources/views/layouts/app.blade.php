@@ -187,17 +187,26 @@
                                 <li class="nav-item me-2"><a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><i class="fa-solid fa-chart-column me-1"></i>Rapoarte</a></li>
                             @endif
 
-                            @if($navigationUser->hasAnyRole(['admin','super-admin']))
+                            @if($navigationUser->hasAnyRole(['admin','super-admin']) || $navigationUser->can('access.view'))
                                 <li class="nav-item me-2 dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*', 'alert-rules.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fa-solid fa-gear me-1"></i> Setari
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('users.*', 'access.*', 'alert-rules.*') ? 'active' : '' }}" href="#" id="utileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa-solid fa-gear me-1"></i> Setări
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="utileDropdown">
-                                        <li>
-                                            <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
-                                                Utilizatori
-                                            </a>
-                                        </li>
+                                        @if($navigationUser->hasAnyRole(['admin','super-admin']))
+                                            <li>
+                                                <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                                                    Utilizatori
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @can('access.view')
+                                            <li>
+                                                <a class="dropdown-item {{ request()->routeIs('access.*') ? 'active' : '' }}" href="{{ route('access.index') }}">
+                                                    Administrare acces
+                                                </a>
+                                            </li>
+                                        @endcan
                                         @if($alertsAvailable)
                                             <li>
                                                 <a class="dropdown-item {{ request()->routeIs('alert-rules.*') ? 'active' : '' }}" href="{{ route('alert-rules.index') }}">

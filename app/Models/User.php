@@ -155,7 +155,7 @@ class User extends Authenticatable
         return $query
             ->whereHas('roles', fn (Builder $roles) => $roles->where('name', 'sofer'))
             ->whereDoesntHave('roles', fn (Builder $roles) => $roles->whereIn('name', [
-                'super-admin', 'admin', 'dispecer', 'sef-santier', 'gestionar-baza',
+                'super-admin', 'admin', 'dispecer', 'manager', 'sef-santier', 'gestionar-baza',
             ]));
     }
 }

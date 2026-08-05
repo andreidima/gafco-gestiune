@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\EffectiveAccessService;
+use App\Services\LocationResponsibilityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -16,6 +19,11 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly EffectiveAccessService $effectiveAccess,
+        private readonly LocationResponsibilityService $locationResponsibilities,
+    ) {}
+
     public function index(Request $request): View
     {
         $canSeeProtectedAccounts = $request->user()->isProtectedAdministrator();
@@ -55,16 +63,24 @@ class UserController extends Controller
     {
         $data = $this->validatedData($request);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'login_code' => strtoupper(trim($data['login_code'])),
-            'email' => ($data['email'] ?? null) ?: strtolower(trim($data['login_code'])).'@login.invalid',
-            'phone' => $data['phone'] ?? null,
-            'password' => Hash::make($data['password']),
-            'active' => $request->boolean('active', true),
-            'email_verified_at' => now(),
-        ]);
-        $user->syncRoles($data['roles'] ?? []);
+        DB::transaction(function () use ($data, $request): void {
+            $user = User::create([
+                'name' => $data['name'],
+                'login_code' => strtoupper(trim($data['login_code'])),
+                'email' => ($data['email'] ?? null) ?: strtolower(trim($data['login_code'])).'@login.invalid',
+                'phone' => $data['phone'] ?? null,
+                'password' => Hash::make($data['password']),
+                'active' => $request->boolean('active', true),
+                'email_verified_at' => now(),
+            ]);
+            $user->syncRoles($data['roles'] ?? []);
+
+            activity('access')
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties(['after' => $this->accessSnapshot($user)])
+                ->log('Acces utilizator creat');
+        });
 
         return redirect()->route('users.index')->with('status', 'Utilizatorul a fost creat.');
     }
@@ -100,12 +116,31 @@ class UserController extends Controller
             $updates['email'] = $user->email;
         }
 
-        $user->update($updates);
-        $roles = $data['roles'] ?? [];
-        if ($user->isProtectedAdministrator()) {
-            $roles[] = 'super-admin';
-        }
-        $user->syncRoles(array_values(array_unique($roles)));
+        DB::transaction(function () use ($data, $request, $updates, $user): void {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+            $before = $this->accessSnapshot($lockedUser);
+
+            $lockedUser->update($updates);
+            $roles = $data['roles'] ?? [];
+            if ($lockedUser->isProtectedAdministrator()) {
+                $roles[] = 'super-admin';
+            }
+            $lockedUser->syncRoles(array_values(array_unique($roles)));
+            $removedLocations = $this->locationResponsibilities->reconcile($lockedUser->fresh());
+            $after = $this->accessSnapshot($lockedUser->fresh());
+
+            if ($before !== $after || $removedLocations !== []) {
+                activity('access')
+                    ->performedOn($lockedUser)
+                    ->causedBy($request->user())
+                    ->withProperties([
+                        'before' => $before,
+                        'after' => $after,
+                        'removed_location_responsibilities' => $removedLocations,
+                    ])
+                    ->log('Acces utilizator actualizat');
+            }
+        }, 3);
 
         return redirect()->route('users.index')->with('status', 'Utilizatorul a fost actualizat.');
     }
@@ -115,6 +150,7 @@ class UserController extends Controller
         return [
             'user' => $user,
             'roles' => $this->assignableRoles(),
+            'accessWarnings' => $user ? $this->effectiveAccess->warnings($user) : collect(),
         ];
     }
 
@@ -174,5 +210,25 @@ class UserController extends Controller
     private function protectedAdministratorEmail(): string
     {
         return Str::lower(trim((string) config('roles.protected_admin_email')));
+    }
+
+    /** @return array{active: bool, roles: array<int, string>, direct_permissions: array<int, string>, managed_locations: array<int, string>} */
+    private function accessSnapshot(User $user): array
+    {
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
+        $user->unsetRelation('activeManagedLocations');
+        $user->load(['roles', 'permissions', 'activeManagedLocations']);
+
+        return [
+            'active' => (bool) $user->active,
+            'roles' => $user->roles->pluck('name')->sort()->values()->all(),
+            'direct_permissions' => $user->permissions->pluck('name')->sort()->values()->all(),
+            'managed_locations' => $user->activeManagedLocations
+                ->map(fn ($location): string => "{$location->code} - {$location->name}")
+                ->sort()
+                ->values()
+                ->all(),
+        ];
     }
 }
